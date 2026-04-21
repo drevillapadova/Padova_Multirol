@@ -1,0 +1,7 @@
+flask
+gunicorn
+pandas
+requests
+apscheduler
+pytz
+openpyxl
