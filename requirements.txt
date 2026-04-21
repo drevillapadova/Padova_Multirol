@@ -1,7 +1,7 @@
-flask
-gunicorn
-pandas
-requests
-apscheduler
-pytz
-openpyxl
+flask>=3.0
+gunicorn>=21.0
+pandas>=2.0
+requests>=2.31
+apscheduler>=3.10,<4.0
+pytz>=2024.1
+openpyxl>=3.1
