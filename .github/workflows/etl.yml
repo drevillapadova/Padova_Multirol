@@ -1,0 +1,49 @@
+name: ETL Padova MultiRol
+
+on:
+  schedule:
+    # Zona horaria Peru = UTC-5
+    # 7:00 AM Lima  = 12:00 UTC
+    # 12:00 PM Lima = 17:00 UTC
+    # 5:00 PM Lima  = 22:00 UTC
+    - cron: '0 12 * * *'
+    - cron: '0 17 * * *'
+    - cron: '0 22 * * *'
+  workflow_dispatch:  # permite ejecución manual desde GitHub
+
+jobs:
+  etl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Instalar Google Chrome
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y google-chrome-stable
+          google-chrome --version
+
+      - name: Instalar dependencias Python
+        run: pip install -r etl/requirements_etl.txt
+
+      - name: Ejecutar ETL
+        env:
+          EVOLTA_USER:             ${{ secrets.EVOLTA_USER }}
+          EVOLTA_PASS:             ${{ secrets.EVOLTA_PASS }}
+          GSHEETS_CREDENTIALS_B64: ${{ secrets.GSHEETS_CREDENTIALS_B64 }}
+          GSHEETS_SPREADSHEET_ID:  ${{ secrets.GSHEETS_SPREADSHEET_ID }}
+        run: python etl/ETL_Padova_MultiRol.py
+
+      - name: Notificar fallo por email
+        if: failure()
+        run: |
+          echo "El ETL falló. Revisa los logs en: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
