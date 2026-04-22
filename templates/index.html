@@ -1074,7 +1074,7 @@ function renderJMkt(){
   }).join('')||'<div style="padding:12px;color:var(--ink-4);font-size:12px">Sin datos de presupuesto · completa la pestaña PRESUPUESTO en Google Sheets</div>';
 
   document.getElementById('jmkt-content').innerHTML = `
-  <div class="kpi-row">
+  <div class="kpi-row kpi-4">
     ${kpi('Leads generados',`${fN(leadsN)} <span class="unit">leads</span>`,`${Object.keys(res).length||'—'} canales activos`)}
     ${kpi('Inversión marketing',`S/\u00a0${fN(totInv)}`,totPres?`${Math.round(totInv/(totPres||1)*100)}% del presupuesto mensual`:'—')}
     ${kpi('CPL Mix',`S/\u00a0${fN(cplMix)}`,'costo por lead · todos los canales')}
