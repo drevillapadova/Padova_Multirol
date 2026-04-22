@@ -149,6 +149,20 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 .rank-row .pct{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink);text-align:right}
 .rank-row .pct small{display:block;font-size:10px;font-weight:400;color:var(--ink-3);margin-top:1px}
 
+/* ── FINICO + DIS (admin ventas) ── */
+.finico{display:inline-flex;align-items:center;gap:8px;font-weight:500;color:var(--ink)}
+.finico .dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.dis{padding:6px 18px 12px}
+.dis-row{display:grid;grid-template-columns:26px 1fr 100px 72px;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line-2)}
+.dis-row:last-child{border-bottom:none}
+.dis-row .st{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--ok-soft);color:var(--ok);font-family:var(--mono)}
+.dis-row.w .st{background:var(--warn-soft);color:var(--warn)}
+.dis-row.p .st{background:#f1f5f9;color:var(--ink-3)}
+.dis-row .body b{font-size:12px;color:var(--ink);font-weight:600;display:block}
+.dis-row .body small{font-size:11px;color:var(--ink-3);display:block;margin-top:1px}
+.dis-row .amt{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink);text-align:right}
+.dis-row .dt{font-family:var(--mono);font-size:11px;color:var(--ink-3);text-align:right}
+
 /* ── SCHED (admin ventas) ── */
 .sched{padding:12px 18px 16px;display:flex;flex-direction:column;gap:9px}
 .sched-sum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:11px;border:1px dashed var(--line);border-radius:9px;background:#fafbfc;margin-bottom:4px}
@@ -485,21 +499,18 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
       <div class="page-sub" id="adm-sub">Cargando...</div>
     </div>
     <div class="toolbar">
-      <div class="chip">▭ Todos los proyectos</div>
+      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">▭</span>
+        <select id="adm-mes" onchange="renderAdmVentas()"><option value="">Mes</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Setiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
+      </label>
+      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">▭</span>
+        <select id="adm-año" onchange="renderAdmVentas()"><option value="">Año</option><option>2026</option><option>2025</option><option>2024</option></select>
+      </label>
+      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
+        <select id="adm-proj" onchange="renderAdmVentas()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO</option></select>
+      </label>
       <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
     </div>
   </div>
-  <div class="filter-bar">
-    <label>Proyecto</label>
-    <select id="adm-proj" onchange="renderAdmVentas()"><option value="">Todos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO</option></select>
-    <div class="filter-sep"></div>
-    <label>Año</label>
-    <select id="adm-año" onchange="renderAdmVentas()"><option value="">Todos</option><option>2026</option><option>2025</option><option>2024</option></select>
-    <div class="filter-sep"></div>
-    <label>Mes</label>
-    <select id="adm-mes" onchange="renderAdmVentas()"><option value="">Todos</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Setiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
-  </div>
-  <div class="kpi-row kpi-5" id="adm-kpis"><div class="loading">Cargando datos...</div></div>
   <div id="adm-content"><div class="loading">Cargando...</div></div>
 </div>
 
@@ -601,7 +612,7 @@ function schedHtml(ventas){
 }
 
 function libStepsHtml(){
-  const STEPS=['Separación','Contrato','Financiamiento','Desembolso','Escritura'];
+  const STEPS=['Separación','Minuta','Tasación','Aprobación','Desembolso'];
   const html=PROJS.map(p=>{
     const vp=getVentas(p),sp=getSeps(p);
     if(!vp.length&&!sp.length)return'';
@@ -1131,60 +1142,125 @@ function renderJMkt(){
 // ══════════════════════════════════════════════════════════════════════════
 function renderAdmVentas(){
   const proj = filtrarProj('adm');
-  const v   = filtrarVentas('adm');
-  const sep = getSeps(proj);
-  const disp= getDisp(proj);
-  const tot = D.stock?.length||0;
+  const v    = filtrarVentas('adm');
+  const sep  = getSeps(proj);
   const monto = v.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
   document.getElementById('adm-sub').textContent = 'Actualizado: '+D.updatedAt+' · Cobranzas y contratos';
 
-  const finMix={};
-  v.forEach(r=>{const f=String(r.TipoFinanciamiento||'Sin dato').trim();finMix[f]=(finMix[f]||0)+1;});
-  const finRows=Object.entries(finMix).sort((a,b)=>b[1]-a[1]).map(([f,n])=>`
-    <tr><td>${f}</td><td class="r">${n}</td><td class="r">${pct(n,v.length)}</td>
-    <td class="r"><div class="prog"><div class="t"><i class="ok" style="width:${Math.round(n/v.length*100)}%"></i></div>
-    <span class="pctxt">${pct(n,v.length)}</span></div></td></tr>`).join('');
+  // ── Classify financing into hierarchy
+  function classFin(fin){
+    const f=String(fin||'').toLowerCase();
+    if(f.includes('contado')) return 'Al Contado';
+    if(f.includes('ahorro')) return 'AhorroCasa';
+    if(f.includes('califica')) return 'Califica Directo';
+    if(f.includes('mivivienda')||f.includes('mi vivienda')||f.includes('techo propio')) return 'MiVivienda';
+    if(f.includes('directo')||f.includes('leasing')||f.includes('financiamiento directo')) return 'Crédito Directo';
+    if(f.includes('hipotecario')||f.includes('bcp')||f.includes('bbva')||f.includes('scotiabank')||f.includes('interbank')||f.includes('banco')) return 'Tradicionales';
+    return 'Otros';
+  }
 
-  const tipoMap={};
-  (D.stock||[]).filter(r=>!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase()).forEach(r=>{
-    const t=String(r.TipoInmueble||'Otro').trim()||'Otro';
-    if(!tipoMap[t])tipoMap[t]={total:0,vend:0,sep:0,disp:0};
-    tipoMap[t].total++;
-    const est=String(r.Estado||'').toLowerCase();
-    if(est.includes('vendid')||est.includes('minuta'))tipoMap[t].vend++;
-    else if(est.includes('separac'))tipoMap[t].sep++;
-    else if(est.includes('disponib'))tipoMap[t].disp++;
+  const finCounts={}, finMontos={};
+  v.forEach(r=>{
+    const cat=classFin(r.TipoFinanciamiento);
+    finCounts[cat]=(finCounts[cat]||0)+1;
+    finMontos[cat]=(finMontos[cat]||0)+Number(r.PrecioVentaSoles||r.PrecioVenta||0);
   });
-  const tipoRows=Object.entries(tipoMap).slice(0,8).map(([t,d])=>`
-    <tr><td>${t}</td><td class="r">${d.total}</td><td class="r" style="color:var(--ok)">${d.vend}</td>
-    <td class="r" style="color:var(--warn)">${d.sep}</td><td class="r">${d.disp}</td>
-    <td class="r">${d.total?Math.round((d.vend+d.sep)/d.total*100)+'%':'—'}</td></tr>`).join('');
 
-  document.getElementById('adm-kpis').innerHTML =
-    kpi('Ventas Totales',`${fN(v.length)} <span class="unit">und.</span>`,'minutas y escrituras')+
-    kpi('Monto Total Ventas',fM(monto),'valor acumulado')+
-    kpi('Separaciones Activas',`${fN(sep.length)} <span class="unit">und.</span>`,'en documentación')+
-    kpi('Stock Disponible',`${fN(disp.length)} <span class="unit">und.</span>`,`de ${fN(tot)} total`)+
-    kpi('% Absorbido',pct(v.length+sep.length,tot||1),`${v.length+sep.length} de ${tot}`,'',
-        `<div class="bar ok"><i style="width:${Math.min((v.length+sep.length)/(tot||1)*100,100)}%"></i></div>`);
+  const HIER=[
+    {lbl:'Crédito Hipotecario', cat:null, indent:0, grp:['Tradicionales','MiVivienda','AhorroCasa','Califica Directo'], color:'oklch(0.55 0.15 250)'},
+    {lbl:'Tradicionales',       cat:'Tradicionales',    indent:1, color:'oklch(0.65 0.14 150)'},
+    {lbl:'MiVivienda',          cat:'MiVivienda',       indent:1, color:'oklch(0.72 0.15 65)'},
+    {lbl:'· AhorroCasa',        cat:'AhorroCasa',       indent:2, color:'oklch(0.60 0.18 25)'},
+    {lbl:'· Califica Directo',  cat:'Califica Directo', indent:2, color:'oklch(0.55 0.15 290)'},
+    {lbl:'Crédito Directo',     cat:'Crédito Directo',  indent:0, color:'oklch(0.70 0.10 230)'},
+    {lbl:'Al Contado',          cat:'Al Contado',       indent:0, color:'oklch(0.62 0.14 150)'},
+  ];
+
+  function grpN(cats){return(cats||[]).reduce((a,c)=>a+(finCounts[c]||0),0);}
+  function grpM(cats){return(cats||[]).reduce((a,c)=>a+(finMontos[c]||0),0);}
+
+  const finRows=HIER.map(h=>{
+    const n = h.cat ? (finCounts[h.cat]||0) : grpN(h.grp);
+    const m = h.cat ? (finMontos[h.cat]||0) : grpM(h.grp);
+    const isParent = !h.cat;
+    const rowStyle = isParent ? ' style="background:#fafbfc"' : '';
+    const nameCell = isParent
+      ? `<span class="finico"><span class="dot" style="background:${h.color}"></span><b>${h.lbl}</b></span>`
+      : `<span style="padding-left:${h.indent*14}px;display:inline-block">${h.lbl}</span>`;
+    const pv = v.length ? Math.round(n/v.length*100) : 0;
+    const prog = n ? `<div class="prog"><div class="t"><i class="ok" style="width:${pv}%"></i></div><span class="pctxt">${pv}%</span></div>` : '—';
+    return `<tr${rowStyle}>
+      <td>${nameCell}</td>
+      <td class="r">${n||'—'}</td>
+      <td class="r">—</td>
+      <td class="r">—</td>
+      <td class="r">${m?fS(m):'—'}</td>
+      <td class="r">—</td>
+      <td class="r">${prog}</td>
+    </tr>`;
+  }).join('');
+
+  // ── Desembolsos list (latest ventas as proxies)
+  const disRows = v.slice(0,7).map(r=>{
+    const d=parseDate(r.FechaVenta||r.FechaEntrega_Minuta||'');
+    const day=d?`${d.getDate()} ${MN[d.getMonth()+1]}`:'—';
+    const m=Number(r.PrecioVentaSoles||r.PrecioVenta||0);
+    return `<div class="dis-row">
+      <div class="st">✓</div>
+      <div class="body"><b>${r.TipoFinanciamiento||'—'}</b><small>${r.NombresTitular||'Cliente'} · ${r.TipoInmueble||'—'}</small></div>
+      <div class="amt">${fS(m)}</div>
+      <div class="dt">${day}</div>
+    </div>`;
+  }).join('')||'<div style="padding:14px;color:var(--ink-4);font-size:12px">Sin registros</div>';
+
+  const cobPct = Math.min(Math.round((v.length/(v.length+sep.length||1))*100),100);
 
   document.getElementById('adm-content').innerHTML = `
-  <div class="section-title"><h2>Estado por tipo de financiamiento</h2><div class="hint">Cartera vigente</div></div>
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>Distribución por financiamiento</h3><p>Tipo de pago de compradores</p></div></div>
-    <table class="tbl"><thead><tr><th>Financiamiento</th><th class="r">Clientes</th><th class="r">%</th><th class="r">Avance</th></tr></thead>
-    <tbody>${finRows||'<tr><td colspan="4" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de financiamiento en el CRM</td></tr>'}</tbody></table>
+  <div class="kpi-row kpi-5">
+    ${kpi('Ventas totales (minuta)',`${fN(v.length)} <span class="unit">und.</span>`,'Escrituras firmadas acumuladas')}
+    ${kpi('Monto total de ventas',fM(monto),'Valor total de las minutas')}
+    ${kpi('Cobrado','—','Sin datos de cobros en CRM','',`<div class="bar ok"><i style="width:0%"></i></div>`)}
+    ${kpi('Pendiente por cobrar','—','Sin datos de pagos en CRM')}
+    ${kpi('% Recaudación',`${cobPct}<span class="unit">%</span>`,`${v.length} ventas de ${v.length+sep.length} total`,'',`<div class="bar ok"><i style="width:${cobPct}%"></i></div>`)}
   </div>
-  <div class="section-title"><h2>Registro de operaciones</h2><div class="hint">Ventas recientes del CRM</div></div>
-  <div class="grid-2">
-    <div class="card"><div class="card-hd"><div><h3>Últimas operaciones</h3><p>Ventas registradas en el CRM</p></div></div>${schedHtml(v)}</div>
-    <div class="card"><div class="card-hd"><div><h3>Stock por tipología</h3><p>Vendido, separado y disponible</p></div></div>
-      <table class="tbl"><thead><tr><th>Tipología</th><th class="r">Total</th><th class="r">Vend.</th><th class="r">Sep.</th><th class="r">Disp.</th><th class="r">% Abs.</th></tr></thead>
-      <tbody>${tipoRows||'<tr><td colspan="6" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de stock</td></tr>'}</tbody></table>
+  <div class="section-title"><h2>Estado por tipo de financiamiento</h2><div class="hint">Clientes, unidades cobradas y monto recaudado</div></div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hd"><div><h3>Distribución por financiamiento</h3><p>Cartera vigente · agrupada por modalidad de pago</p></div></div>
+    <table class="tbl">
+      <thead><tr>
+        <th>Financiamiento</th>
+        <th class="r">Clientes</th>
+        <th class="r">Unid. cobradas</th>
+        <th class="r">Unid. pend. cobrar</th>
+        <th class="r">Monto cobrado</th>
+        <th class="r">Monto pendiente</th>
+        <th class="r">% Avance</th>
+      </tr></thead>
+      <tbody>${finRows||'<tr><td colspan="7" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de financiamiento en el CRM</td></tr>'}</tbody>
+      <tfoot><tr>
+        <td>Total cartera</td>
+        <td class="r">${v.length||'—'}</td>
+        <td class="r">—</td>
+        <td class="r">—</td>
+        <td class="r">${fS(monto)}</td>
+        <td class="r">—</td>
+        <td class="r">—</td>
+      </tr></tfoot>
+    </table>
+  </div>
+  <div class="section-title" style="margin-top:26px"><h2>Gestión de cobros</h2><div class="hint">Programado del mes · desembolsos registrados</div></div>
+  <div class="grid-2-1">
+    <div class="card">
+      <div class="card-hd"><div><h3>Programado por cobrar</h3><p>Cuotas programadas en el CRM</p></div></div>
+      ${schedHtml(v)}
+    </div>
+    <div class="card">
+      <div class="card-hd"><div><h3>Desembolsos · últimas operaciones</h3><p>Abonos recibidos de bancos y clientes</p></div></div>
+      <div class="dis">${disRows}</div>
     </div>
   </div>
-  <div class="section-title"><h2>Proceso de liberación</h2><div class="hint">Etapas de desembolso por proyecto</div></div>
-  <div class="card"><div class="card-hd"><div><h3>Seguimiento de liberación</h3><p>Estado de las etapas por proyecto</p></div></div>${libStepsHtml()}</div>`;
+  <div class="section-title" style="margin-top:26px"><h2>Seguimiento de liberación de dinero</h2><div class="hint">Etapas del proceso bancario hasta el abono al proyecto</div></div>
+  <div class="card"><div class="card-hd"><div><h3>Expedientes en trámite</h3><p>5 etapas · Separación → Minuta → Tasación → Aprobación → Desembolso</p></div></div>${libStepsHtml()}</div>`;
 }
 
 // ══════════════════════════════════════════════════════════════════════════
