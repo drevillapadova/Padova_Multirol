@@ -20,7 +20,10 @@ html,body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkM
 .app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
 
 /* ── SIDEBAR ── */
-.sidebar{background:#0f172a;color:#cbd5e1;padding:20px 14px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar{background:#0f172a;color:#cbd5e1;padding:20px 14px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh;overflow-y:auto;z-index:200}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:150}
+.hamburger{display:none;position:fixed;top:12px;left:12px;z-index:300;background:#0f172a;border:none;border-radius:7px;padding:8px 10px;cursor:pointer;flex-direction:column;gap:4px}
+.hamburger span{display:block;width:20px;height:2px;background:#cbd5e1;border-radius:2px}
 .brand{display:flex;align-items:center;gap:10px;padding:6px 10px 18px;border-bottom:1px solid #1e293b;margin-bottom:14px}
 .brand-mark{width:30px;height:30px;border-radius:7px;background:linear-gradient(135deg,oklch(0.65 0.18 250),oklch(0.55 0.18 220));display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px}
 .brand-name{font-weight:700;color:#fff;font-size:14px;letter-spacing:-0.01em}
@@ -31,6 +34,13 @@ html,body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkM
 .nav-item.active{background:#1e293b;color:#fff;box-shadow:inset 2px 0 0 oklch(0.65 0.18 250)}
 .nav-item .dot{width:6px;height:6px;border-radius:50%;background:#475569;flex-shrink:0}
 .nav-item.active .dot{background:oklch(0.7 0.18 250)}
+
+/* ── FILTROS ── */
+.filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:18px;padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:9px}
+.filter-bar label{font-size:11px;color:var(--ink-3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.filter-bar select{background:var(--bg);border:1px solid var(--line);color:var(--ink-2);font-size:12px;padding:5px 10px;border-radius:6px;cursor:pointer;min-width:120px}
+.filter-bar select:focus{outline:2px solid var(--brand);outline-offset:1px}
+.filter-sep{width:1px;height:24px;background:var(--line);margin:0 4px}
 
 /* ── MAIN ── */
 main{overflow-x:hidden}
@@ -259,10 +269,31 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 @media(max-width:1400px){.kpi-6{grid-template-columns:repeat(3,1fr)}.kpi-5{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:1200px){.grid-2,.grid-2-1,.grid-3{grid-template-columns:1fr}}
 @media(max-width:1000px){.kpi-6,.kpi-5,.kpi-4{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:640px){.kpi-6,.kpi-5,.kpi-4{grid-template-columns:1fr}.fstep{grid-template-columns:110px 1fr}}
+@media(max-width:768px){
+  .app{grid-template-columns:1fr}
+  .sidebar{position:fixed;left:-260px;top:0;height:100vh;width:240px;transition:left .25s ease;z-index:200}
+  .sidebar.open{left:0}
+  .overlay.open{display:block}
+  .hamburger{display:flex}
+  .panel{padding:16px 14px 32px;margin-top:48px}
+  .filter-bar{gap:6px}
+  .filter-bar select{min-width:100px;font-size:11px}
+  .topbar{flex-direction:column;align-items:flex-start;gap:10px}
+  .toolbar{width:100%}
+  .bar-row{grid-template-columns:100px 1fr 60px 44px}
+  .rank-row{grid-template-columns:24px 1fr 80px}
+  .rank-row .bar-wrap{display:none}
+}
+@media(max-width:640px){.kpi-6,.kpi-5,.kpi-4{grid-template-columns:1fr}.fstep{grid-template-columns:110px 1fr}
+  .filter-bar{flex-direction:column;align-items:flex-start}.filter-sep{display:none}
+}
 </style>
 </head>
 <body>
+<button class="hamburger" onclick="toggleSidebar()" aria-label="Menú">
+  <span></span><span></span><span></span>
+</button>
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
 <div class="app">
 
 <!-- ═══════════ SIDEBAR ═══════════ -->
@@ -296,6 +327,16 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
       <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
     </div>
   </div>
+  <div class="filter-bar">
+    <label>Proyecto</label>
+    <select id="dir-proj" onchange="renderDirector()"><option value="">Todos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO</option></select>
+    <div class="filter-sep"></div>
+    <label>Año</label>
+    <select id="dir-año" onchange="renderDirector()"><option value="">Todos</option><option>2026</option><option>2025</option><option>2024</option></select>
+    <div class="filter-sep"></div>
+    <label>Mes</label>
+    <select id="dir-mes" onchange="renderDirector()"><option value="">Todos</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Setiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
+  </div>
   <div class="kpi-row kpi-6" id="dir-kpis"><div class="loading">Cargando datos...</div></div>
   <div id="dir-content"><div class="loading">Cargando...</div></div>
 </div>
@@ -312,6 +353,16 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
       <div class="chip">▭ Todos los proyectos</div>
       <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
     </div>
+  </div>
+  <div class="filter-bar">
+    <label>Proyecto</label>
+    <select id="jv-proj" onchange="renderJVentas()"><option value="">Todos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO</option></select>
+    <div class="filter-sep"></div>
+    <label>Año</label>
+    <select id="jv-año" onchange="renderJVentas()"><option value="">Todos</option><option>2026</option><option>2025</option><option>2024</option></select>
+    <div class="filter-sep"></div>
+    <label>Mes</label>
+    <select id="jv-mes" onchange="renderJVentas()"><option value="">Todos</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Setiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
   </div>
   <div class="kpi-row kpi-4" id="jv-kpis"><div class="loading">Cargando datos...</div></div>
   <div id="jv-content"><div class="loading">Cargando...</div></div>
@@ -330,6 +381,16 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
       <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
     </div>
   </div>
+  <div class="filter-bar">
+    <label>Proyecto</label>
+    <select id="jmkt-proj" onchange="renderJMkt()"><option value="">Todos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO</option></select>
+    <div class="filter-sep"></div>
+    <label>Año</label>
+    <select id="jmkt-año" onchange="renderJMkt()"><option value="">Todos</option><option>2026</option><option>2025</option><option>2024</option></select>
+    <div class="filter-sep"></div>
+    <label>Mes</label>
+    <select id="jmkt-mes" onchange="renderJMkt()"><option value="">Todos</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Setiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
+  </div>
   <div class="kpi-row kpi-4" id="jmkt-kpis"><div class="loading">Cargando datos...</div></div>
   <div id="jmkt-content"><div class="loading">Cargando...</div></div>
 </div>
@@ -346,6 +407,16 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
       <div class="chip">▭ Todos los proyectos</div>
       <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
     </div>
+  </div>
+  <div class="filter-bar">
+    <label>Proyecto</label>
+    <select id="adm-proj" onchange="renderAdmVentas()"><option value="">Todos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO</option></select>
+    <div class="filter-sep"></div>
+    <label>Año</label>
+    <select id="adm-año" onchange="renderAdmVentas()"><option value="">Todos</option><option>2026</option><option>2025</option><option>2024</option></select>
+    <div class="filter-sep"></div>
+    <label>Mes</label>
+    <select id="adm-mes" onchange="renderAdmVentas()"><option value="">Todos</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Setiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
   </div>
   <div class="kpi-row kpi-5" id="adm-kpis"><div class="loading">Cargando datos...</div></div>
   <div id="adm-content"><div class="loading">Cargando...</div></div>
@@ -364,6 +435,16 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
       <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
     </div>
   </div>
+  <div class="filter-bar">
+    <label>Proyecto</label>
+    <select id="mp-proj" onchange="renderMktProy()"><option value="">Todos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO</option></select>
+    <div class="filter-sep"></div>
+    <label>Año</label>
+    <select id="mp-año" onchange="renderMktProy()"><option value="">Todos</option><option>2026</option><option>2025</option><option>2024</option></select>
+    <div class="filter-sep"></div>
+    <label>Mes</label>
+    <select id="mp-mes" onchange="renderMktProy()"><option value="">Todos</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Setiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
+  </div>
   <div class="kpi-row kpi-5" id="mp-kpis"><div class="loading">Cargando datos...</div></div>
   <div id="mp-content"><div class="loading">Cargando...</div></div>
 </div>
@@ -371,17 +452,19 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 </div>
 
 <script>
-// ─── CONFIG ────────────────────────────────────────────────────────────────
-const API = '';  // URL de Railway — dejar vacío usa rutas relativas
+const API = '';
+let D = {funnel:{}, ventas:[], stock:[], campanas:{}, desist:[], updatedAt:'—'};
 
-// ─── ESTADO ────────────────────────────────────────────────────────────────
-let D = {funnel:{}, ventas:[], stock:[], campanas:{}, desist:{}, updatedAt:'—'};
-
-// ─── HELPERS ───────────────────────────────────────────────────────────────
 const fS  = n => 'S/ '+Number(n||0).toLocaleString('es-PE',{minimumFractionDigits:0,maximumFractionDigits:0});
 const fN  = n => Number(n||0).toLocaleString('es-PE');
 const pct = (a,b) => b ? Math.round(a/b*100)+'%' : '0%';
 const fM  = n => { const v=Number(n||0); return v>=1000000?'S/ '+(v/1000000).toFixed(1)+'M':v>=1000?'S/ '+(v/1000).toFixed(0)+'k':fS(v); };
+const MN  = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+function parseDate(f){
+  if(!f)return null;
+  try{const p=f.includes('/')?f.split('/'):null;const d=p&&p.length===3?new Date(+p[2],+p[1]-1,+p[0]):new Date(f);return isNaN(d.getTime())?null:d;}catch(e){return null;}
+}
 
 function kpi(lbl,val,sub='',cls='',extra=''){
   return `<div class="kpi ${cls}">
@@ -400,6 +483,73 @@ function barRow(lbl,w,v,p,color='oklch(0.55 0.15 250)'){
   return `<div class="bar-row"><span class="lbl">${lbl}</span>
     <div class="tr"><i style="width:${w}%;background:${color}"></i></div>
     <span class="v">${v}</span><span class="p">${p}</span></div>`;
+}
+
+function weekBarsHtml(src){
+  const days=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const cnt=[0,0,0,0,0,0,0];
+  (src||[]).forEach(r=>{const d=parseDate(r.FechaVenta||r.FechaEntrega_Minuta||r.fecha||'');if(d)cnt[(d.getDay()+6)%7]++;});
+  const max=Math.max(...cnt,1);
+  const bars=days.map((d,i)=>`<div class="week-bar"><div class="total">${cnt[i]||0}</div><div class="seg m" style="height:${Math.round(cnt[i]/max*100)}%"></div></div>`).join('');
+  return `<div class="week"><div class="week-grid">${bars}</div><div class="week-labels">${days.map(d=>`<span>${d}</span>`).join('')}</div><div class="week-legend"><b style="background:var(--meta)"></b> Operaciones por día</div></div>`;
+}
+
+function heatmapHtml(src){
+  const days=['L','M','X','J','V','S','D'];
+  const data=days.map(()=>Array(24).fill(0));
+  let hasData=false;
+  (src||[]).forEach(r=>{const d=parseDate(r.FechaVenta||r.FechaEntrega_Minuta||r.fecha||'');if(d&&d.getHours()!==0){data[(d.getDay()+6)%7][d.getHours()]++;hasData=true;}});
+  if(!hasData)return`<div style="padding:18px;color:var(--ink-4);font-size:12px;text-align:center">Sin datos horarios — las fechas no incluyen hora</div>`;
+  const max=Math.max(...data.flat(),1);
+  const sc=['#eef2f6','#c7d7ee','#9dbde5','#6fa3db','#4089d1','#1a70c7'];
+  const cell=v=>`<div class="cell" style="background:${sc[Math.min(Math.floor(v/max*5),5)]}" title="${v}"></div>`;
+  const rows=days.map((d,i)=>`<div class="dayl">${d}</div>${data[i].map(v=>cell(v)).join('')}`).join('');
+  const hours=Array.from({length:24},(_,i)=>`<span>${i%6===0?i:''}</span>`).join('');
+  return `<div class="hh"><div class="hh-grid">${rows}</div><div class="hh-hours"><span></span>${hours}</div><div class="hh-legend">Menos <div class="hh-scale">${sc.map(c=>`<div style="background:${c}"></div>`).join('')}</div> Más</div></div>`;
+}
+
+function schedHtml(ventas){
+  const items=ventas.slice(0,6).map(r=>{
+    const d=parseDate(r.FechaVenta||r.FechaEntrega_Minuta||'');
+    const day=d?d.getDate():'—'; const mon=d?MN[d.getMonth()+1]:'';
+    const monto=Number(r.PrecioVentaSoles||r.PrecioVenta||0);
+    return `<div class="sched-item"><div class="day"><b>${day}</b><small>${mon}</small></div><div class="body"><b>${r.NombresTitular||'Cliente'}</b><small>${PLBL[String(r.Proyecto||'').toUpperCase()]||r.Proyecto||'—'} · ${r.TipoInmueble||'—'}</small></div><div class="amt">${fS(monto)}<small>${r.TipoFinanciamiento||'—'}</small></div></div>`;
+  }).join('');
+  const tot=ventas.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
+  return `<div class="sched"><div class="sched-sum"><div><small>Total ventas</small><b>${fN(ventas.length)} und.</b></div><div><small>Monto total</small><b>${fM(tot)}</b></div><div><small>Ticket prom.</small><b>${ventas.length?fM(tot/ventas.length):'—'}</b></div></div>${items||'<div style="color:var(--ink-4);font-size:12px;padding:12px">Sin registros</div>'}</div>`;
+}
+
+function libStepsHtml(){
+  const STEPS=['Separación','Contrato','Financiamiento','Desembolso','Escritura'];
+  const html=PROJS.map(p=>{
+    const vp=getVentas(p),sp=getSeps(p);
+    if(!vp.length&&!sp.length)return'';
+    const etapa=vp.length>0?4:1;
+    const steps=STEPS.map((s,i)=>`<div class="step ${i<etapa?'done':i===etapa?'curr':''}">${s}<small>${i<etapa?'✓':i===etapa?'▶':'—'}</small></div>`).join('');
+    const mp=vp.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
+    return `<div class="lib-row"><div class="lib-head"><div><b>${PLBL[p]}</b><small>${vp.length} vendidas · ${sp.length} en separación</small></div><div class="amt">${fM(mp)}<small>monto ventas</small></div></div><div class="lib-steps">${steps}</div></div>`;
+  }).filter(Boolean).join('');
+  return html||'<div style="padding:14px 18px;color:var(--ink-4);font-size:12px">Sin datos de ventas o separaciones</div>';
+}
+
+function tRespuestaHtml(ventas){
+  const times=ventas.map(r=>Number(r.T_Respuesta_min||r.TiempoRespuesta||0)).filter(v=>v>0);
+  if(!times.length)return`<div class="loading">Sin datos de T_Respuesta_min en el CRM</div>`;
+  const avg=Math.round(times.reduce((a,b)=>a+b,0)/times.length);
+  const bkts={'< 5 min':0,'5–15 min':0,'15–30 min':0,'30–60 min':0,'> 60 min':0};
+  times.forEach(t=>{if(t<5)bkts['< 5 min']++;else if(t<15)bkts['5–15 min']++;else if(t<30)bkts['15–30 min']++;else if(t<60)bkts['30–60 min']++;else bkts['> 60 min']++;});
+  const max=Math.max(...Object.values(bkts),1);
+  return `<div class="bar-list" style="padding:14px 18px"><div style="margin-bottom:10px;font-size:12px"><b style="font-family:var(--mono);font-size:16px">${avg}</b><span style="color:var(--ink-3)"> min prom. · ${times.length} registros</span></div>${Object.entries(bkts).map(([k,n])=>barRow(k,Math.round(n/max*100),n,pct(n,times.length),k.startsWith('<')||k.startsWith('5')?'var(--ok)':k.startsWith('15')?'var(--warn)':'var(--bad)')).join('')}</div>`;
+}
+
+function cerradosRazonesHtml(){
+  const desist=D.desist||[];
+  if(!Array.isArray(desist)||!desist.length)return`<div class="loading">Sin datos de desistimientos en el CRM</div>`;
+  const m={};
+  desist.forEach(r=>{const z=String(r.Razon||r.MotivoDesistimiento||'Sin dato').trim();m[z]=(m[z]||0)+1;});
+  const sorted=Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const tot=sorted.reduce((a,b)=>a+b[1],0)||1;const max=sorted[0]?.[1]||1;
+  return `<div class="bar-list">${sorted.map(([r,n])=>barRow(r,Math.round(n/max*100),n,pct(n,tot),'var(--bad)')).join('')}</div>`;
 }
 
 function getFunnel(proj=''){
@@ -460,10 +610,11 @@ function renderAll(){
 // DIRECTOR COMERCIAL
 // ══════════════════════════════════════════════════════════════════════════
 function renderDirector(){
-  const f   = getFunnel();
-  const v   = D.ventas||[];
-  const sep = getSeps();
-  const disp= getDisp();
+  const proj = filtrarProj('dir');
+  const f   = getFunnel(proj);
+  const v   = filtrarVentas('dir');
+  const sep = getSeps(proj);
+  const disp= getDisp(proj);
   const monto = v.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
   const ts = D.updatedAt;
   document.getElementById('dir-sub').textContent = 'Actualizado: '+ts+' · Todos los proyectos';
@@ -486,6 +637,11 @@ function renderDirector(){
       <td class="r">${pct(vp.length,30)}</td></tr>`;
   }).join('');
 
+  // Ventas por mes
+  const mesMapa={};
+  v.forEach(r=>{const d=parseDate(r.FechaVenta||r.FechaEntrega_Minuta||'');if(!d)return;const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;if(!mesMapa[k])mesMapa[k]={mes:MN[d.getMonth()+1]+' '+d.getFullYear(),n:0,monto:0};mesMapa[k].n++;mesMapa[k].monto+=Number(r.PrecioVentaSoles||r.PrecioVenta||0);});
+  const mesRows=Object.entries(mesMapa).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,12).map(([,d])=>`<tr><td>${d.mes}</td><td class="r">${d.n}</td><td class="r">${fM(d.monto)}</td><td class="r">${pct(d.n,v.length)}</td></tr>`).join('');
+
   // Funnel
   const funnelHtml = `
     <div class="funnel">
@@ -501,6 +657,12 @@ function renderDirector(){
     <div class="card-hd"><div><h3>Ventas por proyecto</h3><p>Unidades vendidas, separaciones y stock disponible</p></div></div>
     <table class="tbl"><thead><tr><th>Proyecto</th><th class="r">Ventas</th><th class="r">Sep.</th><th class="r">Disponible</th><th class="r">Monto</th><th class="r">% Meta</th></tr></thead>
     <tbody>${projRows||'<tr><td colspan="6" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos — el ETL aún no ha corrido</td></tr>'}</tbody></table>
+  </div>
+  <div class="section-title"><h2>Ventas por mes</h2><div class="hint">Histórico mensual</div></div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hd"><div><h3>Historial mensual</h3><p>Unidades y monto por período</p></div></div>
+    <table class="tbl"><thead><tr><th>Mes</th><th class="r">Unidades</th><th class="r">Monto</th><th class="r">% del total</th></tr></thead>
+    <tbody>${mesRows||'<tr><td colspan="4" style="text-align:center;color:var(--ink-4);padding:20px">Sin fechas de venta disponibles</td></tr>'}</tbody></table>
   </div>
   <div class="section-title"><h2>Embudo comercial</h2><div class="hint">Todos los proyectos</div></div>
   <div class="grid-2">
@@ -543,9 +705,10 @@ function tipCard(code,m2,vend,ticket,stock){
 // JEFE DE VENTAS
 // ══════════════════════════════════════════════════════════════════════════
 function renderJVentas(){
-  const f   = getFunnel();
-  const v   = D.ventas||[];
-  const sep = getSeps();
+  const proj = filtrarProj('jv');
+  const f   = getFunnel(proj);
+  const v   = filtrarVentas('jv');
+  const sep = getSeps(proj);
   const monto = v.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
   const montoSep = sep.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||r.PrecioLista||0),0);
   document.getElementById('jv-sub').textContent = 'Actualizado: '+D.updatedAt+' · Equipo de ventas';
@@ -568,10 +731,10 @@ function renderJVentas(){
     </div>`;
   }).join('');
 
-  // Vendedores (si existe campo Vendedor en ventas)
+  // Vendedores
   const vendMap = {};
-  (D.ventas||[]).forEach(r=>{const vn=String(r.Vendedor||'Sin asignar').trim();if(!vendMap[vn])vendMap[vn]={v:0,s:0};vendMap[vn].v++;});
-  (getSeps()).forEach(r=>{const vn=String(r.Vendedor||'Sin asignar').trim();if(!vendMap[vn])vendMap[vn]={v:0,s:0};vendMap[vn].s++;});
+  v.forEach(r=>{const vn=String(r.Vendedor||'Sin asignar').trim();if(!vendMap[vn])vendMap[vn]={v:0,s:0};vendMap[vn].v++;});
+  sep.forEach(r=>{const vn=String(r.Vendedor||'Sin asignar').trim();if(!vendMap[vn])vendMap[vn]={v:0,s:0};vendMap[vn].s++;});
   const vendRows = Object.entries(vendMap).sort((a,b)=>b[1].v-a[1].v).slice(0,6).map(([nm,d],i)=>`
     <div class="rank-row ${i===0?'top':''}">
       <div class="pos">${i+1}</div>
@@ -600,9 +763,10 @@ function renderJVentas(){
   <div class="card"><div class="card-hd"><div><h3>Ranking de vendedores</h3><p>Unidades vendidas acumuladas</p></div></div>
     ${vendRows||'<div class="loading">Sin datos de vendedores — verifica columna Vendedor en Evolta</div>'}
   </div>
-  <div class="section-title"><h2>Detalle por canal de origen</h2><div class="hint">Cómo se enteró el comprador</div></div>
-  <div class="card"><div class="card-hd"><div><h3>Ventas por canal de origen</h3><p>Campo ComoSeEntero del CRM</p></div></div>
-    <div class="bar-list">${canalBar(D.ventas||[])}</div>
+  <div class="section-title"><h2>Tiempo de respuesta al lead</h2><div class="hint">Velocidad de contacto</div></div>
+  <div class="grid-2">
+    <div class="card"><div class="card-hd"><div><h3>Distribución T. Respuesta</h3><p>Tiempo desde lead hasta primer contacto</p></div></div>${tRespuestaHtml(v)}</div>
+    <div class="card"><div class="card-hd"><div><h3>Canal de origen de ventas</h3><p>Campo ComoSeEntero del CRM</p></div></div><div class="bar-list">${canalBar(v)||'<div class="loading">Sin datos</div>'}</div></div>
   </div>`;
 }
 
@@ -691,15 +855,18 @@ function renderJMkt(){
     </div>
   </div>
   <div class="section-title"><h2>Inversión y canales</h2><div class="hint">Presupuesto ejecutado</div></div>
-  <div class="card"><div class="card-hd"><div><h3>Presupuesto de marketing</h3><p>Ejecución vs. asignado</p></div></div>
-    <div class="bud">
-      <div class="bud-sum">
-        <div><small>Asignado</small><b>${fS(presup.reduce((a,p)=>a+Number(p.presupuesto||0),0))}</b></div>
-        <div><small>Ejecutado</small><b>${fS(totInv)}</b></div>
-        <div><small>Disponible</small><b style="color:var(--ok)">${fS(Math.max(presup.reduce((a,p)=>a+Number(p.presupuesto||0),0)-totInv,0))}</b></div>
+  <div class="grid-2">
+    <div class="card"><div class="card-hd"><div><h3>Presupuesto de marketing</h3><p>Ejecución vs. asignado</p></div></div>
+      <div class="bud">
+        <div class="bud-sum">
+          <div><small>Asignado</small><b>${fS(presup.reduce((a,p)=>a+Number(p.presupuesto||0),0))}</b></div>
+          <div><small>Ejecutado</small><b>${fS(totInv)}</b></div>
+          <div><small>Disponible</small><b style="color:var(--ok)">${fS(Math.max(presup.reduce((a,p)=>a+Number(p.presupuesto||0),0)-totInv,0))}</b></div>
+        </div>
+        ${budRows||'<div style="padding:12px;color:var(--ink-4);font-size:12px">Llena la pestaña PRESUPUESTO en Google Sheets</div>'}
       </div>
-      ${budRows||'<div style="padding:12px;color:var(--ink-4);font-size:12px">Llena la pestaña PRESUPUESTO en Google Sheets</div>'}
     </div>
+    <div class="card"><div class="card-hd"><div><h3>Motivos de cierre / desistimiento</h3><p>Razones de pérdida del lead</p></div></div>${cerradosRazonesHtml()}</div>
   </div>`;
 }
 
@@ -707,14 +874,14 @@ function renderJMkt(){
 // ADM. DE VENTAS
 // ══════════════════════════════════════════════════════════════════════════
 function renderAdmVentas(){
-  const v   = D.ventas||[];
-  const sep = getSeps();
-  const disp= getDisp();
+  const proj = filtrarProj('adm');
+  const v   = filtrarVentas('adm');
+  const sep = getSeps(proj);
+  const disp= getDisp(proj);
   const tot = D.stock?.length||0;
   const monto = v.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
   document.getElementById('adm-sub').textContent = 'Actualizado: '+D.updatedAt+' · Cobranzas y contratos';
 
-  // Mix financiamiento
   const finMix={};
   v.forEach(r=>{const f=String(r.TipoFinanciamiento||'Sin dato').trim();finMix[f]=(finMix[f]||0)+1;});
   const finRows=Object.entries(finMix).sort((a,b)=>b[1]-a[1]).map(([f,n])=>`
@@ -722,9 +889,8 @@ function renderAdmVentas(){
     <td class="r"><div class="prog"><div class="t"><i class="ok" style="width:${Math.round(n/v.length*100)}%"></i></div>
     <span class="pctxt">${pct(n,v.length)}</span></div></td></tr>`).join('');
 
-  // Stock por tipología
   const tipoMap={};
-  (D.stock||[]).forEach(r=>{
+  (D.stock||[]).filter(r=>!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase()).forEach(r=>{
     const t=String(r.TipoInmueble||'Otro').trim()||'Otro';
     if(!tipoMap[t])tipoMap[t]={total:0,vend:0,sep:0,disp:0};
     tipoMap[t].total++;
@@ -753,25 +919,16 @@ function renderAdmVentas(){
     <table class="tbl"><thead><tr><th>Financiamiento</th><th class="r">Clientes</th><th class="r">%</th><th class="r">Avance</th></tr></thead>
     <tbody>${finRows||'<tr><td colspan="4" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de financiamiento en el CRM</td></tr>'}</tbody></table>
   </div>
-  <div class="section-title"><h2>Stock por tipología</h2><div class="hint">Estado actual</div></div>
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>Inventario por tipología</h3><p>Vendido, separado y disponible</p></div></div>
-    <table class="tbl"><thead><tr><th>Tipología</th><th class="r">Total</th><th class="r">Vend.</th><th class="r">Sep.</th><th class="r">Disp.</th><th class="r">% Abs.</th></tr></thead>
-    <tbody>${tipoRows||'<tr><td colspan="6" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de stock</td></tr>'}</tbody></table>
+  <div class="section-title"><h2>Registro de operaciones</h2><div class="hint">Ventas recientes del CRM</div></div>
+  <div class="grid-2">
+    <div class="card"><div class="card-hd"><div><h3>Últimas operaciones</h3><p>Ventas registradas en el CRM</p></div></div>${schedHtml(v)}</div>
+    <div class="card"><div class="card-hd"><div><h3>Stock por tipología</h3><p>Vendido, separado y disponible</p></div></div>
+      <table class="tbl"><thead><tr><th>Tipología</th><th class="r">Total</th><th class="r">Vend.</th><th class="r">Sep.</th><th class="r">Disp.</th><th class="r">% Abs.</th></tr></thead>
+      <tbody>${tipoRows||'<tr><td colspan="6" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de stock</td></tr>'}</tbody></table>
+    </div>
   </div>
-  <div class="section-title"><h2>Seguimiento de cobros</h2><div class="hint">Programado del mes</div></div>
-  <div class="card">
-    <div class="card-hd"><div><h3>Ventas recientes del CRM</h3><p>Últimas 8 operaciones registradas</p></div></div>
-    <table class="tbl"><thead><tr><th>Cliente</th><th>Proyecto</th><th>Tipología</th><th class="r">Precio S/.</th><th>Estado</th><th>Financiamiento</th></tr></thead>
-    <tbody>${(D.ventas||[]).slice(0,8).map(r=>`
-      <tr><td>${r.NombresTitular||'—'}</td><td>${PLBL[String(r.Proyecto||'').toUpperCase()]||r.Proyecto||'—'}</td>
-      <td>${r.TipoInmueble||'—'}</td>
-      <td class="r">${fS(Number(r.PrecioVentaSoles||r.PrecioVenta||0))}</td>
-      <td><span class="pill ${r.Estado==='Vendido'?'g':r.Estado?.includes('Sep')?'w':'n'}">${r.Estado||'—'}</span></td>
-      <td>${r.TipoFinanciamiento||'—'}</td></tr>`).join('')||
-      '<tr><td colspan="6" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de ventas</td></tr>'}
-    </tbody></table>
-  </div>`;
+  <div class="section-title"><h2>Proceso de liberación</h2><div class="hint">Etapas de desembolso por proyecto</div></div>
+  <div class="card"><div class="card-hd"><div><h3>Seguimiento de liberación</h3><p>Estado de las etapas por proyecto</p></div></div>${libStepsHtml()}</div>`;
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -836,6 +993,11 @@ function renderMktProy(){
     <table class="tbl"><thead><tr><th>Campaña</th><th class="r">Inversión</th><th class="r">Impresiones</th><th class="r">Leads</th><th class="r">CPL</th><th class="r">Estado</th></tr></thead>
     <tbody>${campRows||'<tr><td colspan="6" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos — sube CSV de Meta/Google/TikTok a Google Sheets</td></tr>'}</tbody></table>
   </div>
+  <div class="section-title"><h2>Distribución temporal de leads</h2><div class="hint">Basado en fechas de operación</div></div>
+  <div class="grid-2">
+    <div class="card"><div class="card-hd"><div><h3>Leads por día de semana</h3><p>Distribución semanal de operaciones</p></div></div>${weekBarsHtml(v)}</div>
+    <div class="card"><div class="card-hd"><div><h3>Distribución horaria</h3><p>Hora de registro de operación</p></div></div>${heatmapHtml(v)}</div>
+  </div>
   <div class="section-title"><h2>Perfil del comprador real</h2><div class="hint">Datos del CRM · compradores confirmados</div></div>
   <div class="grid-3">
     <div class="card"><div class="card-hd"><div><h3>Edad</h3><p>Distribución por rango etario</p></div></div>
@@ -862,14 +1024,27 @@ function generoCard(v){
   </div>`;
 }
 
-// ─── NAV ───────────────────────────────────────────────────────────────────
-const ROLES = {
-  director:  {name:'Director Comercial',  role:'Director/a',        av:'DC'},
-  jventas:   {name:'Jefe de Ventas',      role:'Jefatura de Ventas', av:'JV'},
-  jmkt:      {name:'Jefe de Marketing',   role:'Jefatura de Mkt.',  av:'JM'},
-  admventas: {name:'Adm. de Ventas',      role:'Administración',    av:'AV'},
-  mktproy:   {name:'Mkt. del Proyecto',   role:'Analista de Mkt.',  av:'MP'},
-};
+// ─── SIDEBAR TOGGLE ────────────────────────────────────────────────────────
+function toggleSidebar(){
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('open');
+}
+
+// ─── FILTRO HELPERS ─────────────────────────────────────────────────────────
+function filtrarVentas(prefix){
+  const proj = document.getElementById(prefix+'-proj')?.value||'';
+  const año  = document.getElementById(prefix+'-año')?.value||'';
+  const mes  = document.getElementById(prefix+'-mes')?.value||'';
+  let v = D.ventas||[];
+  if(proj) v = v.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
+  if(año)  v = v.filter(r=>String(r.AÑO||r['AÑO']||'')===año);
+  if(mes)  v = v.filter(r=>{
+    const f = String(r.FechaVenta||r.FechaEntrega_Minuta||'');
+    return f.slice(5,7)===mes || f.slice(3,5)===mes;
+  });
+  return v;
+}
+function filtrarProj(prefix){ return document.getElementById(prefix+'-proj')?.value||''; }
 
 function nav(id, el){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
