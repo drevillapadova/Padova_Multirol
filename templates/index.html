@@ -57,6 +57,8 @@ main{overflow-x:hidden}
 .chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);padding:6px 11px;border-radius:7px;font-size:12px;color:var(--ink-2);cursor:pointer}
 .chip.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
 .chip.refresh{background:var(--brand-soft);color:var(--brand);border-color:oklch(0.9 0.05 250);font-weight:600}
+.chip-sel{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);padding:6px 11px;border-radius:7px;font-size:12px;color:var(--ink-2);cursor:pointer}
+.chip-sel select{background:none;border:none;padding:0;font-size:12px;color:var(--ink-2);cursor:pointer;outline:none;font-family:inherit;font-weight:500}
 
 /* ── KPI ROW ── */
 .kpi-row{display:grid;gap:12px;margin-bottom:22px}
@@ -347,19 +349,17 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
       <div class="page-sub" id="dir-sub">Cargando...</div>
     </div>
     <div class="toolbar">
-      <div class="chip">▭ Todos los proyectos</div>
+      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">▭</span>
+        <select id="dir-mes" onchange="renderDirector()"><option value="">Mes</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Setiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
+      </label>
+      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">▭</span>
+        <select id="dir-año" onchange="renderDirector()"><option value="">Año</option><option>2026</option><option>2025</option><option>2024</option></select>
+      </label>
+      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
+        <select id="dir-proj" onchange="renderDirector()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO</option></select>
+      </label>
       <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
     </div>
-  </div>
-  <div class="filter-bar">
-    <label>Proyecto</label>
-    <select id="dir-proj" onchange="renderDirector()"><option value="">Todos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO</option></select>
-    <div class="filter-sep"></div>
-    <label>Año</label>
-    <select id="dir-año" onchange="renderDirector()"><option value="">Todos</option><option>2026</option><option>2025</option><option>2024</option></select>
-    <div class="filter-sep"></div>
-    <label>Mes</label>
-    <select id="dir-mes" onchange="renderDirector()"><option value="">Todos</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Setiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
   </div>
   <div class="kpi-row kpi-6" id="dir-kpis"><div class="loading">Cargando datos...</div></div>
   <div id="dir-content"><div class="loading">Cargando...</div></div>
@@ -731,25 +731,6 @@ function renderDirector(){
           <div class="strat"><div class="ico o">3D</div><div class="body"><p>Precio sostenido + bono de acabados en dúplex por cierre rápido.</p><small>Vigente hasta agotar stock · dúplex disponibles</small></div><div class="act">Ver →</div></div>
         </div>
       </div>
-    </div>
-  </div>
-  <div class="section-title"><h2>Embudo comercial</h2><div class="hint">Todos los proyectos</div></div>
-  <div class="grid-2">
-    <div class="card"><div class="card-hd"><div><h3>Embudo de conversión</h3><p>Prospecto → Venta</p></div></div>
-      <div class="funnel">
-        ${fStep('Prospectos','Top del embudo',f.prospectos,f.prospectos,'—')}
-        ${fStep('Visitas','Al piloto',f.visitas,f.prospectos,f.conv_prosp_visita+'%')}
-        ${fStep('Separaciones','Firmadas',f.separaciones,f.prospectos,f.conv_visita_sep+'%')}
-        ${fStep('Ventas','Cierre efectivo',f.ventas,f.prospectos,f.conv_sep_venta+'%')}
-      </div>
-    </div>
-    <div class="card"><div class="card-hd"><div><h3>Distribución stock por proyecto</h3><p>Estado actual de todas las unidades</p></div></div>
-      <div class="bar-list">${PROJS.map((p,i)=>{
-        const tot=(D.stock||[]).filter(r=>String(r.Proyecto||'').toUpperCase()===p).length;
-        const colors=['oklch(0.55 0.15 250)','oklch(0.65 0.14 150)','oklch(0.72 0.15 75)','oklch(0.60 0.18 25)'];
-        const total=(D.stock||[]).length||1;
-        return barRow(PLBL[p],Math.round(tot/total*100),tot,pct(tot,total),colors[i]);
-      }).join('')}</div>
     </div>
   </div>`;
 }
