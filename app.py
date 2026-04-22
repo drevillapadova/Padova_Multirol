@@ -49,6 +49,7 @@ def leer_tab(tab_key):
         url  = csv_url(TABS[tab_key])
         resp = requests.get(url, timeout=30)
         resp.raise_for_status()
+        resp.encoding = 'utf-8'
         df   = pd.read_csv(io.StringIO(resp.text), low_memory=False)
         df   = df.fillna("").astype(str)
         records = df.to_dict(orient="records")
