@@ -381,7 +381,7 @@ def execute_stock_extraction(driver):
     export_btn = wait.until(EC.element_to_be_clickable((By.ID, "btnExportar")))
     driver.execute_script("arguments[0].click();", export_btn)
 
-    archivo = esperar_descarga_nueva(DOWNLOAD_DIR, existing, timeout=300)
+    archivo = esperar_descarga_nueva(DOWNLOAD_DIR, existing, timeout=480)
     if not archivo: raise Exception("Timeout esperando descarga de Stock")
     print(f"   -> [OK] {os.path.basename(archivo)}")
     return archivo
@@ -438,7 +438,7 @@ def execute_ventas_extraction_year(driver, wait, año):
         except Exception: pass
 
     time.sleep(5)
-    archivo = esperar_descarga_nueva(DOWNLOAD_DIR, existing, timeout=120)
+    archivo = esperar_descarga_nueva(DOWNLOAD_DIR, existing, timeout=480)
     if not archivo:
         print(f"   !! Warning: no se descargó para {año}")
         return None
@@ -529,7 +529,7 @@ def execute_prospectos_extraction(driver, wait):
         except Exception: pass
 
     time.sleep(5)
-    archivo = esperar_descarga_nueva(DOWNLOAD_DIR, existing, timeout=300)
+    archivo = esperar_descarga_nueva(DOWNLOAD_DIR, existing, timeout=480)
     if not archivo:
         print("   !! Warning: no se descargó reporte de prospectos")
         return None
@@ -610,7 +610,7 @@ def execute_visitas_extraction(driver, wait):
         except Exception: pass
 
     time.sleep(5)
-    archivo = esperar_descarga_nueva(DOWNLOAD_DIR, existing, timeout=300)
+    archivo = esperar_descarga_nueva(DOWNLOAD_DIR, existing, timeout=480)
     if not archivo:
         print("   !! Warning: no se descargó reporte de visitas")
         return None
