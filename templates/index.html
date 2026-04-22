@@ -1154,7 +1154,7 @@ function renderAdmVentas(){
     if(f.includes('ahorro')) return 'AhorroCasa';
     if(f.includes('califica')) return 'Califica Directo';
     if(f.includes('mivivienda')||f.includes('mi vivienda')||f.includes('techo propio')) return 'MiVivienda';
-    if(f.includes('directo')||f.includes('leasing')||f.includes('financiamiento directo')) return 'Crédito Directo';
+    if(f.includes('directo')||f.includes('leasing')||f.includes('financiamiento directo')) return 'Credito Directo';
     if(f.includes('hipotecario')||f.includes('bcp')||f.includes('bbva')||f.includes('scotiabank')||f.includes('interbank')||f.includes('banco')) return 'Tradicionales';
     return 'Otros';
   }
@@ -1167,13 +1167,13 @@ function renderAdmVentas(){
   });
 
   const HIER=[
-    {lbl:'Crédito Hipotecario', cat:null, indent:0, grp:['Tradicionales','MiVivienda','AhorroCasa','Califica Directo'], color:'oklch(0.55 0.15 250)'},
-    {lbl:'Tradicionales',       cat:'Tradicionales',    indent:1, color:'oklch(0.65 0.14 150)'},
-    {lbl:'MiVivienda',          cat:'MiVivienda',       indent:1, color:'oklch(0.72 0.15 65)'},
-    {lbl:'· AhorroCasa',        cat:'AhorroCasa',       indent:2, color:'oklch(0.60 0.18 25)'},
-    {lbl:'· Califica Directo',  cat:'Califica Directo', indent:2, color:'oklch(0.55 0.15 290)'},
-    {lbl:'Crédito Directo',     cat:'Crédito Directo',  indent:0, color:'oklch(0.70 0.10 230)'},
-    {lbl:'Al Contado',          cat:'Al Contado',       indent:0, color:'oklch(0.62 0.14 150)'},
+    {lbl:'Cr\u00e9dito Hipotecario', cat:null, indent:0, grp:['Tradicionales','MiVivienda','AhorroCasa','Califica Directo'], color:'oklch(0.55 0.15 250)'},
+    {lbl:'Tradicionales',            cat:'Tradicionales',    indent:1, color:'oklch(0.65 0.14 150)'},
+    {lbl:'MiVivienda',               cat:'MiVivienda',       indent:1, color:'oklch(0.72 0.15 65)'},
+    {lbl:'\u00b7 AhorroCasa',        cat:'AhorroCasa',       indent:2, color:'oklch(0.60 0.18 25)'},
+    {lbl:'\u00b7 Califica Directo',  cat:'Califica Directo', indent:2, color:'oklch(0.55 0.15 290)'},
+    {lbl:'Cr\u00e9dito Directo',     cat:'Credito Directo',  indent:0, color:'oklch(0.70 0.10 230)'},
+    {lbl:'Al Contado',               cat:'Al Contado',       indent:0, color:'oklch(0.62 0.14 150)'},
   ];
 
   function grpN(cats){return(cats||[]).reduce((a,c)=>a+(finCounts[c]||0),0);}
