@@ -27,6 +27,39 @@ from webdriver_manager.chrome import ChromeDriverManager
 # ============================================================
 
 _TC_CACHE = {}
+_TC_BCRP_CARGADO = False
+
+def precargar_tc_bcrp(fecha_inicio="2024-01-01"):
+    """Carga todos los TCs desde fecha_inicio hasta hoy en UNA sola llamada."""
+    global _TC_BCRP_CARGADO
+    if _TC_BCRP_CARGADO:
+        return
+    TC_RESPALDO = 3.75
+    fecha_fin = datetime.now().strftime("%Y-%m-%d")
+    try:
+        url = f"https://estadisticas.bcrp.gob.pe/estadisticas/series/api/PD04637PD/json/{fecha_inicio}/{fecha_fin}/ing"
+        r = requests.get(url, timeout=15)
+        if not r.text.strip():
+            raise ValueError("Respuesta vacía del BCRP")
+        data = r.json()
+        periodos = data.get("periods", [])
+        ultimo_tc = TC_RESPALDO
+        for p in periodos:
+            try:
+                fecha_p = p.get("name", "")
+                tc_val  = float(p["values"][0])
+                # BCRP devuelve fechas como "22-Ene-24", normalizar a YYYY-MM-DD
+                fecha_dt = datetime.strptime(fecha_p, "%d-%b-%y") if "-" in fecha_p else None
+                if fecha_dt:
+                    _TC_CACHE[fecha_dt.strftime("%Y-%m-%d")] = tc_val
+                    ultimo_tc = tc_val
+            except Exception:
+                pass
+        print(f"   -> [TC] BCRP precargado: {len(_TC_CACHE)} fechas, último TC: S/ {ultimo_tc}")
+    except Exception as e:
+        print(f"   -> [TC] BCRP no disponible ({e}), usando respaldo S/ {TC_RESPALDO} para todas las fechas")
+    _TC_BCRP_CARGADO = True
+
 
 def get_tipo_cambio(fecha=None):
     TC_RESPALDO = 3.75
@@ -42,42 +75,13 @@ def get_tipo_cambio(fecha=None):
     else:
         fecha_dt = datetime.now()
 
-    fecha_str = fecha_dt.strftime("%Y-%m-%d")
-    if fecha_str in _TC_CACHE:
-        return _TC_CACHE[fecha_str]
+    for dias in range(0, 8):
+        key = (fecha_dt - timedelta(days=dias)).strftime("%Y-%m-%d")
+        if key in _TC_CACHE:
+            return _TC_CACHE[key]
 
-    try:
-        url = f"https://estadisticas.bcrp.gob.pe/estadisticas/series/api/PD04637PD/json/{fecha_str}/{fecha_str}/ing"
-        r = requests.get(url, timeout=10)
-        if not r.text.strip(): raise ValueError("Respuesta vacía del BCRP")
-        data = r.json()
-        periodos = data.get("periods", [])
-        if periodos and periodos[0].get("values"):
-            tc = float(periodos[0]["values"][0])
-            _TC_CACHE[fecha_str] = tc
-            return tc
-        for dias_atras in range(1, 8):
-            fecha_anterior = (fecha_dt - timedelta(days=dias_atras)).strftime("%Y-%m-%d")
-            if fecha_anterior in _TC_CACHE:
-                tc = _TC_CACHE[fecha_anterior]
-                _TC_CACHE[fecha_str] = tc
-                return tc
-            url2 = f"https://estadisticas.bcrp.gob.pe/estadisticas/series/api/PD04637PD/json/{fecha_anterior}/{fecha_anterior}/ing"
-            r2 = requests.get(url2, timeout=5)
-            if not r2.text.strip(): continue
-            data2 = r2.json()
-            periodos2 = data2.get("periods", [])
-            if periodos2 and periodos2[0].get("values"):
-                tc = float(periodos2[0]["values"][0])
-                _TC_CACHE[fecha_str] = tc
-                _TC_CACHE[fecha_anterior] = tc
-                return tc
-        _TC_CACHE[fecha_str] = TC_RESPALDO
-        return TC_RESPALDO
-    except Exception as e:
-        print(f"   -> [TC] Error API BCRP ({e}), usando respaldo: S/ {TC_RESPALDO}")
-        _TC_CACHE[fecha_str] = TC_RESPALDO
-        return TC_RESPALDO
+    _TC_CACHE[fecha_dt.strftime("%Y-%m-%d")] = TC_RESPALDO
+    return TC_RESPALDO
 
 
 def convertir_precios_a_soles(df, col_precio, col_moneda, tc=None, col_fecha=None):
@@ -424,7 +428,7 @@ def execute_ventas_extraction_year(driver, wait, año):
         except Exception: pass
     time.sleep(1)
 
-    existing = set(glob.glob(os.path.join(DOWNLOAD_DIR_VENTAS, "*.*")))
+    existing = set(glob.glob(os.path.join(DOWNLOAD_DIR, "*.*")))
 
     for xpath in ["//button[contains(text(),'Exportar')]","//button[@id='btnExportar']","//button[@type='submit']"]:
         try:
@@ -434,13 +438,14 @@ def execute_ventas_extraction_year(driver, wait, año):
         except Exception: pass
 
     time.sleep(5)
-    archivo = esperar_descarga_nueva(DOWNLOAD_DIR_VENTAS, existing, timeout=120)
+    archivo = esperar_descarga_nueva(DOWNLOAD_DIR, existing, timeout=120)
     if not archivo:
         print(f"   !! Warning: no se descargó para {año}")
         return None
 
     ext  = os.path.splitext(archivo)[1].lower()
     dest = os.path.join(DOWNLOAD_DIR_VENTAS, f"ReporteVenta{año}{ext}")
+    os.makedirs(DOWNLOAD_DIR_VENTAS, exist_ok=True)
     if os.path.exists(dest): os.remove(dest)
     shutil.move(archivo, dest)
     print(f"   -> [OK] ReporteVenta{año}{ext}")
@@ -500,7 +505,7 @@ def execute_prospectos_extraction(driver, wait):
     """)
     time.sleep(1)
 
-    existing = set(glob.glob(os.path.join(DOWNLOAD_DIR_PROSPECTOS, "*.*")))
+    existing = set(glob.glob(os.path.join(DOWNLOAD_DIR, "*.*")))
 
     for selector in [(By.ID,"btnExportar"),(By.XPATH,"//button[contains(text(),'Exportar')]"),(By.XPATH,"//button[@type='submit']")]:
         try:
@@ -511,12 +516,13 @@ def execute_prospectos_extraction(driver, wait):
         except Exception: pass
 
     time.sleep(5)
-    archivo = esperar_descarga_nueva(DOWNLOAD_DIR_PROSPECTOS, existing, timeout=120)
+    archivo = esperar_descarga_nueva(DOWNLOAD_DIR, existing, timeout=120)
     if not archivo:
         print("   !! Warning: no se descargó reporte de prospectos")
         return None
 
     ext  = os.path.splitext(archivo)[1].lower()
+    os.makedirs(DOWNLOAD_DIR_PROSPECTOS, exist_ok=True)
     dest = os.path.join(DOWNLOAD_DIR_PROSPECTOS, f"ReporteProspectos{ext}")
     if os.path.exists(dest): os.remove(dest)
     shutil.move(archivo, dest)
@@ -562,7 +568,7 @@ def execute_visitas_extraction(driver, wait):
     """)
     time.sleep(1)
 
-    existing = set(glob.glob(os.path.join(DOWNLOAD_DIR_VISITAS, "*.*")))
+    existing = set(glob.glob(os.path.join(DOWNLOAD_DIR, "*.*")))
 
     for selector in [(By.ID,"btnExportar"),(By.XPATH,"//button[contains(text(),'Exportar')]"),(By.XPATH,"//button[@type='submit']")]:
         try:
@@ -573,12 +579,13 @@ def execute_visitas_extraction(driver, wait):
         except Exception: pass
 
     time.sleep(5)
-    archivo = esperar_descarga_nueva(DOWNLOAD_DIR_VISITAS, existing, timeout=120)
+    archivo = esperar_descarga_nueva(DOWNLOAD_DIR, existing, timeout=120)
     if not archivo:
         print("   !! Warning: no se descargó reporte de visitas")
         return None
 
     ext  = os.path.splitext(archivo)[1].lower()
+    os.makedirs(DOWNLOAD_DIR_VISITAS, exist_ok=True)
     dest = os.path.join(DOWNLOAD_DIR_VISITAS, f"ReporteVisitas{ext}")
     if os.path.exists(dest): os.remove(dest)
     shutil.move(archivo, dest)
@@ -622,6 +629,7 @@ def normalizar_ventas_unpivot(df):
 
 def process_ventas_data(df_stock=None):
     print("\n>> [TRANSFORM VENTAS] Consolidando...")
+    precargar_tc_bcrp("2024-01-01")
     dataframes = {}
     for año in AÑOS_VENTAS:
         ruta = None
@@ -806,24 +814,12 @@ def main():
         execute_stock_extraction(driver)
 
         # 3. Ventas por año
-        driver.execute_cdp_cmd("Page.setDownloadBehavior", {
-            "behavior": "allow",
-            "downloadPath": os.path.abspath(DOWNLOAD_DIR_VENTAS)
-        })
         archivos_ventas = execute_ventas_extraction(driver)
 
-        # 4. Prospectos — NUEVO
-        driver.execute_cdp_cmd("Page.setDownloadBehavior", {
-            "behavior": "allow",
-            "downloadPath": os.path.abspath(DOWNLOAD_DIR_PROSPECTOS)
-        })
+        # 4. Prospectos
         archivo_prosp = execute_prospectos_extraction(driver, wait)
 
-        # 5. Visitas — NUEVO
-        driver.execute_cdp_cmd("Page.setDownloadBehavior", {
-            "behavior": "allow",
-            "downloadPath": os.path.abspath(DOWNLOAD_DIR_VISITAS)
-        })
+        # 5. Visitas
         archivo_visitas = execute_visitas_extraction(driver, wait)
 
     except Exception as e:
