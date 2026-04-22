@@ -492,18 +492,31 @@ def execute_prospectos_extraction(driver, wait):
     fecha_fin = datetime.now().strftime("%d/%m/%Y")
 
     driver.execute_script(f"""
-        var inputs = document.querySelectorAll('input');
-        var df = [];
-        for(var i=0;i<inputs.length;i++){{
-            var v=inputs[i].value||'';
-            if(v.match(/\\d{{2}}\\/\\d{{2}}\\/\\d{{4}}/)) df.push(inputs[i]);
-        }}
-        if(df.length>=2){{
-            df[0].value='{fecha_ini}'; df[0].dispatchEvent(new Event('change',{{bubbles:true}}));
-            df[1].value='{fecha_fin}'; df[1].dispatchEvent(new Event('change',{{bubbles:true}}));
-        }}
+        (function(){{
+            var fi='{fecha_ini}', ff='{fecha_fin}';
+            var inputs=Array.from(document.querySelectorAll('input'));
+            var candidates=inputs.filter(function(i){{
+                return i.value && i.value.match(/\\d{{2}}\\/\\d{{2}}\\/\\d{{4}}/);
+            }});
+            if(candidates.length<2){{
+                candidates=inputs.filter(function(i){{
+                    var n=(i.name+i.id+(i.placeholder||'')).toLowerCase();
+                    return n.includes('fecha')||n.includes('date')||i.type==='date';
+                }});
+            }}
+            if(candidates.length<2){{
+                candidates=inputs.filter(function(i){{
+                    return (i.type==='text'||i.type==='date')&&i.offsetParent!==null;
+                }});
+            }}
+            if(candidates.length>=2){{
+                candidates[0].value=fi; candidates[0].dispatchEvent(new Event('change',{{bubbles:true}})); candidates[0].dispatchEvent(new Event('input',{{bubbles:true}}));
+                candidates[candidates.length-1].value=ff; candidates[candidates.length-1].dispatchEvent(new Event('change',{{bubbles:true}})); candidates[candidates.length-1].dispatchEvent(new Event('input',{{bubbles:true}}));
+                console.log('Fechas seteadas en',candidates.length,'inputs');
+            }}
+        }})();
     """)
-    time.sleep(1)
+    time.sleep(2)
 
     existing = set(glob.glob(os.path.join(DOWNLOAD_DIR, "*.*")))
 
@@ -516,7 +529,7 @@ def execute_prospectos_extraction(driver, wait):
         except Exception: pass
 
     time.sleep(5)
-    archivo = esperar_descarga_nueva(DOWNLOAD_DIR, existing, timeout=120)
+    archivo = esperar_descarga_nueva(DOWNLOAD_DIR, existing, timeout=300)
     if not archivo:
         print("   !! Warning: no se descargó reporte de prospectos")
         return None
@@ -555,18 +568,31 @@ def execute_visitas_extraction(driver, wait):
     fecha_fin = datetime.now().strftime("%d/%m/%Y")
 
     driver.execute_script(f"""
-        var inputs = document.querySelectorAll('input');
-        var df = [];
-        for(var i=0;i<inputs.length;i++){{
-            var v=inputs[i].value||'';
-            if(v.match(/\\d{{2}}\\/\\d{{2}}\\/\\d{{4}}/)) df.push(inputs[i]);
-        }}
-        if(df.length>=2){{
-            df[0].value='{fecha_ini}'; df[0].dispatchEvent(new Event('change',{{bubbles:true}}));
-            df[1].value='{fecha_fin}'; df[1].dispatchEvent(new Event('change',{{bubbles:true}}));
-        }}
+        (function(){{
+            var fi='{fecha_ini}', ff='{fecha_fin}';
+            var inputs=Array.from(document.querySelectorAll('input'));
+            var candidates=inputs.filter(function(i){{
+                return i.value && i.value.match(/\\d{{2}}\\/\\d{{2}}\\/\\d{{4}}/);
+            }});
+            if(candidates.length<2){{
+                candidates=inputs.filter(function(i){{
+                    var n=(i.name+i.id+(i.placeholder||'')).toLowerCase();
+                    return n.includes('fecha')||n.includes('date')||i.type==='date';
+                }});
+            }}
+            if(candidates.length<2){{
+                candidates=inputs.filter(function(i){{
+                    return (i.type==='text'||i.type==='date')&&i.offsetParent!==null;
+                }});
+            }}
+            if(candidates.length>=2){{
+                candidates[0].value=fi; candidates[0].dispatchEvent(new Event('change',{{bubbles:true}})); candidates[0].dispatchEvent(new Event('input',{{bubbles:true}}));
+                candidates[candidates.length-1].value=ff; candidates[candidates.length-1].dispatchEvent(new Event('change',{{bubbles:true}})); candidates[candidates.length-1].dispatchEvent(new Event('input',{{bubbles:true}}));
+                console.log('Fechas seteadas en',candidates.length,'inputs');
+            }}
+        }})();
     """)
-    time.sleep(1)
+    time.sleep(2)
 
     existing = set(glob.glob(os.path.join(DOWNLOAD_DIR, "*.*")))
 
@@ -579,7 +605,7 @@ def execute_visitas_extraction(driver, wait):
         except Exception: pass
 
     time.sleep(5)
-    archivo = esperar_descarga_nueva(DOWNLOAD_DIR, existing, timeout=120)
+    archivo = esperar_descarga_nueva(DOWNLOAD_DIR, existing, timeout=300)
     if not archivo:
         print("   !! Warning: no se descargó reporte de visitas")
         return None
