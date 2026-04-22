@@ -205,6 +205,14 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 .week-labels{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;font-size:11px;color:var(--ink-3);text-align:center;font-weight:500}
 .week-legend{display:flex;gap:14px;font-size:11px;color:var(--ink-3);margin-top:10px;padding-top:8px;border-top:1px dashed var(--line)}
 .week-legend b{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:middle}
+.seg-list{display:flex;flex-direction:column;padding:8px 0}
+.seg-row{display:grid;grid-template-columns:1fr 36px 44px;gap:8px;align-items:center;padding:7px 18px;border-bottom:1px solid var(--line-2)}
+.seg-row:last-child{border-bottom:none}
+.seg-row .nm{font-size:12.5px;color:var(--ink);font-weight:500}
+.seg-row .tr{height:6px;background:#f1f5f9;border-radius:99px;overflow:hidden}
+.seg-row .tr i{display:block;height:100%;border-radius:99px;background:var(--brand)}
+.seg-row .n{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--ink);text-align:right}
+.seg-row .p{font-family:var(--mono);font-size:11px;color:var(--ink-3);text-align:right}
 
 /* ── HEATMAP ── */
 .hh{padding:12px 18px 16px}
@@ -523,21 +531,31 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
       <div class="page-sub" id="mp-sub">Cargando...</div>
     </div>
     <div class="toolbar">
-      <div class="chip">▭ Todos los proyectos</div>
-      <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
+      <label class="chip-sel">&#x1F4C5;
+        <select id="mp-mes" onchange="renderMktProy()">
+          <option value="">Todos los meses</option>
+          <option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option>
+          <option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option>
+          <option value="07">Julio</option><option value="08">Agosto</option><option value="09">Setiembre</option>
+          <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+        </select>
+      </label>
+      <label class="chip-sel">&#x1F4C5;
+        <select id="mp-año" onchange="renderMktProy()">
+          <option value="">Todos los años</option>
+          <option>2026</option><option>2025</option><option>2024</option>
+        </select>
+      </label>
+      <label class="chip-sel">&#x25AD;
+        <select id="mp-proj" onchange="renderMktProy()">
+          <option value="">Todos los proyectos</option>
+          <option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option>
+          <option>LITORAL 900</option><option>LOMAS DE CARABAYLLO</option>
+        </select>
+      </label>
+      <div class="chip refresh" onclick="loadAll()">&#x21BB; Actualizar</div>
     </div>
   </div>
-  <div class="filter-bar">
-    <label>Proyecto</label>
-    <select id="mp-proj" onchange="renderMktProy()"><option value="">Todos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO</option></select>
-    <div class="filter-sep"></div>
-    <label>Año</label>
-    <select id="mp-año" onchange="renderMktProy()"><option value="">Todos</option><option>2026</option><option>2025</option><option>2024</option></select>
-    <div class="filter-sep"></div>
-    <label>Mes</label>
-    <select id="mp-mes" onchange="renderMktProy()"><option value="">Todos</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Setiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
-  </div>
-  <div class="kpi-row kpi-5" id="mp-kpis"><div class="loading">Cargando datos...</div></div>
   <div id="mp-content"><div class="loading">Cargando...</div></div>
 </div>
 </main>
@@ -1267,77 +1285,115 @@ function renderAdmVentas(){
 // MARKETING DEL PROYECTO
 // ══════════════════════════════════════════════════════════════════════════
 function renderMktProy(){
-  const camp  = D.campanas||{};
-  const det   = camp.detalle||[];
-  const res   = camp.resumen||{};
+  const proj = filtrarProj('mp');
+  const mes  = document.getElementById('mp-mes')?.value||'';
+  const año  = document.getElementById('mp-año')?.value||'';
+
+  const camp = D.campanas||{};
+  let det = (camp.detalle||[]).filter(r=>{
+    if(proj && String(r.proyecto||'').toUpperCase() !== proj.toUpperCase()) return false;
+    if(mes && String(r.fecha||'').slice(5,7) !== mes && String(r.fecha||'').slice(3,5) !== mes) return false;
+    if(año && String(r.fecha||'').slice(0,4) !== año) return false;
+    return true;
+  });
+
   document.getElementById('mp-sub').textContent = 'Actualizado: '+D.updatedAt+' · Campañas digitales';
 
-  const totInv  = Object.values(res).reduce((a,r)=>a+Number(r.inversion||0),0);
-  const totLeads= Object.values(res).reduce((a,r)=>a+Number(r.leads||0),0);
-  const cplMeta = res['Meta Ads']?.cpl||0;
-  const cplGoo  = res['Google Ads']?.cpl||0;
-  const cplTik  = res['TikTok Ads']?.cpl||0;
+  // KPI aggregations by canal from filtered detail
+  const resFil = {};
+  det.forEach(r=>{
+    const c=r.canal;
+    if(!resFil[c]) resFil[c]={inversion:0,leads:0,impresiones:0};
+    resFil[c].inversion  +=Number(r.inversion||0);
+    resFil[c].leads      +=Number(r.leads||0);
+    resFil[c].impresiones+=Number(r.impresiones||0);
+  });
+  const cMeta=resFil['Meta Ads']||{inversion:0,leads:0};
+  const cGoo =resFil['Google Ads']||{inversion:0,leads:0};
+  const cTik =resFil['TikTok Ads']||{inversion:0,leads:0};
+  const totInv  = (cMeta.inversion+cGoo.inversion+cTik.inversion);
+  const totLeads= (cMeta.leads+cGoo.leads+cTik.leads);
+  const cplMeta = cMeta.leads ? Math.round(cMeta.inversion/cMeta.leads) : 0;
+  const cplGoo  = cGoo.leads  ? Math.round(cGoo.inversion/cGoo.leads)   : 0;
+  const cplTik  = cTik.leads  ? Math.round(cTik.inversion/cTik.leads)   : 0;
 
-  document.getElementById('mp-kpis').innerHTML =
-    kpi('Inversión Mensual',fS(totInv),'meta+google+tiktok')+
-    kpi('CPL Meta',`S/ ${fN(cplMeta)}`,'<span class="delta '+(cplMeta<60?'up':'down')+'">'+(!cplMeta?'sin data':cplMeta<60?'bajo meta':'sobre meta')+'</span>','')+
-    kpi('CPL Google',`S/ ${fN(cplGoo)}`,'<span class="delta '+(cplGoo<60?'up':'down')+'">'+(!cplGoo?'sin data':cplGoo<60?'bajo meta':'sobre meta')+'</span>','')+
-    kpi('CPL TikTok',`S/ ${fN(cplTik)}`,'<span class="delta '+(cplTik<60?'up':'down')+'">'+(!cplTik?'sin data':cplTik<60?'bajo meta':'sobre meta')+'</span>','')+
-    kpi('Leads Generados',`${fN(totLeads)} <span class="unit">leads</span>`,'canales pagados');
+  function swKpi(color){ return `<span class="sw" style="background:${color};display:inline-block;width:8px;height:8px;border-radius:2px;vertical-align:middle;margin-right:4px"></span>`; }
 
-  // Campañas detalle
+  const kpis =
+    kpi('Inversi\u00f3n Mensual', fS(totInv), 'meta+google+tiktok') +
+    kpi(swKpi('var(--meta)')+'CPL Meta Ads',     cplMeta ? 'S/ '+fN(cplMeta) : '—', cplMeta && cplMeta<=150 ? '<span class="delta up">Bajo meta</span>' : cplMeta ? '<span class="delta down">Revisar</span>' : 'sin datos') +
+    kpi(swKpi('var(--google)')+'CPL Google Ads', cplGoo  ? 'S/ '+fN(cplGoo)  : '—', cplGoo  && cplGoo<=150  ? '<span class="delta up">Bajo meta</span>' : cplGoo  ? '<span class="delta down">Revisar</span>' : 'sin datos') +
+    kpi(swKpi('var(--tiktok)')+'CPL TikTok Ads', cplTik  ? 'S/ '+fN(cplTik)  : '—', cplTik  && cplTik<=150  ? '<span class="delta up">Bajo meta</span>' : cplTik  ? '<span class="delta down">Revisar</span>' : 'sin datos') +
+    kpi('Leads Generados', fN(totLeads)+' <span class="unit">leads</span>', 'canales pagados');
+
+  // Campaigns table
+  function canalColor(c){ return c==='Meta Ads'?'var(--meta)':c==='Google Ads'?'var(--google)':'var(--tiktok)'; }
+  function canalSlug(c){  return c==='Meta Ads'?'Meta':c==='Google Ads'?'Google':'TikTok'; }
   const byCamp={};
   det.forEach(r=>{
-    const k=`${r.canal}|${r.campaña}`;
-    if(!byCamp[k])byCamp[k]={canal:r.canal,campaña:r.campaña,inv:0,leads:0,imp:0};
+    const k=`${r.canal}||${r.campa\u00f1a||r.campaña}`;
+    if(!byCamp[k]) byCamp[k]={canal:r.canal,camp:r.campa\u00f1a||r.campaña||'',inv:0,leads:0,imp:0,ctr:0,ctrN:0};
     byCamp[k].inv  +=Number(r.inversion||0);
     byCamp[k].leads+=Number(r.leads||0);
     byCamp[k].imp  +=Number(r.impresiones||0);
+    if(r.ctr){ byCamp[k].ctr+=Number(r.ctr||0); byCamp[k].ctrN++; }
   });
-  const campRows=Object.values(byCamp).sort((a,b)=>b.leads-a.leads).slice(0,8).map((d,i)=>`
-    <tr>
-      <td><div class="campname"><div class="thumb">C${i+1}</div>
-        <div>${d.campaña||d.canal||'—'}<small>${d.canal}</small></div></div></td>
+  const campRows=Object.values(byCamp).sort((a,b)=>b.leads-a.leads).map((d,i)=>{
+    const cpl=d.leads?Math.round(d.inv/d.leads):0;
+    const col=canalColor(d.canal);
+    return `<tr>
+      <td><div class="campname"><div class="thumb" style="background:${col};color:#fff">${canalSlug(d.canal).slice(0,1)}</div>
+        <div>${d.camp||d.canal||'—'}<small>${d.canal}</small></div></div></td>
       <td class="r">${fS(d.inv)}</td>
-      <td class="r">${fN(d.imp||0)}</td>
-      <td class="r">${d.leads}</td>
-      <td class="r">${d.leads?'S/ '+Math.round(d.inv/d.leads):'—'}</td>
-      <td class="r"><span class="pill ${d.leads&&d.inv/d.leads<60?'on':'rev'}">${d.leads&&d.inv/d.leads<60?'OK':'Revisar'}</span></td>
-    </tr>`).join('');
+      <td class="r">${fN(d.imp)}</td>
+      <td class="r">${fN(d.leads)}</td>
+      <td class="r">${cpl?'S/ '+fN(cpl):'—'}</td>
+      <td class="r"><span class="pill ${d.leads&&cpl&&cpl<=150?'on':'rev'}">${d.leads&&cpl&&cpl<=150?'OK':'Revisar'}</span></td>
+    </tr>`;
+  }).join('');
 
-  // Perfil comprador
-  const v=D.ventas||[];
+  let vf = filtrarVentas('mp');
+
+  function segRow(nm, n, tot, color='var(--brand)'){
+    const w = tot ? Math.round(n/tot*100) : 0;
+    return `<div class="seg-row"><span class="nm">${nm}</span>
+      <div class="tr"><i style="width:${w}%;background:${color}"></i></div>
+      <span class="n">${fN(n)}</span><span class="p">${w}%</span></div>`;
+  }
+
+  // Edad (from ventas)
   const edadMap={};
-  v.forEach(r=>{const e=String(r.RangoEdad||'Sin dato').trim();edadMap[e]=(edadMap[e]||0)+1;});
-  const edadRows=Object.entries(edadMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([e,n])=>
-    barRow(e,Math.round(n/v.length*100),n,pct(n,v.length))).join('');
+  vf.forEach(r=>{const e=String(r.RangoEdad||'Sin dato').trim();edadMap[e]=(edadMap[e]||0)+1;});
+  const edadRows=Object.entries(edadMap).sort((a,b)=>b[1]-a[1]).slice(0,6)
+    .map(([e,n])=>segRow(e,n,vf.length)).join('');
 
-  // Distrito
+  // Distritos
   const distMap={};
-  v.forEach(r=>{const d=String(r.Distrito_Procedencia||'Sin dato').trim();distMap[d]=(distMap[d]||0)+1;});
-  const distRows=Object.entries(distMap).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([d,n])=>
-    barRow(d,Math.round(n/v.length*100),n,pct(n,v.length))).join('');
+  vf.forEach(r=>{const d=String(r.Distrito_Procedencia||'Sin dato').trim();distMap[d]=(distMap[d]||0)+1;});
+  const distRows=Object.entries(distMap).sort((a,b)=>b[1]-a[1]).slice(0,8)
+    .map(([d,n])=>segRow(d,n,vf.length,'oklch(0.60 0.14 150)')).join('');
 
   document.getElementById('mp-content').innerHTML = `
-  <div class="section-title"><h2>Campañas activas</h2><div class="hint">Meta Ads · Google Ads · TikTok Ads</div></div>
+  <div class="kpi-row kpi-5">${kpis}</div>
+  <div class="section-title"><h2>Campa\u00f1as activas</h2><div class="hint">Meta Ads \u00b7 Google Ads \u00b7 TikTok Ads</div></div>
   <div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>Detalle de campañas</h3><p>Ordenado por leads generados</p></div></div>
-    <table class="tbl"><thead><tr><th>Campaña</th><th class="r">Inversión</th><th class="r">Impresiones</th><th class="r">Leads</th><th class="r">CPL</th><th class="r">Estado</th></tr></thead>
-    <tbody>${campRows||'<tr><td colspan="6" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos — sube CSV de Meta/Google/TikTok a Google Sheets</td></tr>'}</tbody></table>
+    <div class="card-hd"><div><h3>Detalle de campa\u00f1as</h3><p>Ordenado por leads generados</p></div></div>
+    <table class="tbl"><thead><tr><th>Campa\u00f1a</th><th class="r">Inversi\u00f3n</th><th class="r">Impresiones</th><th class="r">Leads</th><th class="r">CPL</th><th class="r">Estado</th></tr></thead>
+    <tbody>${campRows||'<tr><td colspan="6" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de campa\u00f1as</td></tr>'}</tbody></table>
   </div>
-  <div class="section-title"><h2>Distribución temporal de leads</h2><div class="hint">Basado en fechas de operación</div></div>
+  <div class="section-title"><h2>Leads por tiempo</h2><div class="hint">Distribuci\u00f3n temporal de leads del CRM</div></div>
   <div class="grid-2">
-    <div class="card"><div class="card-hd"><div><h3>Leads por día de semana</h3><p>Distribución semanal de operaciones</p></div></div>${weekBarsHtml(v)}</div>
-    <div class="card"><div class="card-hd"><div><h3>Distribución horaria</h3><p>Hora de registro de operación</p></div></div>${heatmapHtml(v)}</div>
+    <div class="card"><div class="card-hd"><div><h3>Leads por d\u00eda de semana</h3><p>Distribuci\u00f3n semanal</p></div></div>${weekBarsHtml(vf)}</div>
+    <div class="card"><div class="card-hd"><div><h3>Distribuci\u00f3n horaria</h3><p>Hora de registro en CRM</p></div></div>${heatmapHtml(vf)}</div>
   </div>
-  <div class="section-title"><h2>Perfil del comprador real</h2><div class="hint">Datos del CRM · compradores confirmados</div></div>
+  <div class="section-title"><h2>Perfil del lead</h2><div class="hint">Datos del CRM \u00b7 compradores confirmados</div></div>
   <div class="grid-3">
-    <div class="card"><div class="card-hd"><div><h3>Edad</h3><p>Distribución por rango etario</p></div></div>
-      <div class="bar-list">${edadRows||'<div class="loading">Sin campo RangoEdad en CRM</div>'}</div></div>
-    <div class="card"><div class="card-hd"><div><h3>Género</h3><p>Compradores confirmados</p></div></div>
-      ${generoCard(v)}</div>
-    <div class="card"><div class="card-hd"><div><h3>Distritos</h3><p>Procedencia del comprador</p></div></div>
-      <div class="bar-list">${distRows||'<div class="loading">Sin dato de distrito en CRM</div>'}</div></div>
+    <div class="card"><div class="card-hd"><div><h3>Edad</h3><p>Distribuci\u00f3n por rango etario</p></div></div>
+      <div class="seg-list">${edadRows||'<div class="loading" style="padding:16px">Sin campo RangoEdad en CRM</div>'}</div></div>
+    <div class="card"><div class="card-hd"><div><h3>G\u00e9nero</h3><p>Compradores confirmados</p></div></div>
+      ${generoCard(vf)}</div>
+    <div class="card"><div class="card-hd"><div><h3>Distritos</h3><p>Procedencia del lead</p></div></div>
+      <div class="seg-list">${distRows||'<div class="loading" style="padding:16px">Sin dato de distrito en CRM</div>'}</div></div>
   </div>`;
 }
 
