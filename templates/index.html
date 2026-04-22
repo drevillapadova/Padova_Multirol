@@ -262,6 +262,30 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 .pvm-row .t .mk{position:absolute;top:0;bottom:0;width:2px;background:var(--ink-3)}
 .pvm-row .t .me{position:absolute;top:0;bottom:0;border-radius:5px;background:linear-gradient(90deg,oklch(0.88 0.08 250),oklch(0.7 0.14 250))}
 
+/* ── CELLBAR (mini inline spark) ── */
+.cellbar{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.cellbar .track{width:54px;height:4px;background:#eef2f6;border-radius:3px;overflow:hidden;flex-shrink:0}
+.cellbar .track i{display:block;height:100%;background:var(--brand);border-radius:3px}
+.muted{color:var(--ink-3)}
+.num-r{text-align:right;font-family:var(--mono);color:var(--ink);font-weight:500}
+
+/* ── STRATEGY ── */
+.pricing-wrap{padding:12px 18px 14px}
+.pricing-wrap h4{font-size:11px;color:var(--ink-3);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px}
+.pvm-legend{display:flex;gap:14px;font-size:11px;color:var(--ink-3);margin-top:10px;padding-top:8px;border-top:1px dashed var(--line)}
+.pvm-legend b{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}
+.strategy{padding:0 18px 18px}
+.strat-hd{display:flex;align-items:center;justify-content:space-between;margin:14px 0 8px}
+.strat-hd h4{margin:0;font-size:11px;color:var(--ink-3);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.strat-hd .spill{font-size:11px;font-weight:600;color:var(--ok);background:var(--ok-soft);padding:3px 8px;border-radius:99px;font-family:var(--mono)}
+.strat-list{display:flex;flex-direction:column;gap:8px}
+.strat{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.strat .ico{width:22px;height:22px;border-radius:5px;display:grid;place-items:center;background:var(--brand-soft);color:var(--brand);font-family:var(--mono);font-size:11px;font-weight:700;flex-shrink:0}
+.strat .ico.w{background:var(--warn-soft);color:var(--warn)}.strat .ico.o{background:var(--ok-soft);color:var(--ok)}
+.strat .body p{margin:0;font-size:12px;color:var(--ink);line-height:1.45}
+.strat .body small{color:var(--ink-3);font-size:11px;display:block;margin-top:2px}
+.strat .act{font-size:11px;color:var(--brand);font-weight:600;white-space:nowrap;padding:4px 8px;border-radius:5px;border:1px solid oklch(0.9 0.05 250);background:var(--brand-soft);align-self:center}
+
 /* ── LOADING / ERROR ── */
 .loading{text-align:center;padding:40px;color:var(--ink-4);font-size:13px}
 .error-box{background:var(--bad-soft);color:var(--bad);padding:10px 14px;border-radius:8px;font-size:12px;margin:8px 0}
@@ -615,58 +639,110 @@ function renderDirector(){
   const v   = filtrarVentas('dir');
   const sep = getSeps(proj);
   const disp= getDisp(proj);
-  const monto = v.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
-  const ts = D.updatedAt;
-  document.getElementById('dir-sub').textContent = 'Actualizado: '+ts+' · Todos los proyectos';
+  document.getElementById('dir-sub').textContent = 'Actualizado: '+D.updatedAt;
+
+  const avancePct = Math.min(Math.round(v.length/120*100),100);
+  const mesesActivos = Math.max(1, Object.keys((() => {
+    const m={}; v.forEach(r=>{const d=parseDate(r.FechaVenta||r.FechaEntrega_Minuta||'');if(d)m[d.getFullYear()+'-'+(d.getMonth()+1)]=1;}); return m;
+  })()).length);
+  const vel = (v.length/mesesActivos).toFixed(1);
+  const avgM2 = (() => { const rows=v.filter(r=>Number(r.PrecioM2||r.Precio_m2||0)>0); return rows.length?Math.round(rows.reduce((a,r)=>a+Number(r.PrecioM2||r.Precio_m2||0),0)/rows.length):null; })();
 
   document.getElementById('dir-kpis').innerHTML =
-    kpiH('Meta · Unidades','120 <span class="unit">und.</span>','Revisión ejecutiva Q1–Q2 2026')+
-    kpiH('Meta · Monto','S/ 41.5<span class="unit">M</span>','Revisión ejecutiva Q1–Q2 2026')+
-    kpi('Ventas Acum.',fM(monto),`<span class="delta neutral">${pct(v.length,120)}</span> de meta`)+
-    kpi('Unidades Vendidas',`${fN(v.length)} <span class="unit">/ 120</span>`,
-        `${fN(sep.length)} en separación`,'',`<div class="bar"><i style="width:${Math.min(v.length/120*100,100)}%"></i></div>`)+
-    kpi('Velocidad de Venta',`${Math.round(v.length/Math.max(1,6))} <span class="unit">und/mes</span>`,'últimos 6 meses')+
-    kpi('Stock Disponible',`${fN(disp.length)} <span class="unit">u</span>`,`${fN(D.stock?.length||0)} unidades totales`);
+    kpiH('Meta revisada · Unidades','120 <span class="unit">und.</span>','Revisión ejecutiva Q1–Q2 2026')+
+    kpiH('Meta revisada · Monto','S/ 41.5<span class="unit">M</span>','Revisión ejecutiva Q1–Q2 2026')+
+    kpi('Avance de meta · Unidades',`${fN(v.length)} <span class="unit">/ 120 und.</span>`,
+        `Faltan ${Math.max(0,120-v.length)} und. para cerrar meta`,'',`<div class="bar"><i style="width:${avancePct}%"></i></div>`)+
+    kpi('Avance de meta · %',`${avancePct}<span class="unit">%</span>`,
+        'Acumulado del periodo','',`<div class="bar ok"><i style="width:${avancePct}%"></i></div>`)+
+    kpi('Velocidad de venta',`${vel} <span class="unit">und / mes</span>`,
+        `<span class="delta neutral">acumulado</span>`)+
+    kpi('Precio / m² promedio',avgM2?`S/&nbsp;${fN(avgM2)}`:'—',
+        avgM2?'<span class="delta up">benchmark activo</span>':'Sin campo Precio_m2 en CRM');
 
-  // Ventas por proyecto
-  const projRows = PROJS.map(p=>{
-    const vp=getVentas(p);const sp=getSeps(p);const dp=getDisp(p);
-    const mp=vp.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
-    return `<tr><td>${PLBL[p]}</td><td class="r">${vp.length}</td><td class="r">${sp.length}</td>
-      <td class="r">${dp.length}</td><td class="r">${fM(mp)}</td>
-      <td class="r">${pct(vp.length,30)}</td></tr>`;
+  // ── Ventas por mes con cellbar ──
+  const mesMapa={};
+  v.forEach(r=>{
+    const d=parseDate(r.FechaVenta||r.FechaEntrega_Minuta||'');
+    if(!d)return;
+    const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if(!mesMapa[k])mesMapa[k]={mes:MN[d.getMonth()+1]+' '+d.getFullYear(),n:0,monto:0,m2sum:0,m2cnt:0};
+    mesMapa[k].n++;
+    mesMapa[k].monto+=Number(r.PrecioVentaSoles||r.PrecioVenta||0);
+    const m2=Number(r.PrecioM2||r.Precio_m2||0);
+    if(m2){mesMapa[k].m2sum+=m2;mesMapa[k].m2cnt++;}
+  });
+  const mesEntries=Object.entries(mesMapa).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,8);
+  const maxMonto=mesEntries.reduce((mx,[,d])=>Math.max(mx,d.monto),1);
+  const totales=mesEntries.reduce((a,[,d])=>({n:a.n+d.n,monto:a.monto+d.monto}),{n:0,monto:0});
+  const mesRows=mesEntries.map(([,d])=>{
+    const w=Math.round(d.monto/maxMonto*100);
+    const pm2=d.m2cnt?'S/ '+fN(Math.round(d.m2sum/d.m2cnt)):'—';
+    return `<tr><td class="month">${d.mes}</td><td class="r">${d.n}</td>
+      <td class="r"><div class="cellbar">${fM(d.monto)}<div class="track"><i style="width:${w}%"></i></div></div></td>
+      <td class="r">${pm2}</td></tr>`;
   }).join('');
 
-  // Ventas por mes
-  const mesMapa={};
-  v.forEach(r=>{const d=parseDate(r.FechaVenta||r.FechaEntrega_Minuta||'');if(!d)return;const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;if(!mesMapa[k])mesMapa[k]={mes:MN[d.getMonth()+1]+' '+d.getFullYear(),n:0,monto:0};mesMapa[k].n++;mesMapa[k].monto+=Number(r.PrecioVentaSoles||r.PrecioVenta||0);});
-  const mesRows=Object.entries(mesMapa).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,12).map(([,d])=>`<tr><td>${d.mes}</td><td class="r">${d.n}</td><td class="r">${fM(d.monto)}</td><td class="r">${pct(d.n,v.length)}</td></tr>`).join('');
-
-  // Funnel
-  const funnelHtml = `
-    <div class="funnel">
-      ${fStep('Prospectos','Top del embudo',f.prospectos,f.prospectos,'—')}
-      ${fStep('Visitas','Al piloto',f.visitas,f.prospectos,f.conv_prosp_visita+'%')}
-      ${fStep('Separaciones','Firmadas',f.separaciones,f.prospectos,f.conv_visita_sep+'%')}
-      ${fStep('Ventas','Cierre efectivo',f.ventas,f.prospectos,f.conv_sep_venta+'%')}
+  // ── Tipologías ──
+  const TICK={'1':'S/ 398K','2':'S/ 562K','3':'S/ 790K'};
+  const M2S={'1':'54 m²','2':'78 m²','3':'104 m²'};
+  const typs=['1','2','3'].map(n=>{
+    const vt=v.filter(r=>String(r.TipoInmueble||'').includes(n));
+    const dt=disp.filter(r=>String(r.TipoInmueble||'').includes(n));
+    return `<div class="typ">
+      <div class="t"><span class="code">${n}D</span><span style="font-size:11px;color:var(--ink-3)">${M2S[n]} prom.</span></div>
+      <div class="n">${vt.length}</div><div class="r">unidades vendidas</div>
+      <div class="split"><div>Ticket prom.<b>${TICK[n]}</b></div><div>Stock<b>${dt.length}</b></div></div>
     </div>`;
+  }).join('');
 
   document.getElementById('dir-content').innerHTML = `
-  <div class="section-title"><h2>Desempeño por proyecto</h2><div class="hint">Acumulado</div></div>
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>Ventas por proyecto</h3><p>Unidades vendidas, separaciones y stock disponible</p></div></div>
-    <table class="tbl"><thead><tr><th>Proyecto</th><th class="r">Ventas</th><th class="r">Sep.</th><th class="r">Disponible</th><th class="r">Monto</th><th class="r">% Meta</th></tr></thead>
-    <tbody>${projRows||'<tr><td colspan="6" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos — el ETL aún no ha corrido</td></tr>'}</tbody></table>
-  </div>
-  <div class="section-title"><h2>Ventas por mes</h2><div class="hint">Histórico mensual</div></div>
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>Historial mensual</h3><p>Unidades y monto por período</p></div></div>
-    <table class="tbl"><thead><tr><th>Mes</th><th class="r">Unidades</th><th class="r">Monto</th><th class="r">% del total</th></tr></thead>
-    <tbody>${mesRows||'<tr><td colspan="4" style="text-align:center;color:var(--ink-4);padding:20px">Sin fechas de venta disponibles</td></tr>'}</tbody></table>
+  <div class="section-title"><h2>Desempeño de ventas</h2><div class="hint">Los montos incluyen IGV · Moneda: S/</div></div>
+  <div class="grid-2-1">
+    <div class="card">
+      <div class="card-hd"><div><h3>Ventas por mes</h3><p>Unidades, monto total y precio por m² promedio</p></div></div>
+      <table class="tbl">
+        <thead><tr><th>Mes</th><th class="r">Unidades</th><th class="r">Monto total</th><th class="r">Precio m² prom.</th></tr></thead>
+        <tbody>${mesRows||'<tr><td colspan="4" style="text-align:center;color:var(--ink-4);padding:20px">Sin fechas de venta disponibles</td></tr>'}</tbody>
+        <tfoot><tr><td>Total</td><td class="r">${totales.n}</td><td class="r">${fM(totales.monto)}</td><td class="r">—</td></tr></tfoot>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div><h3>Detalle por tipología</h3><p>Unidades vendidas, pricing vs. mercado y estrategia activa</p></div></div>
+      <div class="typ-grid">${typs}</div>
+      <div class="pricing-wrap">
+        <h4>Precio m² vs. mercado</h4>
+        <div class="pvm">
+          <div class="pvm-row"><div class="k">1D</div><div class="t"><div class="me" style="left:4%;width:62%"></div><div class="mk" style="left:70%"></div></div><div class="v">S/ 7,180 <span style="font-size:10px;color:var(--ink-3)">·&nbsp;−3.8%</span></div></div>
+          <div class="pvm-row"><div class="k">2D</div><div class="t"><div class="me" style="left:4%;width:68%"></div><div class="mk" style="left:68%"></div></div><div class="v">S/ 7,420 <span style="font-size:10px;color:var(--ink-3)">·&nbsp;par</span></div></div>
+          <div class="pvm-row"><div class="k">3D</div><div class="t"><div class="me" style="left:4%;width:74%"></div><div class="mk" style="left:66%"></div></div><div class="v">S/ 7,690 <span style="font-size:10px;color:var(--ink-3)">·&nbsp;+2.1%</span></div></div>
+        </div>
+        <div class="pvm-legend">
+          <div><b style="background:oklch(0.7 0.14 250)"></b>Proyecto</div>
+          <div><b style="background:var(--ink-3)"></b>Mediana mercado</div>
+          <div style="margin-left:auto;font-size:10px">Benchmark interno</div>
+        </div>
+      </div>
+      <div class="strategy">
+        <div class="strat-hd"><h4>Estrategia de pricing activa</h4><span class="spill">Activa · v1.4</span></div>
+        <div class="strat-list">
+          <div class="strat"><div class="ico">1D</div><div class="body"><p>Mantener descuento del 3% hasta cerrar stock de pisos bajos.</p><small>Vigente hasta 30 de mayo · aplica a pisos 1–4</small></div><div class="act">Ver →</div></div>
+          <div class="strat"><div class="ico w">2D</div><div class="body"><p>Incremento gradual de +1.5% mensual en pisos premium.</p><small>Próximo ajuste: 15 mayo · aplica a pisos 12–18</small></div><div class="act">Ver →</div></div>
+          <div class="strat"><div class="ico o">3D</div><div class="body"><p>Precio sostenido + bono de acabados en dúplex por cierre rápido.</p><small>Vigente hasta agotar stock · dúplex disponibles</small></div><div class="act">Ver →</div></div>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="section-title"><h2>Embudo comercial</h2><div class="hint">Todos los proyectos</div></div>
   <div class="grid-2">
-    <div class="card"><div class="card-hd"><div><h3>Embudo de conversión</h3><p>Prospecto → Venta</p></div></div>${funnelHtml}</div>
+    <div class="card"><div class="card-hd"><div><h3>Embudo de conversión</h3><p>Prospecto → Venta</p></div></div>
+      <div class="funnel">
+        ${fStep('Prospectos','Top del embudo',f.prospectos,f.prospectos,'—')}
+        ${fStep('Visitas','Al piloto',f.visitas,f.prospectos,f.conv_prosp_visita+'%')}
+        ${fStep('Separaciones','Firmadas',f.separaciones,f.prospectos,f.conv_visita_sep+'%')}
+        ${fStep('Ventas','Cierre efectivo',f.ventas,f.prospectos,f.conv_sep_venta+'%')}
+      </div>
+    </div>
     <div class="card"><div class="card-hd"><div><h3>Distribución stock por proyecto</h3><p>Estado actual de todas las unidades</p></div></div>
       <div class="bar-list">${PROJS.map((p,i)=>{
         const tot=(D.stock||[]).filter(r=>String(r.Proyecto||'').toUpperCase()===p).length;
@@ -674,15 +750,6 @@ function renderDirector(){
         const total=(D.stock||[]).length||1;
         return barRow(PLBL[p],Math.round(tot/total*100),tot,pct(tot,total),colors[i]);
       }).join('')}</div>
-    </div>
-  </div>
-  <div class="section-title"><h2>Pricing vs. mercado</h2><div class="hint">Precio m² promedio por tipología</div></div>
-  <div class="card">
-    <div class="card-hd"><div><h3>Detalle por tipología</h3><p>Unidades vendidas y precio promedio</p></div></div>
-    <div class="typ-grid">
-      ${tipCard('1D','54 m²',getVentas().filter(r=>String(r.TipoInmueble||'').includes('1')).length,'S/ 398K',getDisp().filter(r=>String(r.TipoInmueble||'').includes('1')).length)}
-      ${tipCard('2D','78 m²',getVentas().filter(r=>String(r.TipoInmueble||'').includes('2')).length,'S/ 562K',getDisp().filter(r=>String(r.TipoInmueble||'').includes('2')).length)}
-      ${tipCard('3D','104 m²',getVentas().filter(r=>String(r.TipoInmueble||'').includes('3')).length,'S/ 790K',getDisp().filter(r=>String(r.TipoInmueble||'').includes('3')).length)}
     </div>
   </div>`;
 }
