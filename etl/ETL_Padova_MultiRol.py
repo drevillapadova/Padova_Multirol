@@ -471,113 +471,8 @@ def execute_ventas_extraction(driver):
 # EXTRACCIÓN — PROSPECTOS (NUEVO)
 # ============================================================
 
-def execute_prospectos_extraction(driver, wait):
-    print(f"\n>> [PROSPECTOS] Navegando a: {URL_REPORTE_PROSPECTOS}")
-
-    for f in glob.glob(os.path.join(DOWNLOAD_DIR_PROSPECTOS, "*.*")):
-        try: os.remove(f)
-        except: pass
-
-    driver.get(URL_REPORTE_PROSPECTOS)
-    time.sleep(4)
-    dismiss_popup(driver)
-
-    try:
-        sels = driver.find_elements(By.TAG_NAME, "select")
-        if sels: Select(sels[0]).select_by_index(0)
-        time.sleep(0.5)
-    except Exception: pass
-
-    fecha_ini = "01/01/2024"
-    fecha_fin = datetime.now().strftime("%d/%m/%Y")
-
-    driver.execute_script(f"""
-        (function(){{
-            var fi='{fecha_ini}', ff='{fecha_fin}';
-            var inputs=Array.from(document.querySelectorAll('input'));
-            var candidates=inputs.filter(function(i){{
-                return i.value && i.value.match(/\\d{{2}}\\/\\d{{2}}\\/\\d{{4}}/);
-            }});
-            if(candidates.length<2){{
-                candidates=inputs.filter(function(i){{
-                    var n=(i.name+i.id+(i.placeholder||'')).toLowerCase();
-                    return n.includes('fecha')||n.includes('date')||i.type==='date';
-                }});
-            }}
-            if(candidates.length<2){{
-                candidates=inputs.filter(function(i){{
-                    return (i.type==='text'||i.type==='date')&&i.offsetParent!==null;
-                }});
-            }}
-            if(candidates.length>=2){{
-                candidates[0].value=fi; candidates[0].dispatchEvent(new Event('change',{{bubbles:true}})); candidates[0].dispatchEvent(new Event('input',{{bubbles:true}}));
-                candidates[candidates.length-1].value=ff; candidates[candidates.length-1].dispatchEvent(new Event('change',{{bubbles:true}})); candidates[candidates.length-1].dispatchEvent(new Event('input',{{bubbles:true}}));
-                console.log('Fechas seteadas en',candidates.length,'inputs');
-            }}
-        }})();
-    """)
-    time.sleep(2)
-
-    existing = set(glob.glob(os.path.join(DOWNLOAD_DIR, "*.*")))
-
-    for selector in [(By.ID,"btnExportar"),(By.XPATH,"//button[contains(text(),'Exportar')]"),(By.XPATH,"//button[@type='submit']")]:
-        try:
-            btn = wait.until(EC.element_to_be_clickable(selector))
-            driver.execute_script("arguments[0].click();", btn)
-            print("   -> Click en Exportar")
-            break
-        except Exception: pass
-
-    time.sleep(5)
-    archivo = esperar_descarga_nueva(DOWNLOAD_DIR, existing, timeout=480)
-    if not archivo:
-        print("   !! Warning: no se descargó reporte de prospectos")
-        return None
-
-    ext  = os.path.splitext(archivo)[1].lower()
-    os.makedirs(DOWNLOAD_DIR_PROSPECTOS, exist_ok=True)
-    dest = os.path.join(DOWNLOAD_DIR_PROSPECTOS, f"ReporteProspectos{ext}")
-    if os.path.exists(dest): os.remove(dest)
-    shutil.move(archivo, dest)
-    print(f"   -> [OK] {os.path.basename(dest)}")
-    return dest
-
-
-# ============================================================
-# EXTRACCIÓN — VISITAS (NUEVO)
-# ============================================================
-
-def execute_visitas_extraction(driver, wait):
-    print(f"\n>> [VISITAS] Navegando a: {URL_REPORTE_VISITAS}")
-
-    for f in glob.glob(os.path.join(DOWNLOAD_DIR_VISITAS, "*.*")):
-        try: os.remove(f)
-        except: pass
-
-    driver.get(URL_REPORTE_VISITAS)
-    time.sleep(4)
-    dismiss_popup(driver)
-
-    try:
-        sels = driver.find_elements(By.TAG_NAME, "select")
-        if sels: Select(sels[0]).select_by_index(0)
-        time.sleep(0.5)
-    except Exception: pass
-
-    fecha_ini = "01/01/2024"
-    fecha_fin = datetime.now().strftime("%d/%m/%Y")
-
-    # Visitas tiene Excel seleccionado por defecto — cambiar a CSV
-    for xpath in ["//input[@type='radio'][@value='Csv']", "//label[contains(text(),'Csv')]", "//*[text()='Csv']"]:
-        try:
-            el = driver.find_element(By.XPATH, xpath)
-            driver.execute_script("arguments[0].click();", el)
-            print("   -> Formato CSV seleccionado")
-            break
-        except Exception: pass
-    time.sleep(0.5)
-
-    # Los inputs de fecha ya tienen valor dd/mm/yyyy — sobreescribir con rango 2024→hoy
+def _set_fechas_js(driver, fecha_ini, fecha_fin):
+    """Sobreescribe los inputs de fecha dd/mm/yyyy en la página actual."""
     driver.execute_script(f"""
         (function(){{
             var fi='{fecha_ini}', ff='{fecha_fin}';
@@ -591,13 +486,33 @@ def execute_visitas_extraction(driver, wait):
                 }});
             }}
             if(candidates.length>=2){{
-                candidates[0].value=fi; candidates[0].dispatchEvent(new Event('change',{{bubbles:true}})); candidates[0].dispatchEvent(new Event('input',{{bubbles:true}}));
-                candidates[candidates.length-1].value=ff; candidates[candidates.length-1].dispatchEvent(new Event('change',{{bubbles:true}})); candidates[candidates.length-1].dispatchEvent(new Event('input',{{bubbles:true}}));
-                console.log('Fechas visitas:', fi, '->', ff);
+                candidates[0].value=fi;
+                candidates[0].dispatchEvent(new Event('change',{{bubbles:true}}));
+                candidates[0].dispatchEvent(new Event('input',{{bubbles:true}}));
+                candidates[candidates.length-1].value=ff;
+                candidates[candidates.length-1].dispatchEvent(new Event('change',{{bubbles:true}}));
+                candidates[candidates.length-1].dispatchEvent(new Event('input',{{bubbles:true}}));
             }}
         }})();
     """)
-    time.sleep(2)
+    time.sleep(1)
+
+
+def execute_prospectos_extraction_year(driver, wait, año):
+    print(f"\n>> [PROSPECTOS {año}] Procesando...")
+    driver.get(URL_REPORTE_PROSPECTOS)
+    time.sleep(4)
+    dismiss_popup(driver)
+
+    try:
+        sels = driver.find_elements(By.TAG_NAME, "select")
+        if sels: Select(sels[0]).select_by_index(0)
+        time.sleep(0.5)
+    except Exception: pass
+
+    fecha_ini = f"01/01/{año}"
+    fecha_fin = f"31/12/{año}" if año < datetime.now().year else datetime.now().strftime("%d/%m/%Y")
+    _set_fechas_js(driver, fecha_ini, fecha_fin)
 
     existing = set(glob.glob(os.path.join(DOWNLOAD_DIR, "*.*")))
 
@@ -610,18 +525,106 @@ def execute_visitas_extraction(driver, wait):
         except Exception: pass
 
     time.sleep(5)
-    archivo = esperar_descarga_nueva(DOWNLOAD_DIR, existing, timeout=480)
+    archivo = esperar_descarga_nueva(DOWNLOAD_DIR, existing, timeout=240)
     if not archivo:
-        print("   !! Warning: no se descargó reporte de visitas")
+        print(f"   !! Warning: no se descargó prospectos {año}")
         return None
 
     ext  = os.path.splitext(archivo)[1].lower()
-    os.makedirs(DOWNLOAD_DIR_VISITAS, exist_ok=True)
-    dest = os.path.join(DOWNLOAD_DIR_VISITAS, f"ReporteVisitas{ext}")
+    os.makedirs(DOWNLOAD_DIR_PROSPECTOS, exist_ok=True)
+    dest = os.path.join(DOWNLOAD_DIR_PROSPECTOS, f"ReporteProspectos{año}{ext}")
     if os.path.exists(dest): os.remove(dest)
     shutil.move(archivo, dest)
     print(f"   -> [OK] {os.path.basename(dest)}")
     return dest
+
+
+def execute_prospectos_extraction(driver, wait):
+    print("\n" + "="*60)
+    print(">> [PROSPECTOS] Iniciando descarga por año")
+    print("="*60)
+    for f in glob.glob(os.path.join(DOWNLOAD_DIR_PROSPECTOS, "*.*")):
+        try: os.remove(f)
+        except: pass
+    archivos = {}
+    for año in AÑOS_VENTAS:
+        try:
+            archivos[str(año)] = execute_prospectos_extraction_year(driver, wait, año)
+            time.sleep(2)
+        except Exception as e:
+            print(f"   !! Error prospectos {año}: {e}")
+    return archivos
+
+
+# ============================================================
+# EXTRACCIÓN — VISITAS
+# ============================================================
+
+def execute_visitas_extraction_year(driver, wait, año):
+    print(f"\n>> [VISITAS {año}] Procesando...")
+    driver.get(URL_REPORTE_VISITAS)
+    time.sleep(4)
+    dismiss_popup(driver)
+
+    try:
+        sels = driver.find_elements(By.TAG_NAME, "select")
+        if sels: Select(sels[0]).select_by_index(0)
+        time.sleep(0.5)
+    except Exception: pass
+
+    # Visitas tiene Excel por defecto — cambiar a CSV
+    for xpath in ["//input[@type='radio'][@value='Csv']", "//label[contains(text(),'Csv')]", "//*[text()='Csv']"]:
+        try:
+            el = driver.find_element(By.XPATH, xpath)
+            driver.execute_script("arguments[0].click();", el)
+            break
+        except Exception: pass
+    time.sleep(0.5)
+
+    fecha_ini = f"01/01/{año}"
+    fecha_fin = f"31/12/{año}" if año < datetime.now().year else datetime.now().strftime("%d/%m/%Y")
+    _set_fechas_js(driver, fecha_ini, fecha_fin)
+
+    existing = set(glob.glob(os.path.join(DOWNLOAD_DIR, "*.*")))
+
+    for selector in [(By.ID,"btnExportar"),(By.XPATH,"//button[contains(text(),'Exportar')]"),(By.XPATH,"//button[@type='submit']")]:
+        try:
+            btn = wait.until(EC.element_to_be_clickable(selector))
+            driver.execute_script("arguments[0].click();", btn)
+            print("   -> Click en Exportar")
+            break
+        except Exception: pass
+
+    time.sleep(5)
+    archivo = esperar_descarga_nueva(DOWNLOAD_DIR, existing, timeout=240)
+    if not archivo:
+        print(f"   !! Warning: no se descargó visitas {año}")
+        return None
+
+    ext  = os.path.splitext(archivo)[1].lower()
+    os.makedirs(DOWNLOAD_DIR_VISITAS, exist_ok=True)
+    dest = os.path.join(DOWNLOAD_DIR_VISITAS, f"ReporteVisitas{año}{ext}")
+    if os.path.exists(dest): os.remove(dest)
+    shutil.move(archivo, dest)
+    print(f"   -> [OK] {os.path.basename(dest)}")
+    return dest
+
+
+def execute_visitas_extraction(driver, wait):
+    print("\n" + "="*60)
+    print(">> [VISITAS] Iniciando descarga por año")
+    print("="*60)
+    for f in glob.glob(os.path.join(DOWNLOAD_DIR_VISITAS, "*.*")):
+        try: os.remove(f)
+        except: pass
+    archivos = {}
+    for año in AÑOS_VENTAS:
+        try:
+            archivos[str(año)] = execute_visitas_extraction_year(driver, wait, año)
+            time.sleep(2)
+        except Exception as e:
+            print(f"   !! Error visitas {año}: {e}")
+    return archivos
 
 
 # ============================================================
@@ -834,9 +837,6 @@ def main():
     wait   = WebDriverWait(driver, 30)
 
     archivos_ventas   = {}
-    archivo_prosp     = None
-    archivo_visitas   = None
-
     try:
         # 1. Login
         robust_login(driver, wait)
@@ -847,11 +847,11 @@ def main():
         # 3. Ventas por año
         archivos_ventas = execute_ventas_extraction(driver)
 
-        # 4. Prospectos
-        archivo_prosp = execute_prospectos_extraction(driver, wait)
+        # 4. Prospectos por año
+        execute_prospectos_extraction(driver, wait)
 
-        # 5. Visitas
-        archivo_visitas = execute_visitas_extraction(driver, wait)
+        # 5. Visitas por año
+        execute_visitas_extraction(driver, wait)
 
     except Exception as e:
         print(f"!! CRITICAL ERROR: {e}")
@@ -878,31 +878,41 @@ def main():
     try: final_file, df_stock_gs = process_stock_data(df_ventas)
     except Exception as e: print(f"!! STOCK ERROR: {e}")
 
-    # Cargar prospectos — NUEVO
+    def _leer_por_año(dir_path, prefijo):
+        dfs = []
+        for año in AÑOS_VENTAS:
+            for ext in ['.csv', '.xlsx']:
+                ruta = os.path.join(dir_path, f"{prefijo}{año}{ext}")
+                if os.path.exists(ruta):
+                    try:
+                        df = pd.read_csv(ruta, encoding='utf-8', low_memory=False) if ext == '.csv' else pd.read_excel(ruta)
+                        df.columns = df.columns.str.strip()
+                        dfs.append(df)
+                        print(f"   -> {prefijo}{año}: {len(df):,} filas")
+                    except Exception as e:
+                        print(f"   !! Error leyendo {prefijo}{año}: {e}")
+                    break
+        if not dfs: return None
+        df_all = pd.concat(dfs, ignore_index=True)
+        if 'Proyecto' in df_all.columns:
+            df_all = df_all[df_all['Proyecto'].str.upper().isin(TARGET_PROJECTS)]
+        return df_all
+
+    # Cargar prospectos
     df_prospectos = None
     try:
-        if archivo_prosp and os.path.exists(archivo_prosp):
-            ext = os.path.splitext(archivo_prosp)[1].lower()
-            df_prospectos = pd.read_csv(archivo_prosp, encoding='utf-8', low_memory=False) \
-                            if ext == '.csv' else pd.read_excel(archivo_prosp)
-            df_prospectos.columns = df_prospectos.columns.str.strip()
-            if 'Proyecto' in df_prospectos.columns:
-                df_prospectos = df_prospectos[df_prospectos['Proyecto'].str.upper().isin(TARGET_PROJECTS)]
-            print(f"   -> PROSPECTOS: {len(df_prospectos):,} filas")
+        df_prospectos = _leer_por_año(DOWNLOAD_DIR_PROSPECTOS, "ReporteProspectos")
+        if df_prospectos is not None:
+            print(f"   -> PROSPECTOS total: {len(df_prospectos):,} filas")
     except Exception as e:
         print(f"!! PROSPECTOS ERROR: {e}")
 
-    # Cargar visitas — NUEVO
+    # Cargar visitas
     df_visitas = None
     try:
-        if archivo_visitas and os.path.exists(archivo_visitas):
-            ext = os.path.splitext(archivo_visitas)[1].lower()
-            df_visitas = pd.read_csv(archivo_visitas, encoding='utf-8', low_memory=False) \
-                         if ext == '.csv' else pd.read_excel(archivo_visitas)
-            df_visitas.columns = df_visitas.columns.str.strip()
-            if 'Proyecto' in df_visitas.columns:
-                df_visitas = df_visitas[df_visitas['Proyecto'].str.upper().isin(TARGET_PROJECTS)]
-            print(f"   -> VISITAS: {len(df_visitas):,} filas")
+        df_visitas = _leer_por_año(DOWNLOAD_DIR_VISITAS, "ReporteVisitas")
+        if df_visitas is not None:
+            print(f"   -> VISITAS total: {len(df_visitas):,} filas")
     except Exception as e:
         print(f"!! VISITAS ERROR: {e}")
 
