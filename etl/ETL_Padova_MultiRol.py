@@ -567,28 +567,33 @@ def execute_visitas_extraction(driver, wait):
     fecha_ini = "01/01/2024"
     fecha_fin = datetime.now().strftime("%d/%m/%Y")
 
+    # Visitas tiene Excel seleccionado por defecto — cambiar a CSV
+    for xpath in ["//input[@type='radio'][@value='Csv']", "//label[contains(text(),'Csv')]", "//*[text()='Csv']"]:
+        try:
+            el = driver.find_element(By.XPATH, xpath)
+            driver.execute_script("arguments[0].click();", el)
+            print("   -> Formato CSV seleccionado")
+            break
+        except Exception: pass
+    time.sleep(0.5)
+
+    # Los inputs de fecha ya tienen valor dd/mm/yyyy — sobreescribir con rango 2024→hoy
     driver.execute_script(f"""
         (function(){{
             var fi='{fecha_ini}', ff='{fecha_fin}';
-            var inputs=Array.from(document.querySelectorAll('input'));
-            var candidates=inputs.filter(function(i){{
+            var candidates=Array.from(document.querySelectorAll('input')).filter(function(i){{
                 return i.value && i.value.match(/\\d{{2}}\\/\\d{{2}}\\/\\d{{4}}/);
             }});
             if(candidates.length<2){{
-                candidates=inputs.filter(function(i){{
+                candidates=Array.from(document.querySelectorAll('input')).filter(function(i){{
                     var n=(i.name+i.id+(i.placeholder||'')).toLowerCase();
-                    return n.includes('fecha')||n.includes('date')||i.type==='date';
-                }});
-            }}
-            if(candidates.length<2){{
-                candidates=inputs.filter(function(i){{
-                    return (i.type==='text'||i.type==='date')&&i.offsetParent!==null;
+                    return n.includes('fecha')||n.includes('date');
                 }});
             }}
             if(candidates.length>=2){{
                 candidates[0].value=fi; candidates[0].dispatchEvent(new Event('change',{{bubbles:true}})); candidates[0].dispatchEvent(new Event('input',{{bubbles:true}}));
                 candidates[candidates.length-1].value=ff; candidates[candidates.length-1].dispatchEvent(new Event('change',{{bubbles:true}})); candidates[candidates.length-1].dispatchEvent(new Event('input',{{bubbles:true}}));
-                console.log('Fechas seteadas en',candidates.length,'inputs');
+                console.log('Fechas visitas:', fi, '->', ff);
             }}
         }})();
     """)
