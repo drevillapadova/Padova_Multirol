@@ -48,12 +48,12 @@ main{overflow-x:hidden}
 .panel.active{display:block}
 
 /* ── TOPBAR ── */
-.topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:16px;flex-wrap:wrap}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:16px;flex-wrap:nowrap}
 .crumbs{font-size:12px;color:var(--ink-3);display:flex;gap:6px;align-items:center}
 .crumbs b{color:var(--ink-2);font-weight:500}
 .page-title{font-size:22px;font-weight:700;letter-spacing:-0.02em;margin:4px 0 0}
 .page-sub{font-size:12px;color:var(--ink-3);margin-top:2px}
-.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;overflow-x:auto}
 .chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);padding:6px 11px;border-radius:7px;font-size:12px;color:var(--ink-2);cursor:pointer}
 .chip.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
 .chip.refresh{background:var(--brand-soft);color:var(--brand);border-color:oklch(0.9 0.05 250);font-weight:600}
@@ -343,8 +343,8 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
   .panel{padding:16px 14px 32px;margin-top:48px}
   .filter-bar{gap:6px}
   .filter-bar select{min-width:100px;font-size:11px}
-  .topbar{flex-direction:column;align-items:flex-start;gap:10px}
-  .toolbar{width:100%}
+  .topbar{flex-direction:column;align-items:flex-start;gap:10px;flex-wrap:wrap}
+  .toolbar{width:100%;flex-wrap:wrap}
   .bar-row{grid-template-columns:100px 1fr 60px 44px}
   .rank-row{grid-template-columns:24px 1fr 80px}
   .rank-row .bar-wrap{display:none}
@@ -947,8 +947,9 @@ function renderJVentas(){
         <th><span class="dotHd" style="background:oklch(0.50 0.14 150)"></span>Venta</th>
         <th>Total</th>
       </tr></thead>
-      <tbody>${smRows||'<tr><td colspan="8" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de cartera</td></tr>'}</tbody>
-      <tfoot><tr class="tot"><td>Total equipo</td><td>${smT.otros}</td><td>${smT.prosp}</td><td>${smT.seguim}</td><td>${smT.visita}</td><td>${smT.sep}</td><td>${smT.vend}</td><td>${smTotal}</td></tr></tfoot>
+      <tbody>${smRows||'<tr><td colspan="8" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de cartera</td></tr>'}
+        <tr class="tot"><td>Total equipo</td><td>${smT.otros}</td><td>${smT.prosp}</td><td>${smT.seguim}</td><td>${smT.visita}</td><td>${smT.sep}</td><td>${smT.vend}</td><td>${smTotal}</td></tr>
+      </tbody>
     </table></div>
   </div>`;
 }
