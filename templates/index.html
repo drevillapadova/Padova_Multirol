@@ -531,29 +531,16 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
       <div class="page-sub" id="mp-sub">Cargando...</div>
     </div>
     <div class="toolbar">
-      <label class="chip-sel">&#x1F4C5;
-        <select id="mp-mes" onchange="renderMktProy()">
-          <option value="">Todos los meses</option>
-          <option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option>
-          <option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option>
-          <option value="07">Julio</option><option value="08">Agosto</option><option value="09">Setiembre</option>
-          <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
-        </select>
+      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">▭</span>
+        <select id="mp-mes" onchange="renderMktProy()"><option value="">Mes</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Setiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
       </label>
-      <label class="chip-sel">&#x1F4C5;
-        <select id="mp-año" onchange="renderMktProy()">
-          <option value="">Todos los años</option>
-          <option>2026</option><option>2025</option><option>2024</option>
-        </select>
+      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">▭</span>
+        <select id="mp-año" onchange="renderMktProy()"><option value="">Año</option><option>2026</option><option>2025</option><option>2024</option></select>
       </label>
-      <label class="chip-sel">&#x25AD;
-        <select id="mp-proj" onchange="renderMktProy()">
-          <option value="">Todos los proyectos</option>
-          <option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option>
-          <option>LITORAL 900</option><option>LOMAS DE CARABAYLLO</option>
-        </select>
+      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
+        <select id="mp-proj" onchange="renderMktProy()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO</option></select>
       </label>
-      <div class="chip refresh" onclick="loadAll()">&#x21BB; Actualizar</div>
+      <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
     </div>
   </div>
   <div id="mp-content"><div class="loading">Cargando...</div></div>
@@ -1382,10 +1369,8 @@ function renderMktProy(){
     <tbody>${campRows||'<tr><td colspan="6" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de campa\u00f1as</td></tr>'}</tbody></table>
   </div>
   <div class="section-title"><h2>Leads por tiempo</h2><div class="hint">Distribuci\u00f3n temporal de leads del CRM</div></div>
-  <div class="grid-2">
-    <div class="card"><div class="card-hd"><div><h3>Leads por d\u00eda de semana</h3><p>Distribuci\u00f3n semanal</p></div></div>${weekBarsHtml(vf)}</div>
-    <div class="card"><div class="card-hd"><div><h3>Distribuci\u00f3n horaria</h3><p>Hora de registro en CRM</p></div></div>${heatmapHtml(vf)}</div>
-  </div>
+  <div class="card" style="margin-bottom:16px"><div class="card-hd"><div><h3>Leads por d\u00eda de semana</h3><p>Distribuci\u00f3n semanal</p></div></div>${weekBarsHtml(vf)}</div>
+  <div class="card" style="margin-bottom:16px"><div class="card-hd"><div><h3>Distribuci\u00f3n horaria</h3><p>Hora de registro en CRM</p></div></div>${heatmapHtml(vf)}</div>
   <div class="section-title"><h2>Perfil del lead</h2><div class="hint">Datos del CRM \u00b7 compradores confirmados</div></div>
   <div class="grid-3">
     <div class="card"><div class="card-hd"><div><h3>Edad</h3><p>Distribuci\u00f3n por rango etario</p></div></div>
