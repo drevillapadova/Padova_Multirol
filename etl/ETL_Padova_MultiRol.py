@@ -755,17 +755,27 @@ def clean_df_for_sheets(df):
     return pd.concat([df[col].apply(_clean) for col in df.columns], axis=1)
 
 
-def subir_tab(spreadsheet, tab_name, df, rows=10000, cols=200):
+def subir_tab(spreadsheet, tab_name, df, rows=100000, cols=200, batch_size=2000):
     if df is None or len(df) == 0:
         print(f"   !! Sin data para {tab_name}")
         return
     try:
-        try: ws = spreadsheet.worksheet(tab_name); ws.clear()
-        except: ws = spreadsheet.add_worksheet(title=tab_name, rows=rows, cols=cols)
+        try:
+            ws = spreadsheet.worksheet(tab_name)
+            ws.clear()
+        except:
+            ws = spreadsheet.add_worksheet(title=tab_name, rows=rows, cols=cols)
         df_c = clean_df_for_sheets(df)
-        data = [df_c.columns.tolist()] + df_c.values.tolist()
-        ws.update(data, value_input_option="RAW")
-        print(f"   -> [OK] {tab_name}: {len(df):,} filas")
+        all_rows = df_c.values.tolist()
+        # Encabezado primero
+        ws.update([df_c.columns.tolist()], value_input_option="RAW")
+        # Datos en batches para evitar error 500 por payload grande
+        for i in range(0, len(all_rows), batch_size):
+            batch = all_rows[i:i+batch_size]
+            ws.append_rows(batch, value_input_option="RAW", insert_data_option="INSERT_ROWS")
+            print(f"   -> {tab_name}: {min(i+batch_size, len(all_rows)):,}/{len(all_rows):,} filas")
+            time.sleep(1)
+        print(f"   -> [OK] {tab_name}: {len(df):,} filas total")
     except Exception as e:
         print(f"   !! Error subiendo {tab_name}: {e}")
 
