@@ -872,8 +872,10 @@ function renderJVentas(){
   });
 
   // ── TABLA 1: Conversiones y score por asesor ──
+  const ASESORES=['roy','anthony','nancy','adriana','lady','stefany'];
+  const matchAsesor=nm=>ASESORES.some(a=>nm.toLowerCase().includes(a));
   const convMap={};
-  prosp.forEach(r=>{
+  prosp.filter(r=>matchAsesor(String(r.Responsable||'').trim())).forEach(r=>{
     const nm=String(r.Responsable||'Sin asignar').trim();
     if(!convMap[nm])convMap[nm]={leads:0,vis:0,seps:0,ventas:0,proyectos:new Set()};
     convMap[nm].leads++;
@@ -883,7 +885,7 @@ function renderJVentas(){
     if(est.includes('separac'))convMap[nm].seps++;
   });
   // Merge ventas
-  Object.entries(ventMap).forEach(([nm,d])=>{
+  Object.entries(ventMap).filter(([nm])=>matchAsesor(nm)).forEach(([nm,d])=>{
     if(!convMap[nm])convMap[nm]={leads:0,vis:0,seps:d.seps,ventas:d.ventas,proyectos:new Set()};
     else{convMap[nm].ventas=d.ventas;convMap[nm].seps=Math.max(convMap[nm].seps,d.seps);}
   });
@@ -909,10 +911,12 @@ function renderJVentas(){
     </tr>`;
   }).join('');
 
-  // ── TABLA 2: Tiempo de primera respuesta por mes ──
+  // ── TABLA 2: Tiempo de primera respuesta por mes (asesor+proyecto) ──
   const tMesMap={};
-  prosp.forEach(r=>{
+  prosp.filter(r=>matchAsesor(String(r.Responsable||'').trim())).forEach(r=>{
     const nm=String(r.Responsable||'Sin asignar').trim();
+    const pj=String(r.Proyecto||'—').trim();
+    const k=nm+'|||'+pj;
     let mes='';
     const fd=String(r.FechaRegistro||r.Fecha_PrimeraAccion||'');
     if(fd){
@@ -921,10 +925,10 @@ function renderJVentas(){
       else try{mes=new Date(fd).toISOString().slice(0,7);}catch{}
     }
     const t=parseFloat(r.TiempoRespuesta_min||'');
-    if(!tMesMap[nm])tMesMap[nm]={meses:{}};
+    if(!tMesMap[k])tMesMap[k]={asesor:nm,proyecto:pj,meses:{}};
     if(mes&&!isNaN(t)&&t>0){
-      if(!tMesMap[nm].meses[mes])tMesMap[nm].meses[mes]=[];
-      tMesMap[nm].meses[mes].push(t);
+      if(!tMesMap[k].meses[mes])tMesMap[k].meses[mes]=[];
+      tMesMap[k].meses[mes].push(t);
     }
   });
   const meses=[...new Set(Object.values(tMesMap).flatMap(d=>Object.keys(d.meses)))].sort().slice(-4);
@@ -935,7 +939,7 @@ function renderJVentas(){
     const aAvg=aA.length?aA.reduce((x,y)=>x+y,0)/aA.length:Infinity;
     const bAvg=bA.length?bA.reduce((x,y)=>x+y,0)/bA.length:Infinity;
     return aAvg-bAvg;
-  }).map(([nm,d])=>{
+  }).map(([,d])=>{
     const allT=Object.values(d.meses).flat();
     const avg=allT.length?Math.round(allT.reduce((a,b)=>a+b,0)/allT.length):null;
     const tStr=avg===null?'—':avg<60?avg+' min':`${Math.floor(avg/60)}h ${avg%60}m`;
@@ -948,7 +952,7 @@ function renderJVentas(){
       const cl2=m2===null?'':m2<=30?'good':m2<=60?'warnn':'bad';
       return`<td class="r ${cl2}" style="font-size:12px">${s}</td>`;
     }).join('');
-    return`<tr><td>${nm}</td>${mesCells}<td class="r">${tStr}</td><td class="r"><span class="pill ${dCl}">${diag}</span></td></tr>`;
+    return`<tr><td style="font-weight:600">${d.asesor}</td><td style="font-size:11px;color:var(--ink-3)">${d.proyecto}</td>${mesCells}<td class="r">${tStr}</td><td class="r"><span class="pill ${dCl}">${diag}</span></td></tr>`;
   }).join('');
 
   // ── TABLA 3: Toques por lead ──
@@ -999,8 +1003,8 @@ function renderJVentas(){
   <div class="card" style="margin-bottom:16px">
     <div class="card-hd"><div><h3>Promedio por asesor y mes</h3><p>Minutos entre registro del lead y primera acción registrada</p></div></div>
     <div style="overflow-x:auto"><table class="mtable">
-      <thead><tr><th>Asesor</th>${mesHeaders}<th class="r">Promedio</th><th class="r">Diagnóstico</th></tr></thead>
-      <tbody>${tRespRows2||`<tr><td colspan="${4+meses.length}" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de TiempoRespuesta_min</td></tr>`}</tbody>
+      <thead><tr><th>Asesor</th><th>Proyecto</th>${mesHeaders}<th class="r">Promedio</th><th class="r">Diagnóstico</th></tr></thead>
+      <tbody>${tRespRows2||`<tr><td colspan="${5+meses.length}" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de TiempoRespuesta_min</td></tr>`}</tbody>
     </table></div>
   </div>
   <div class="section-title"><h2>Toques por lead</h2><div class="hint">NroAcciones registradas por prospecto · distribución por asesor</div></div>
@@ -1462,9 +1466,6 @@ function renderMktProy(){
     <table class="tbl"><thead><tr><th>Campa\u00f1a</th><th class="r">Inversi\u00f3n</th><th class="r">Impresiones</th><th class="r">Leads</th><th class="r">CPL</th><th class="r">Estado</th></tr></thead>
     <tbody>${campRows||'<tr><td colspan="6" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de campa\u00f1as</td></tr>'}</tbody></table>
   </div>
-  <div class="section-title"><h2>Leads por tiempo</h2><div class="hint">Distribuci\u00f3n temporal de leads del CRM</div></div>
-  <div class="card" style="margin-bottom:16px"><div class="card-hd"><div><h3>Leads por d\u00eda de semana</h3><p>Distribuci\u00f3n semanal</p></div></div>${weekBarsHtml(vf)}</div>
-  <div class="card" style="margin-bottom:16px"><div class="card-hd"><div><h3>Distribuci\u00f3n horaria</h3><p>Hora de registro en CRM</p></div></div>${heatmapHtml(vf)}</div>
   <div class="section-title"><h2>Perfil del lead</h2><div class="hint">Datos del CRM \u00b7 compradores confirmados</div></div>
   <div class="grid-3">
     <div class="card"><div class="card-hd"><div><h3>Edad</h3><p>Distribuci\u00f3n por rango etario</p></div></div>
