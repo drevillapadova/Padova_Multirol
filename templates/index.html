@@ -54,8 +54,9 @@ main{overflow-x:hidden}
 .page-title{font-size:22px;font-weight:700;letter-spacing:-0.02em;margin:4px 0 0}
 .page-sub{font-size:12px;color:var(--ink-3);margin-top:2px}
 .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;overflow-x:auto}
-.chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);padding:6px 11px;border-radius:7px;font-size:12px;color:var(--ink-2);cursor:pointer}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);padding:6px 11px;border-radius:7px;font-size:12px;color:var(--ink-2);cursor:pointer;font-family:inherit;outline:none}
 .chip.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.chip.active{background:var(--brand);color:#fff;border-color:var(--brand)}
 .chip.refresh{background:var(--brand-soft);color:var(--brand);border-color:oklch(0.9 0.05 250);font-weight:600}
 .chip-sel{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);padding:6px 11px;border-radius:7px;font-size:12px;color:var(--ink-2);cursor:pointer}
 .chip-sel select{background:none;border:none;padding:0;font-size:12px;color:var(--ink-2);cursor:pointer;outline:none;font-family:inherit;font-weight:500}
@@ -395,6 +396,7 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
   .filter-bar{flex-direction:column;align-items:flex-start}.filter-sep{display:none}
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <button class="hamburger" onclick="toggleSidebar()" aria-label="Menú">
@@ -550,7 +552,9 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 
 <script>
 const API = '';
-let D = {funnel:{}, ventas:[], stock:[], campanas:{}, desist:[], updatedAt:'—'};
+let D = {funnel:{}, ventas:[], stock:[], campanas:{}, desist:[], prospectos:[], updatedAt:'—'};
+let jmktChart = null;
+let _jmktMetrica = 'leads';
 
 const fS  = n => 'S/ '+Number(n||0).toLocaleString('es-PE',{minimumFractionDigits:0,maximumFractionDigits:0});
 const fN  = n => Number(n||0).toLocaleString('es-PE');
@@ -677,16 +681,18 @@ const PLBL  = {'HELIO - SANTA BEATRIZ':'Helio','SUNNY':'Sunny Park','LITORAL 900
 async function loadAll(){
   document.querySelectorAll('.page-sub').forEach(el=>el.textContent='Actualizando...');
   try{
-    const [fR,vR,cR] = await Promise.all([
+    const [fR,vR,cR,pR] = await Promise.all([
       fetch(API+'/api/funnel').then(r=>r.json()),
       fetch(API+'/api/ventas').then(r=>r.json()),
       fetch(API+'/api/campanas').then(r=>r.json()),
+      fetch(API+'/api/prospectos').then(r=>r.json()),
     ]);
-    D.funnel   = fR.data||{};
-    D.ventas   = vR.ventas||[];
-    D.stock    = [...(vR.ventas||[]),...(vR.separaciones||[])];
-    D.campanas = cR.data||{};
-    D.updatedAt= fR.updated_at||vR.updated_at||'—';
+    D.funnel     = fR.data||{};
+    D.ventas     = vR.ventas||[];
+    D.stock      = [...(vR.ventas||[]),...(vR.separaciones||[])];
+    D.campanas   = cR.data||{};
+    D.prospectos = pR.data||[];
+    D.updatedAt  = fR.updated_at||vR.updated_at||'—';
     // también stock completo
     fetch(API+'/api/stock').then(r=>r.json()).then(s=>{D.stock=s.data||[];renderAll();}).catch(()=>renderAll());
   }catch(e){
@@ -828,7 +834,6 @@ function tipCard(code,m2,vend,ticket,stock){
 function renderJVentas(){
   const proj = filtrarProj('jv');
   const vend = document.getElementById('jv-vend')?.value||'';
-  const f   = getFunnel(proj);
   let v = filtrarVentas('jv');
   if(vend) v = v.filter(r=>String(r.Vendedor||'').trim()===vend);
   const sep = getSeps(proj);
@@ -836,7 +841,6 @@ function renderJVentas(){
   const montoSep = sep.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||r.PrecioLista||0),0);
   document.getElementById('jv-sub').textContent = 'Actualizado: '+D.updatedAt+' · Equipo de ventas';
 
-  // Populate vendedor select from data
   const sel=document.getElementById('jv-vend');
   if(sel){
     const cur=sel.value;
@@ -850,139 +854,172 @@ function renderJVentas(){
     kpi('Separaciones',`${fN(sep.length)} <span class="unit">und.</span>`,'en proceso')+
     kpi('Monto separaciones',fM(montoSep),'estimado separaciones');
 
-  // ── Funnel 6 pasos ──
-  const funnelStep=(lbl,sub,n,total,convStr,metaStr,metaPct)=>{
-    const w=total?Math.min(Math.round(n/total*100),100):0;
-    return `<div class="fstep">
-      <div class="lbl"><b>${lbl}</b><small>${sub}</small></div>
-      <div class="track">
-        <div class="fill" style="width:${Math.max(w,3)}%">${fN(n)}</div>
-        ${metaPct?`<div class="meta-mk" style="left:${metaPct}%" data-meta="${metaStr}"></div>`:''}
-      </div>
-      <div class="right"><span class="pct">${convStr}</span></div>
-    </div>`;
-  };
-  const leads=f.prospectos||0;
-  const funnelHtml=`<div class="funnel">
-    ${funnelStep('Leads asignados','Distribuidos al equipo',leads,leads,'—','',0)}
-    ${funnelStep('Prospectos','Calificados',f.prospectos,leads,f.prospectos?Math.round(f.prospectos/Math.max(leads,1)*100)+'% conv.':'—','',0)}
-    ${funnelStep('Visitas','Al depto. piloto',f.visitas,leads,f.conv_prosp_visita+'% conv.','',0)}
-    ${funnelStep('Separaciones','Reservas firmadas',f.separaciones,leads,f.conv_visita_sep+'% conv.','',0)}
-    ${funnelStep('Ventas','Cierre efectivo',f.ventas,leads,f.conv_sep_venta+'% conv.','',0)}
-  </div>`;
+  // Prospectos filtrados
+  const prosp=(D.prospectos||[]).filter(r=>!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
 
-  // ── Vendedores: ranking + tiempo respuesta ──
-  const vendMap={};
+  // Ventas/seps por vendedor
+  const ventMap={};
   (D.ventas||[]).filter(r=>!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase())
     .forEach(r=>{
-      const vn=String(r.Vendedor||'Sin asignar').trim();
-      if(!vendMap[vn])vendMap[vn]={v:0,s:0,t:[]};
-      vendMap[vn].v++;
-      const t=Number(r.T_Respuesta_min||0);
-      if(t>0)vendMap[vn].t.push(t);
+      const nm=String(r.Vendedor||'Sin asignar').trim();
+      if(!ventMap[nm])ventMap[nm]={ventas:0,seps:0};
+      ventMap[nm].ventas++;
     });
-  sep.forEach(r=>{const vn=String(r.Vendedor||'Sin asignar').trim();if(!vendMap[vn])vendMap[vn]={v:0,s:0,t:[]};vendMap[vn].s++;});
-  const vendArr=Object.entries(vendMap).sort((a,b)=>b[1].v-a[1].v);
-  const META_IND=6;
-  const maxV=Math.max(vendArr[0]?.[1].v||0,META_IND);
-
-  const rankRows=vendArr.slice(0,6).map(([nm,d],i)=>{
-    const ini=nm.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
-    const w=Math.round(d.v/maxV*100);
-    const mW=Math.round(META_IND/maxV*100);
-    const col=d.v>=META_IND?'var(--brand)':d.v>=META_IND*0.7?'var(--warn)':'var(--bad)';
-    return `<div class="rank-row ${i===0?'top':''}">
-      <div class="pos">${i+1}</div>
-      <div class="who"><div class="av">${ini}</div><div class="nm">${nm}<small>${d.v} ventas · ${d.s} sep.</small></div></div>
-      <div style="position:relative;height:10px;background:#f1f5f9;border-radius:99px;flex:1">
-        <i style="display:block;position:absolute;left:0;top:0;bottom:0;width:${w}%;background:${col};border-radius:99px"></i>
-        <span style="position:absolute;top:-1px;bottom:-1px;left:${mW}%;width:2px;background:var(--ink);border-radius:2px"></span>
-      </div>
-      <div class="pct">${d.v} / ${META_IND}<small>${Math.round(d.v/META_IND*100)}% meta</small></div>
-    </div>`;
-  }).join('');
-
-  const tRespRows=vendArr.slice(0,6).map(([nm,d])=>{
-    const ini=nm.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
-    const avgT=d.t.length?Math.round(d.t.reduce((a,b)=>a+b,0)/d.t.length):null;
-    const tStr=avgT===null?'—':avgT<60?avgT+' min':`${Math.floor(avgT/60)} h ${avgT%60} min`;
-    const tCls=avgT===null?'':avgT<=15?'good':avgT<=30?'warnn':'bad';
-    const sla=avgT===null?'n':avgT<=15?'g':avgT<=30?'w':'b';
-    const slaLbl=avgT===null?'Sin dato':avgT<=15?'Dentro':avgT<=30?'Al límite':'Fuera';
-    return `<tr><td><div class="who-row"><div class="avv">${ini}</div>${nm}</div></td>
-      <td class="r ${tCls}">${tStr}</td><td class="r">—</td>
-      <td class="r"><span class="pill ${sla}">${slaLbl}</span></td></tr>`;
-  }).join('');
-  const allT=vendArr.flatMap(([,d])=>d.t);
-  const avgEq=allT.length?Math.round(allT.reduce((a,b)=>a+b,0)/allT.length)+' min':'—';
-
-  // ── Stmatrix: cartera por estado ──
-  const smMap={};
-  (D.stock||[]).filter(r=>!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase()).forEach(r=>{
-    const vn=String(r.Vendedor||'Sin asignar').trim();
-    const est=String(r.Estado||'').toLowerCase();
-    if(!smMap[vn])smMap[vn]={otros:0,prosp:0,seguim:0,visita:0,sep:0,vend:0};
-    if(est.includes('vendid')||est.includes('minuta')||est.includes('escritura'))smMap[vn].vend++;
-    else if(est.includes('separac'))smMap[vn].sep++;
-    else if(est.includes('visita'))smMap[vn].visita++;
-    else if(est.includes('seguim'))smMap[vn].seguim++;
-    else if(est.includes('prosp')||est.includes('calif'))smMap[vn].prosp++;
-    else smMap[vn].otros++;
+  sep.forEach(r=>{
+    const nm=String(r.Vendedor||'Sin asignar').trim();
+    if(!ventMap[nm])ventMap[nm]={ventas:0,seps:0};
+    ventMap[nm].seps++;
   });
-  vendArr.forEach(([nm])=>{if(!smMap[nm])smMap[nm]={otros:0,prosp:0,seguim:0,visita:0,sep:0,vend:0};});
 
-  const smRows=vendArr.slice(0,6).map(([nm])=>{
-    const e=smMap[nm]||{};
-    const tot=(e.otros||0)+(e.prosp||0)+(e.seguim||0)+(e.visita||0)+(e.sep||0)+(e.vend||0);
-    const cb=(n,bg,dark)=>`<td><span class="cellbg" style="background:${bg}${dark?';color:oklch(0.35 0.14 150)':''}">${n}</span></td>`;
-    return `<tr><td>${nm}</td>
-      ${cb(e.otros,'oklch(0.97 0.02 250)')}${cb(e.prosp,'oklch(0.95 0.04 250)')}
-      ${cb(e.seguim,'oklch(0.94 0.06 65)')}${cb(e.visita,'oklch(0.94 0.06 25)')}
-      ${cb(e.sep,'oklch(0.94 0.06 150)')}${cb(e.vend,'oklch(0.90 0.08 150)',true)}
-      <td>${tot}</td></tr>`;
+  // ── TABLA 1: Conversiones y score por asesor ──
+  const convMap={};
+  prosp.forEach(r=>{
+    const nm=String(r.Responsable||'Sin asignar').trim();
+    if(!convMap[nm])convMap[nm]={leads:0,vis:0,seps:0,ventas:0,proyectos:new Set()};
+    convMap[nm].leads++;
+    convMap[nm].proyectos.add(String(r.Proyecto||'').trim());
+    const est=String(r.Estado||'').toLowerCase();
+    if(est.includes('visita'))convMap[nm].vis++;
+    if(est.includes('separac'))convMap[nm].seps++;
+  });
+  // Merge ventas
+  Object.entries(ventMap).forEach(([nm,d])=>{
+    if(!convMap[nm])convMap[nm]={leads:0,vis:0,seps:d.seps,ventas:d.ventas,proyectos:new Set()};
+    else{convMap[nm].ventas=d.ventas;convMap[nm].seps=Math.max(convMap[nm].seps,d.seps);}
+  });
+
+  const T={lv:0.25,vs:0.30,sv:0.70};
+  const pill=(conv,tgt)=>{const p=Math.round(conv*100);const cl=conv>=tgt?'g':conv>=tgt*0.5?'w':'b';return`<span class="pill ${cl}">${p}%</span>`;};
+
+  const convRows=Object.entries(convMap).sort((a,b)=>b[1].leads-a[1].leads).map(([nm,d],i)=>{
+    const pj=[...d.proyectos].filter(Boolean).join(', ')||'—';
+    const lv=d.leads?d.vis/d.leads:0;
+    const vs=d.vis?d.seps/d.vis:0;
+    const sv=d.seps?d.ventas/d.seps:0;
+    const score=Math.round(([lv/T.lv,vs/T.vs,sv/T.sv].reduce((a,b)=>a+b,0)/3)*100);
+    const sc=score>=80?'var(--ok)':score>=50?'var(--warn)':'var(--bad)';
+    return`<tr>
+      <td style="font-weight:600;color:var(--ink-3)">${i+1}</td>
+      <td style="font-weight:600">${nm}</td>
+      <td style="font-size:11px;color:var(--ink-3)">${pj}</td>
+      <td class="r">${d.leads?pill(lv,T.lv):'—'}</td>
+      <td class="r">${d.vis?pill(vs,T.vs):'—'}</td>
+      <td class="r">${d.seps?pill(sv,T.sv):'—'}</td>
+      <td class="r"><b style="color:${sc}">${score}</b></td>
+    </tr>`;
   }).join('');
-  const smT=vendArr.slice(0,6).reduce((a,[nm])=>{const e=smMap[nm]||{};return{otros:a.otros+(e.otros||0),prosp:a.prosp+(e.prosp||0),seguim:a.seguim+(e.seguim||0),visita:a.visita+(e.visita||0),sep:a.sep+(e.sep||0),vend:a.vend+(e.vend||0)};},{otros:0,prosp:0,seguim:0,visita:0,sep:0,vend:0});
-  const smTotal=Object.values(smT).reduce((a,b)=>a+b,0);
 
-  const vendNom=document.getElementById('jv-vend')?.options[document.getElementById('jv-vend')?.selectedIndex]?.text||'Todos';
+  // ── TABLA 2: Tiempo de primera respuesta por mes ──
+  const tMesMap={};
+  prosp.forEach(r=>{
+    const nm=String(r.Responsable||'Sin asignar').trim();
+    let mes='';
+    const fd=String(r.FechaRegistro||r.Fecha_PrimeraAccion||'');
+    if(fd){
+      const d2=fd.includes('/')?fd.split('/'):null;
+      if(d2&&d2.length===3)mes=d2[2].padStart(4,'20')+'-'+d2[1].padStart(2,'0');
+      else try{mes=new Date(fd).toISOString().slice(0,7);}catch{}
+    }
+    const t=parseFloat(r.TiempoRespuesta_min||'');
+    if(!tMesMap[nm])tMesMap[nm]={meses:{}};
+    if(mes&&!isNaN(t)&&t>0){
+      if(!tMesMap[nm].meses[mes])tMesMap[nm].meses[mes]=[];
+      tMesMap[nm].meses[mes].push(t);
+    }
+  });
+  const meses=[...new Set(Object.values(tMesMap).flatMap(d=>Object.keys(d.meses)))].sort().slice(-4);
+  const mesHeaders=meses.map(m=>{const[,mo]=m.split('-');return`<th class="r">${MN[+mo]}</th>`;}).join('');
 
-  document.getElementById('jv-content').innerHTML = `
-  <div class="section-title"><h2>Funnel por vendedor</h2><div class="hint">Usa el filtro "Vendedor" para ver el embudo individual</div></div>
+  const tRespRows2=Object.entries(tMesMap).sort((a,b)=>{
+    const aA=Object.values(a[1].meses).flat(),bA=Object.values(b[1].meses).flat();
+    const aAvg=aA.length?aA.reduce((x,y)=>x+y,0)/aA.length:Infinity;
+    const bAvg=bA.length?bA.reduce((x,y)=>x+y,0)/bA.length:Infinity;
+    return aAvg-bAvg;
+  }).map(([nm,d])=>{
+    const allT=Object.values(d.meses).flat();
+    const avg=allT.length?Math.round(allT.reduce((a,b)=>a+b,0)/allT.length):null;
+    const tStr=avg===null?'—':avg<60?avg+' min':`${Math.floor(avg/60)}h ${avg%60}m`;
+    const diag=avg===null?'Sin dato':avg<=15?'Excelente':avg<=30?'Óptimo':avg<=60?'Aceptable':'Mejorar';
+    const dCl=avg===null?'n':avg<=15?'g':avg<=30?'g':avg<=60?'w':'b';
+    const mesCells=meses.map(mes=>{
+      const arr=d.meses[mes]||[];
+      const m2=arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):null;
+      const s=m2===null?'—':m2<60?m2+'m':`${Math.floor(m2/60)}h`;
+      const cl2=m2===null?'':m2<=30?'good':m2<=60?'warnn':'bad';
+      return`<td class="r ${cl2}" style="font-size:12px">${s}</td>`;
+    }).join('');
+    return`<tr><td>${nm}</td>${mesCells}<td class="r">${tStr}</td><td class="r"><span class="pill ${dCl}">${diag}</span></td></tr>`;
+  }).join('');
+
+  // ── TABLA 3: Toques por lead ──
+  const tqMap={};
+  prosp.forEach(r=>{
+    const nm=String(r.Responsable||'Sin asignar').trim();
+    const n=parseInt(r.NroAcciones||'0',10)||0;
+    if(!tqMap[nm])tqMap[nm]={b12:0,b34:0,b5:0,b6:0,total:0,sum:0};
+    tqMap[nm].total++;tqMap[nm].sum+=n;
+    if(n<=2)tqMap[nm].b12++;
+    else if(n<=4)tqMap[nm].b34++;
+    else if(n===5)tqMap[nm].b5++;
+    else if(n>=6)tqMap[nm].b6++;
+  });
+  const tqRows=Object.entries(tqMap).sort((a,b)=>b[1].total-a[1].total).map(([nm,d])=>{
+    const prom=d.total?(d.sum/d.total).toFixed(1):'—';
+    const bar=`<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;min-width:80px">
+      <div style="flex:${d.b12};background:#dc2626" title="1-2: ${d.b12}"></div>
+      <div style="flex:${d.b34};background:#f59e0b" title="3-4: ${d.b34}"></div>
+      <div style="flex:${d.b5};background:#22c55e" title="5: ${d.b5}"></div>
+      <div style="flex:${d.b6};background:#3b82f6" title="6+: ${d.b6}"></div>
+    </div>`;
+    return`<tr>
+      <td style="font-weight:600">${nm}</td>
+      <td class="r"><b>${prom}</b></td>
+      <td class="r">${d.b12} <small style="color:var(--ink-4)">(${pct(d.b12,d.total)})</small></td>
+      <td class="r">${d.b34} <small style="color:var(--ink-4)">(${pct(d.b34,d.total)})</small></td>
+      <td class="r">${d.b5} <small style="color:var(--ink-4)">(${pct(d.b5,d.total)})</small></td>
+      <td class="r">${d.b6} <small style="color:var(--ink-4)">(${pct(d.b6,d.total)})</small></td>
+      <td style="min-width:90px">${bar}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('jv-content').innerHTML=`
+  <div class="section-title"><h2>Conversiones y score por asesor</h2><div class="hint">Meta: Lead→Visita 25% · Visita→Sep 30% · Sep→Venta 70%</div></div>
   <div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>Embudo del equipo</h3><p>Total del equipo · filtrable por vendedor</p></div>
-      <div style="font-size:11px;color:var(--ink-3);font-family:var(--mono)">Vendedor: <b style="color:var(--ink)">${vendNom}</b></div>
-    </div>
-    ${funnelHtml}
+    <div class="card-hd"><div><h3>Tabla de conversiones</h3><p>Tasa real vs. meta por etapa · Score ponderado 0-100</p></div></div>
+    <div style="overflow-x:auto"><table class="mtable">
+      <thead><tr><th>#</th><th>Asesor</th><th>Proyecto</th>
+        <th class="r">Lead→Visita <small style="opacity:.6">25%</small></th>
+        <th class="r">Visita→Sep <small style="opacity:.6">30%</small></th>
+        <th class="r">Sep→Venta <small style="opacity:.6">70%</small></th>
+        <th class="r">Score</th></tr></thead>
+      <tbody>${convRows||'<tr><td colspan="7" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de prospectos</td></tr>'}</tbody>
+    </table></div>
   </div>
-  <div class="section-title"><h2>Desempeño individual</h2><div class="hint">Avance de meta · T. respuesta · SLA</div></div>
-  <div class="grid-2">
-    <div class="card"><div class="card-hd"><div><h3>Posicionamiento por asesor · vs. meta</h3><p>Acumulado · línea negra = meta individual (${META_IND} und.)</p></div></div>
-      <div class="rank">${rankRows||'<div class="loading">Sin campo Vendedor en el CRM</div>'}</div>
-    </div>
-    <div class="card"><div class="card-hd"><div><h3>Tiempo de respuesta &amp; acciones</h3><p>Primera respuesta al lead · SLA 30 min</p></div></div>
-      <table class="mtable">
-        <thead><tr><th>Asesor</th><th class="r">Tiempo 1ª resp.</th><th class="r">Acciones/cliente</th><th class="r">SLA</th></tr></thead>
-        <tbody>${tRespRows||'<tr><td colspan="4" style="text-align:center;color:var(--ink-4);padding:20px">Sin campo T_Respuesta_min en el CRM</td></tr>'}</tbody>
-        <tfoot><tr><td>Promedio del equipo</td><td class="r">${avgEq}</td><td class="r">—</td><td class="r"><span class="pill w">SLA 30 min</span></td></tr></tfoot>
-      </table>
-    </div>
+  <div class="section-title"><h2>Tiempo de primera respuesta</h2><div class="hint">Primera acción al lead · SLA óptimo ≤30 min</div></div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hd"><div><h3>Promedio por asesor y mes</h3><p>Minutos entre registro del lead y primera acción registrada</p></div></div>
+    <div style="overflow-x:auto"><table class="mtable">
+      <thead><tr><th>Asesor</th>${mesHeaders}<th class="r">Promedio</th><th class="r">Diagnóstico</th></tr></thead>
+      <tbody>${tRespRows2||`<tr><td colspan="${4+meses.length}" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de TiempoRespuesta_min</td></tr>`}</tbody>
+    </table></div>
   </div>
-  <div class="section-title"><h2>Estado de leads por vendedor</h2><div class="hint">Distribución de la cartera asignada a cada asesor</div></div>
-  <div class="card"><div class="card-hd"><div><h3>Cartera por estado</h3><p>Cantidad de unidades en cada estado del ciclo, por asesor</p></div></div>
-    <div class="stmatrix"><table>
+  <div class="section-title"><h2>Toques por lead</h2><div class="hint">NroAcciones registradas por prospecto · distribución por asesor</div></div>
+  <div class="card">
+    <div class="card-hd"><div><h3>Intensidad de contacto</h3><p>Promedio y distribución de acciones por lead</p></div>
+      <div style="display:flex;gap:10px;font-size:11px;color:var(--ink-3);align-items:center">
+        <span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#dc2626;margin-right:4px"></i>1-2</span>
+        <span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#f59e0b;margin-right:4px"></i>3-4</span>
+        <span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#22c55e;margin-right:4px"></i>5</span>
+        <span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#3b82f6;margin-right:4px"></i>6+</span>
+      </div>
+    </div>
+    <div style="overflow-x:auto"><table class="mtable">
       <thead><tr>
-        <th>Asesor</th>
-        <th><span class="dotHd" style="background:oklch(0.75 0.05 250)"></span>Otros</th>
-        <th><span class="dotHd" style="background:oklch(0.55 0.15 250)"></span>Prospectos</th>
-        <th><span class="dotHd" style="background:oklch(0.72 0.15 65)"></span>Seguimiento</th>
-        <th><span class="dotHd" style="background:oklch(0.60 0.18 25)"></span>Visita</th>
-        <th><span class="dotHd" style="background:oklch(0.62 0.14 150)"></span>Separación</th>
-        <th><span class="dotHd" style="background:oklch(0.50 0.14 150)"></span>Venta</th>
-        <th>Total</th>
+        <th>Asesor</th><th class="r">Promedio</th><th class="r">1-2 toques</th>
+        <th class="r">3-4 toques</th><th class="r">5 toques</th><th class="r">6+ toques</th>
+        <th>Distribución</th>
       </tr></thead>
-      <tbody>${smRows||'<tr><td colspan="8" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de cartera</td></tr>'}
-        <tr class="tot"><td>Total equipo</td><td>${smT.otros}</td><td>${smT.prosp}</td><td>${smT.seguim}</td><td>${smT.visita}</td><td>${smT.sep}</td><td>${smT.vend}</td><td>${smTotal}</td></tr>
-      </tbody>
+      <tbody>${tqRows||'<tr><td colspan="7" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de NroAcciones</td></tr>'}</tbody>
     </table></div>
   </div>`;
 }
@@ -998,6 +1035,50 @@ function canalBar(ventas){
 // ══════════════════════════════════════════════════════════════════════════
 // JEFE DE MARKETING
 // ══════════════════════════════════════════════════════════════════════════
+function jmktSetMetrica(m,btn){
+  _jmktMetrica=m;
+  document.querySelectorAll('#jmkt-metrica-btns .chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderEvolucion(filtrarProj('jmkt'),m);
+}
+
+function renderEvolucion(proj,metrica){
+  const ctx=document.getElementById('jmkt-evo-chart');
+  if(!ctx)return;
+  const camp=D.campanas||{};
+  const detalle=(camp.detalle||[]).filter(r=>!proj||String(r.proyecto||'').toUpperCase()===proj.toUpperCase());
+  const canales=[...new Set(detalle.map(r=>r.canal))].filter(Boolean);
+  const allMeses=[...new Set(detalle.map(r=>String(r.fecha||'').slice(0,7)).filter(m=>/^\d{4}-\d{2}$/.test(m)))].sort();
+  const COLORS={'Meta Ads':'#4f46e5','Google Ads':'#16a34a','TikTok Ads':'#db2777'};
+  const datasets=canales.map(canal=>{
+    const col=COLORS[canal]||'#64748b';
+    return{
+      label:canal,
+      data:allMeses.map(mes=>{
+        const rows=detalle.filter(r=>r.canal===canal&&String(r.fecha||'').startsWith(mes));
+        if(metrica==='leads')return rows.reduce((a,r)=>a+Number(r.leads||0),0);
+        if(metrica==='inversion')return Math.round(rows.reduce((a,r)=>a+Number(r.inversion||0),0));
+        if(metrica==='cpl'){const tot=rows.reduce((a,r)=>a+Number(r.leads||0),0);const inv=rows.reduce((a,r)=>a+Number(r.inversion||0),0);return tot?Math.round(inv/tot):0;}
+        return 0;
+      }),
+      borderColor:col,backgroundColor:col+'30',tension:0.35,fill:false,pointRadius:4,pointHoverRadius:6,
+    };
+  });
+  if(jmktChart)jmktChart.destroy();
+  jmktChart=new Chart(ctx,{
+    type:'line',
+    data:{labels:allMeses.map(m=>{const[,mo]=m.split('-');return MN[+mo]||m;}),datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{boxWidth:12,padding:14,font:{size:12}}}},
+      scales:{
+        x:{grid:{color:'#f1f5f9'},ticks:{font:{size:11}}},
+        y:{grid:{color:'#f1f5f9'},beginAtZero:true,ticks:{font:{size:11}}}
+      }
+    }
+  });
+}
+
 function renderJMkt(){
   const proj   = filtrarProj('jmkt');
   const camp   = D.campanas||{};
@@ -1139,7 +1220,20 @@ function renderJMkt(){
       <div style="padding:10px 0 4px">${chanRows}</div>
       <div class="list-ft"><span style="font-family:inherit;font-weight:600">Total leads mes</span><span>${fN(totLeads)}</span></div>
     </div>
+  </div>
+  <div class="section-title" style="margin-top:26px"><h2>Evolución de leads</h2><div class="hint">Tendencia mensual por canal de captación</div></div>
+  <div class="card" style="margin-bottom:8px">
+    <div class="card-hd">
+      <div><h3>Leads por canal · evolución mensual</h3><p>Comparativa de captación por canal en el tiempo</p></div>
+      <div id="jmkt-metrica-btns" style="display:flex;gap:4px">
+        <button class="chip${_jmktMetrica==='leads'?' active':''}" onclick="jmktSetMetrica('leads',this)">Leads</button>
+        <button class="chip${_jmktMetrica==='inversion'?' active':''}" onclick="jmktSetMetrica('inversion',this)">Inversión</button>
+        <button class="chip${_jmktMetrica==='cpl'?' active':''}" onclick="jmktSetMetrica('cpl',this)">CPL</button>
+      </div>
+    </div>
+    <div style="height:260px;padding:12px 16px 16px"><canvas id="jmkt-evo-chart"></canvas></div>
   </div>`;
+  renderEvolucion(proj,_jmktMetrica);
 }
 
 // ══════════════════════════════════════════════════════════════════════════
