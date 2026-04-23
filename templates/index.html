@@ -871,61 +871,68 @@ function renderJVentas(){
     ventMap[nm].seps++;
   });
 
-  // ── TABLA 1: Conversiones y score por asesor ──
+  // ── helpers de nombre ──
   const ASESORES=['roy','anthony','nancy','adriana','lady','stefany'];
   const matchAsesor=nm=>ASESORES.some(a=>nm.toLowerCase().includes(a));
+  const normKey=nm=>nm.toLowerCase().replace(/\s+/g,' ').trim();
+  const toTitle=s=>s.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());
+  const canon={};
+  const getCanon=nm=>{const k=normKey(nm);if(!canon[k])canon[k]=toTitle(nm);return canon[k];};
+
+  // ── TABLA 1: Conversiones (una fila por asesor, agregado) ──
   const convMap={};
   prosp.filter(r=>matchAsesor(String(r.Responsable||'').trim())).forEach(r=>{
-    const nm=String(r.Responsable||'Sin asignar').trim();
-    if(!convMap[nm])convMap[nm]={leads:0,vis:0,seps:0,ventas:0,proyectos:new Set()};
-    convMap[nm].leads++;
-    convMap[nm].proyectos.add(String(r.Proyecto||'').trim());
+    const nm=String(r.Responsable||'').trim();
+    const k=normKey(nm);
+    if(!convMap[k])convMap[k]={name:getCanon(nm),leads:0,vis:0,seps:0,ventas:0,proyectos:new Set()};
+    convMap[k].leads++;
+    convMap[k].proyectos.add(String(r.Proyecto||'').trim());
     const est=String(r.Estado||'').toLowerCase();
-    if(est.includes('visita'))convMap[nm].vis++;
-    if(est.includes('separac'))convMap[nm].seps++;
+    if(est.includes('visita'))convMap[k].vis++;
+    if(est.includes('separac'))convMap[k].seps++;
   });
-  // Merge ventas
   Object.entries(ventMap).filter(([nm])=>matchAsesor(nm)).forEach(([nm,d])=>{
-    if(!convMap[nm])convMap[nm]={leads:0,vis:0,seps:d.seps,ventas:d.ventas,proyectos:new Set()};
-    else{convMap[nm].ventas=d.ventas;convMap[nm].seps=Math.max(convMap[nm].seps,d.seps);}
+    const k=normKey(nm);
+    if(!convMap[k])convMap[k]={name:getCanon(nm),leads:0,vis:0,seps:d.seps,ventas:d.ventas,proyectos:new Set()};
+    else{convMap[k].ventas=d.ventas;convMap[k].seps=Math.max(convMap[k].seps,d.seps);}
   });
 
   const T={lv:0.25,vs:0.30,sv:0.70};
   const pill=(conv,tgt)=>{const p=Math.round(conv*100);const cl=conv>=tgt?'g':conv>=tgt*0.5?'w':'b';return`<span class="pill ${cl}">${p}%</span>`;};
 
-  const convRows=Object.entries(convMap).sort((a,b)=>b[1].leads-a[1].leads).map(([nm,d],i)=>{
+  const convRows=Object.entries(convMap).sort((a,b)=>b[1].leads-a[1].leads).map(([,d],i)=>{
     const pj=[...d.proyectos].filter(Boolean).join(', ')||'—';
     const lv=d.leads?d.vis/d.leads:0;
     const vs=d.vis?d.seps/d.vis:0;
     const sv=d.seps?d.ventas/d.seps:0;
-    const score=Math.round(([lv/T.lv,vs/T.vs,sv/T.sv].reduce((a,b)=>a+b,0)/3)*100);
+    const score=Math.min(Math.round(([lv/T.lv,vs/T.vs,sv/T.sv].reduce((a,b)=>a+b,0)/3)*100),100);
     const sc=score>=80?'var(--ok)':score>=50?'var(--warn)':'var(--bad)';
     return`<tr>
-      <td style="font-weight:600;color:var(--ink-3)">${i+1}</td>
-      <td style="font-weight:600">${nm}</td>
-      <td style="font-size:11px;color:var(--ink-3)">${pj}</td>
+      <td style="width:32px;color:var(--ink-3);font-weight:600">${i+1}</td>
+      <td style="white-space:nowrap;font-weight:600">${d.name}</td>
+      <td style="font-size:11px;color:var(--ink-3);min-width:120px">${pj}</td>
       <td class="r">${d.leads?pill(lv,T.lv):'—'}</td>
       <td class="r">${d.vis?pill(vs,T.vs):'—'}</td>
       <td class="r">${d.seps?pill(sv,T.sv):'—'}</td>
-      <td class="r"><b style="color:${sc}">${score}</b></td>
+      <td class="r" style="width:54px"><b style="color:${sc}">${score}</b></td>
     </tr>`;
   }).join('');
 
-  // ── TABLA 2: Tiempo de primera respuesta por mes (asesor+proyecto) ──
+  // ── TABLA 2: Tiempo de respuesta (asesor+proyecto, normalizado) ──
   const tMesMap={};
   prosp.filter(r=>matchAsesor(String(r.Responsable||'').trim())).forEach(r=>{
-    const nm=String(r.Responsable||'Sin asignar').trim();
+    const nm=String(r.Responsable||'').trim();
     const pj=String(r.Proyecto||'—').trim();
-    const k=nm+'|||'+pj;
+    const k=normKey(nm)+'|||'+pj;
     let mes='';
     const fd=String(r.FechaRegistro||r.Fecha_PrimeraAccion||'');
     if(fd){
-      const d2=fd.includes('/')?fd.split('/'):null;
-      if(d2&&d2.length===3)mes=d2[2].padStart(4,'20')+'-'+d2[1].padStart(2,'0');
+      const parts=fd.includes('/')?fd.split('/'):null;
+      if(parts&&parts.length===3)mes=parts[2].padStart(4,'20')+'-'+parts[1].padStart(2,'0');
       else try{mes=new Date(fd).toISOString().slice(0,7);}catch{}
     }
     const t=parseFloat(r.TiempoRespuesta_min||'');
-    if(!tMesMap[k])tMesMap[k]={asesor:nm,proyecto:pj,meses:{}};
+    if(!tMesMap[k])tMesMap[k]={asesor:getCanon(nm),proyecto:pj,meses:{}};
     if(mes&&!isNaN(t)&&t>0){
       if(!tMesMap[k].meses[mes])tMesMap[k].meses[mes]=[];
       tMesMap[k].meses[mes].push(t);
@@ -952,22 +959,29 @@ function renderJVentas(){
       const cl2=m2===null?'':m2<=30?'good':m2<=60?'warnn':'bad';
       return`<td class="r ${cl2}" style="font-size:12px">${s}</td>`;
     }).join('');
-    return`<tr><td style="font-weight:600">${d.asesor}</td><td style="font-size:11px;color:var(--ink-3)">${d.proyecto}</td>${mesCells}<td class="r">${tStr}</td><td class="r"><span class="pill ${dCl}">${diag}</span></td></tr>`;
+    return`<tr>
+      <td style="white-space:nowrap;font-weight:600">${d.asesor}</td>
+      <td style="font-size:11px;color:var(--ink-3);min-width:120px">${d.proyecto}</td>
+      ${mesCells}
+      <td class="r">${tStr}</td>
+      <td class="r"><span class="pill ${dCl}">${diag}</span></td>
+    </tr>`;
   }).join('');
 
-  // ── TABLA 3: Toques por lead ──
+  // ── TABLA 3: Toques por lead (normalizado, solo 6 asesores) ──
   const tqMap={};
-  prosp.forEach(r=>{
-    const nm=String(r.Responsable||'Sin asignar').trim();
+  prosp.filter(r=>matchAsesor(String(r.Responsable||'').trim())).forEach(r=>{
+    const nm=String(r.Responsable||'').trim();
+    const k=normKey(nm);
     const n=parseInt(r.NroAcciones||'0',10)||0;
-    if(!tqMap[nm])tqMap[nm]={b12:0,b34:0,b5:0,b6:0,total:0,sum:0};
-    tqMap[nm].total++;tqMap[nm].sum+=n;
-    if(n<=2)tqMap[nm].b12++;
-    else if(n<=4)tqMap[nm].b34++;
-    else if(n===5)tqMap[nm].b5++;
-    else if(n>=6)tqMap[nm].b6++;
+    if(!tqMap[k])tqMap[k]={name:getCanon(nm),b12:0,b34:0,b5:0,b6:0,total:0,sum:0};
+    tqMap[k].total++;tqMap[k].sum+=n;
+    if(n<=2)tqMap[k].b12++;
+    else if(n<=4)tqMap[k].b34++;
+    else if(n===5)tqMap[k].b5++;
+    else if(n>=6)tqMap[k].b6++;
   });
-  const tqRows=Object.entries(tqMap).sort((a,b)=>b[1].total-a[1].total).map(([nm,d])=>{
+  const tqRows=Object.entries(tqMap).sort((a,b)=>b[1].total-a[1].total).map(([,d])=>{
     const prom=d.total?(d.sum/d.total).toFixed(1):'—';
     const bar=`<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;min-width:80px">
       <div style="flex:${d.b12};background:#dc2626" title="1-2: ${d.b12}"></div>
@@ -976,7 +990,7 @@ function renderJVentas(){
       <div style="flex:${d.b6};background:#3b82f6" title="6+: ${d.b6}"></div>
     </div>`;
     return`<tr>
-      <td style="font-weight:600">${nm}</td>
+      <td style="white-space:nowrap;font-weight:600">${d.name}</td>
       <td class="r"><b>${prom}</b></td>
       <td class="r">${d.b12} <small style="color:var(--ink-4)">(${pct(d.b12,d.total)})</small></td>
       <td class="r">${d.b34} <small style="color:var(--ink-4)">(${pct(d.b34,d.total)})</small></td>
