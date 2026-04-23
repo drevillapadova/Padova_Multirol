@@ -755,16 +755,19 @@ def clean_df_for_sheets(df):
     return pd.concat([df[col].apply(_clean) for col in df.columns], axis=1)
 
 
-def subir_tab(spreadsheet, tab_name, df, rows=100000, cols=200, batch_size=2000):
+def subir_tab(spreadsheet, tab_name, df, batch_size=2000):
     if df is None or len(df) == 0:
         print(f"   !! Sin data para {tab_name}")
         return
     try:
+        n_rows = len(df) + 1  # +1 para encabezado
+        n_cols = len(df.columns)
         try:
             ws = spreadsheet.worksheet(tab_name)
             ws.clear()
+            ws.resize(rows=n_rows, cols=n_cols)
         except:
-            ws = spreadsheet.add_worksheet(title=tab_name, rows=rows, cols=cols)
+            ws = spreadsheet.add_worksheet(title=tab_name, rows=n_rows, cols=n_cols)
         df_c = clean_df_for_sheets(df)
         all_rows = df_c.values.tolist()
         # Encabezado primero
