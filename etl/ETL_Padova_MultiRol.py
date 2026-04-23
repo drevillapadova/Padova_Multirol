@@ -107,6 +107,41 @@ def convertir_precios_a_soles(df, col_precio, col_moneda, tc=None, col_fecha=Non
     return df
 
 
+def filtrar_cols(df, cols):
+    """Devuelve df con solo las columnas de la whitelist que existen."""
+    keep = [c for c in cols if c in df.columns]
+    missing = [c for c in cols if c not in df.columns]
+    if missing:
+        print(f"   -> [INFO] Columnas no encontradas: {missing}")
+    return df[keep]
+
+
+def business_minutes(start, end):
+    """Minutos hábiles entre start y end (Lun-Sáb, 9:00-19:00)."""
+    try:
+        if pd.isnull(start) or pd.isnull(end) or end <= start:
+            return None
+        BIZ_START, BIZ_END = 9, 19
+        BIZ_DAYS = {0, 1, 2, 3, 4, 5}  # Lun=0 … Sáb=5
+        total = 0.0
+        cur = start
+        while cur < end:
+            if cur.weekday() not in BIZ_DAYS:
+                cur = (cur + timedelta(days=1)).replace(hour=BIZ_START, minute=0, second=0, microsecond=0)
+                continue
+            day_s = cur.replace(hour=BIZ_START, minute=0, second=0, microsecond=0)
+            day_e = cur.replace(hour=BIZ_END,   minute=0, second=0, microsecond=0)
+            if cur < day_s: cur = day_s
+            if cur >= day_e:
+                cur = (cur + timedelta(days=1)).replace(hour=BIZ_START, minute=0, second=0, microsecond=0)
+                continue
+            total += (min(end, day_e) - cur).total_seconds() / 60
+            cur = (cur + timedelta(days=1)).replace(hour=BIZ_START, minute=0, second=0, microsecond=0)
+        return round(total)
+    except Exception:
+        return None
+
+
 def corregir_moneda_con_stock(df_ventas, df_stock):
     if df_stock is None or len(df_stock) == 0: return df_ventas
     df_stock = df_stock.copy()
@@ -213,6 +248,42 @@ for dir_path in [DOWNLOAD_DIR, DOWNLOAD_DIR_VENTAS, DOWNLOAD_DIR_PROSPECTOS, DOW
 
 AÑOS_VENTAS            = [2023, 2024, 2025, 2026]
 AÑOS_PROSP_VISITAS     = [2026]
+
+# ── Columnas a conservar por pestaña (reduce celdas en Sheets) ──
+COLS_VENTAS = [
+    'CorrelativoOC','FechaVenta','FechaEntrega_Minuta','FechaDevolucion',
+    'Fecha_Registro_Sistema','FechaProspecto',
+    'Estado','EstadoOC','NombresTitular',
+    'Genero','RangoEdad','Distrito_Procedencia',
+    'ComoSeEntero','NivelInteres','PerfilCrediticio',
+    'TipoFinanciamiento','EntidadFinanciamiento',
+    'Vendedor','Puesto','Proyecto','Etapa',
+    'TipoInmueble','NroInmueble','NroPiso',
+    'PrecioBase','PrecioVenta','TipoMoneda','PrecioVentaSoles',
+    'MontoCuotaInicial','MontoPagadoCI','Estado_CI',
+    'MontoFinanciamiento','MontoDesembolsado','PorcetanjePagado_SF','EstadoSF',
+    'MontoSeparacion','MontoBono','MontoPagadoBono','EstadoBono',
+    'AÑO',
+]
+
+COLS_STOCK = [
+    'Proyecto','Etapa','TipoInmueble','NroInmuebleActual','NroPiso','Vista',
+    'Estado','Moneda','PrecioVenta','PrecioLista','PrecioVentaSoles',
+    'AreaTechada','AreaLibre','NroDormitorios','FechaSepDefinitiva','PrecioM2',
+]
+
+COLS_PROSPECTOS = [
+    'Proyecto','Responsable',
+    'ComoSeEntero','FormaContacto','NivelInteres','MotivoCerrado',
+    'FechaRegistro','Fecha_PrimeraAccion','NroAcciones',
+    'Estado','NombreCliente','Genero','RangoEdad','Distrito',
+    'TiempoRespuesta_min',
+]
+
+COLS_VISITAS = [
+    'Proyecto','Responsable','Vendedor',
+    'FechaVisita','Estado','TipoVisita','NombreCliente','NroDocumento',
+]
 
 
 def _load_gsheets_credentials():
@@ -720,6 +791,21 @@ def process_stock_data(df_ventas=None):
     df.columns = df.columns.str.strip()
     if 'Proyecto' in df.columns:
         df = df[df['Proyecto'].str.upper().isin(TARGET_PROJECTS)]
+
+    # Calcular precio por m2: PrecioVentaSoles / (AreaTechada + AreaLibre/2)
+    try:
+        col_precio = 'PrecioVentaSoles' if 'PrecioVentaSoles' in df.columns else 'PrecioVenta'
+        if col_precio in df.columns and 'AreaTechada' in df.columns:
+            at = pd.to_numeric(df['AreaTechada'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
+            al = pd.to_numeric(df.get('AreaLibre', pd.Series(0, index=df.index)).astype(str).str.replace(',', ''), errors='coerce').fillna(0)
+            pv = pd.to_numeric(df[col_precio].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
+            area_total = at + al / 2
+            df['PrecioM2'] = (pv / area_total.replace(0, float('nan'))).round(2)
+        else:
+            df['PrecioM2'] = None
+    except Exception as e:
+        print(f"   !! Warning PrecioM2: {e}")
+        df['PrecioM2'] = None
     if "Moneda" in df.columns:
         df = corregir_moneda_sunny(df, col_moneda='Moneda')
         col_fecha_stock = "FechaSepDefinitiva" if "FechaSepDefinitiva" in df.columns else None
@@ -917,7 +1003,17 @@ def main():
     try:
         df_prospectos = _leer_por_año(DOWNLOAD_DIR_PROSPECTOS, "ReporteProspectos", AÑOS_PROSP_VISITAS)
         if df_prospectos is not None:
-            print(f"   -> PROSPECTOS total: {len(df_prospectos):,} filas")
+            print(f"   -> PROSPECTOS columnas disponibles: {list(df_prospectos.columns)}")
+            # Calcular tiempo de respuesta en minutos hábiles (Lun-Sáb 9-19h)
+            col_ini = next((c for c in ['FechaRegistro','Fecha_Registro','Fecha_Registro_Sistema'] if c in df_prospectos.columns), None)
+            col_fin = next((c for c in ['Fecha_PrimeraAccion','Fecha_Primera_Accion','FechaPrimeraAccion'] if c in df_prospectos.columns), None)
+            if col_ini and col_fin:
+                f1 = pd.to_datetime(df_prospectos[col_ini], dayfirst=True, errors='coerce')
+                f2 = pd.to_datetime(df_prospectos[col_fin], dayfirst=True, errors='coerce')
+                df_prospectos['TiempoRespuesta_min'] = [business_minutes(a, b) for a, b in zip(f1, f2)]
+                print(f"   -> TiempoRespuesta_min calculado")
+            df_prospectos = filtrar_cols(df_prospectos, COLS_PROSPECTOS)
+            print(f"   -> PROSPECTOS total: {len(df_prospectos):,} filas, {len(df_prospectos.columns)} cols")
     except Exception as e:
         print(f"!! PROSPECTOS ERROR: {e}")
 
@@ -926,7 +1022,9 @@ def main():
     try:
         df_visitas = _leer_por_año(DOWNLOAD_DIR_VISITAS, "ReporteVisitas", AÑOS_PROSP_VISITAS)
         if df_visitas is not None:
-            print(f"   -> VISITAS total: {len(df_visitas):,} filas")
+            print(f"   -> VISITAS columnas disponibles: {list(df_visitas.columns)}")
+            df_visitas = filtrar_cols(df_visitas, COLS_VISITAS)
+            print(f"   -> VISITAS total: {len(df_visitas):,} filas, {len(df_visitas.columns)} cols")
     except Exception as e:
         print(f"!! VISITAS ERROR: {e}")
 
@@ -944,9 +1042,11 @@ def main():
             except Exception as e:
                 print(f"!! ONEDRIVE ERROR: {e}")
 
-        # Google Sheets — sube las 4 pestañas
+        # Google Sheets — sube las 4 pestañas (solo columnas necesarias)
         try:
-            upload_to_gsheets(df_ventas, df_stock_gs, df_prospectos, df_visitas)
+            df_v_gs = filtrar_cols(df_ventas,   COLS_VENTAS)   if df_ventas   is not None else None
+            df_s_gs = filtrar_cols(df_stock_gs, COLS_STOCK)    if df_stock_gs is not None else None
+            upload_to_gsheets(df_v_gs, df_s_gs, df_prospectos, df_visitas)
         except Exception as e:
             print(f"!! GSHEETS ERROR: {e}")
 
