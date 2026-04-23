@@ -211,7 +211,8 @@ GSHEETS_SPREADSHEET_ID = "1JIEEGPxJvCHvmGvVE6Zp9wBPUVXEF-iXy8FNaWr1PPI"
 for dir_path in [DOWNLOAD_DIR, DOWNLOAD_DIR_VENTAS, DOWNLOAD_DIR_PROSPECTOS, DOWNLOAD_DIR_VISITAS]:
     os.makedirs(dir_path, exist_ok=True)
 
-AÑOS_VENTAS = [2024, 2025, 2026]
+AÑOS_VENTAS            = [2023, 2024, 2025, 2026]
+AÑOS_PROSP_VISITAS     = [2026]
 
 
 def _load_gsheets_credentials():
@@ -547,7 +548,7 @@ def execute_prospectos_extraction(driver, wait):
         try: os.remove(f)
         except: pass
     archivos = {}
-    for año in AÑOS_VENTAS:
+    for año in AÑOS_PROSP_VISITAS:
         try:
             archivos[str(año)] = execute_prospectos_extraction_year(driver, wait, año)
             time.sleep(2)
@@ -618,7 +619,7 @@ def execute_visitas_extraction(driver, wait):
         try: os.remove(f)
         except: pass
     archivos = {}
-    for año in AÑOS_VENTAS:
+    for año in AÑOS_PROSP_VISITAS:
         try:
             archivos[str(año)] = execute_visitas_extraction_year(driver, wait, año)
             time.sleep(2)
@@ -891,9 +892,9 @@ def main():
     try: final_file, df_stock_gs = process_stock_data(df_ventas)
     except Exception as e: print(f"!! STOCK ERROR: {e}")
 
-    def _leer_por_año(dir_path, prefijo):
+    def _leer_por_año(dir_path, prefijo, años=None):
         dfs = []
-        for año in AÑOS_VENTAS:
+        for año in (años or AÑOS_VENTAS):
             for ext in ['.csv', '.xlsx']:
                 ruta = os.path.join(dir_path, f"{prefijo}{año}{ext}")
                 if os.path.exists(ruta):
@@ -914,7 +915,7 @@ def main():
     # Cargar prospectos
     df_prospectos = None
     try:
-        df_prospectos = _leer_por_año(DOWNLOAD_DIR_PROSPECTOS, "ReporteProspectos")
+        df_prospectos = _leer_por_año(DOWNLOAD_DIR_PROSPECTOS, "ReporteProspectos", AÑOS_PROSP_VISITAS)
         if df_prospectos is not None:
             print(f"   -> PROSPECTOS total: {len(df_prospectos):,} filas")
     except Exception as e:
@@ -923,7 +924,7 @@ def main():
     # Cargar visitas
     df_visitas = None
     try:
-        df_visitas = _leer_por_año(DOWNLOAD_DIR_VISITAS, "ReporteVisitas")
+        df_visitas = _leer_por_año(DOWNLOAD_DIR_VISITAS, "ReporteVisitas", AÑOS_PROSP_VISITAS)
         if df_visitas is not None:
             print(f"   -> VISITAS total: {len(df_visitas):,} filas")
     except Exception as e:
