@@ -681,25 +681,36 @@ const PLBL  = {'HELIO - SANTA BEATRIZ':'Helio','SUNNY':'Sunny Park','LITORAL 900
 async function loadAll(){
   document.querySelectorAll('.page-sub').forEach(el=>el.textContent='Actualizando...');
   try{
-    const [fR,vR,cR,pR] = await Promise.all([
+    const [fR,vR,cR,pR,dR] = await Promise.all([
       fetch(API+'/api/funnel').then(r=>r.json()),
       fetch(API+'/api/ventas').then(r=>r.json()),
       fetch(API+'/api/campanas').then(r=>r.json()),
       fetch(API+'/api/prospectos').then(r=>r.json()),
+      fetch(API+'/api/desistimientos').then(r=>r.json()),
     ]);
     D.funnel     = fR.data||{};
     D.ventas     = vR.ventas||[];
     D.stock      = [...(vR.ventas||[]),...(vR.separaciones||[])];
     D.campanas   = cR.data||{};
     D.prospectos = pR.data||[];
+    D.desist     = dR.data?.registros||[];
     D.updatedAt  = fR.updated_at||vR.updated_at||'—';
     // también stock completo
     fetch(API+'/api/stock').then(r=>r.json()).then(s=>{D.stock=s.data||[];renderAll();}).catch(()=>renderAll());
+    _schedNextRefresh();
   }catch(e){
     console.error(e);
     document.querySelectorAll('.page-sub').forEach(el=>el.textContent='Error al cargar — '+e.message);
   }
 }
+
+// ─── AUTO-REFRESH cada hora ─────────────────────────────────────────────────
+let _nextRefresh=null;
+function _schedNextRefresh(){
+  if(_nextRefresh)clearTimeout(_nextRefresh);
+  _nextRefresh=setTimeout(()=>loadAll(),3600000);
+}
+
 
 function renderAll(){
   renderDirector();
@@ -707,6 +718,10 @@ function renderAll(){
   renderJMkt();
   renderAdmVentas();
   renderMktProy();
+  document.querySelectorAll('.page-sub').forEach(el=>{
+    if(!el.textContent.includes('Error')&&!el.textContent.includes('Cargando'))
+      el.textContent+=' · Auto-actualiza cada hora';
+  });
 }
 
 // ══════════════════════════════════════════════════════════════════════════

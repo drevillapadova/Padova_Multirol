@@ -79,6 +79,22 @@ def _int(d, *keys):
     return int(_float(d, *keys))
 
 
+def _str(d, *keys):
+    """Lee campo de string probando múltiples nombres de columna (case-insensitive fallback)."""
+    for k in keys:
+        v = str(d.get(k, "")).strip()
+        if v and v not in ("None", "nan", ""):
+            return v
+    # fallback: búsqueda case-insensitive
+    lower_keys = [k.lower() for k in keys]
+    for dk, dv in d.items():
+        if str(dk).lower() in lower_keys:
+            v = str(dv).strip()
+            if v and v not in ("None", "nan", ""):
+                return v
+    return ""
+
+
 def filtrar_proyecto(lst, proyecto, campo="Proyecto"):
     if not proyecto or proyecto == "TODOS":
         return lst
@@ -103,14 +119,25 @@ def calcular_funnel(ventas, prospectos, visitas, stock, proyecto=""):
     monto = sum(_float(r, "PrecioVentaSoles", "PrecioVenta")
                 for r in ventas_conf)
 
-    # Tiempo de respuesta mediano (minutos)
+    # Tiempo de respuesta mediano (minutos) — acepta nombres ETL y CRM
     tiempos = []
     for r in p:
         try:
-            f1 = pd.to_datetime(r.get("Fecha_Registro_Sistema", ""),
-                                dayfirst=True, errors="coerce")
-            f2 = pd.to_datetime(r.get("FechaProspecto", ""),
-                                dayfirst=True, errors="coerce")
+            # Si ya tenemos TiempoRespuesta_min calculado, usarlo directamente
+            if r.get("TiempoRespuesta_min"):
+                try:
+                    t = float(str(r["TiempoRespuesta_min"]).replace(",", ""))
+                    if t > 0:
+                        tiempos.append(t)
+                    continue
+                except Exception:
+                    pass
+            f1 = pd.to_datetime(
+                r.get("Fecha_Registro_Sistema") or r.get("FechaRegistro") or "",
+                dayfirst=True, errors="coerce")
+            f2 = pd.to_datetime(
+                r.get("FechaProspecto") or r.get("Fecha_PrimeraAccion") or "",
+                dayfirst=True, errors="coerce")
             if pd.notna(f1) and pd.notna(f2) and f2 > f1:
                 tiempos.append((f2 - f1).total_seconds() / 60)
         except Exception:
@@ -153,14 +180,14 @@ def calcular_campanas():
         for r in registros:
             out.append({
                 "canal":       canal,
-                "proyecto":    r.get("proyecto", r.get("Proyecto", "")),
-                "campaña":     r.get("campaña",  r.get("Campaña",  "")),
-                "fecha":       r.get("fecha",    r.get("Fecha",    "")),
-                "inversion":   _float(r, "inversion",   "Inversión"),
-                "leads":       _int(r,   "leads",        "Leads"),
-                "cpl":         _float(r, "cpl",          "CPL"),
-                "ctr":         _float(r, "ctr",          "CTR"),
-                "impresiones": _int(r,   "impresiones",  "Impresiones"),
+                "proyecto":    _str(r, "proyecto",    "Proyecto",    "PROYECTO"),
+                "campaña":     _str(r, "campaña",     "Campaña",     "Campana",  "campana"),
+                "fecha":       _str(r, "fecha",       "Fecha",       "FECHA"),
+                "inversion":   _float(r, "inversion", "Inversión",   "Inversion"),
+                "leads":       _int(r,   "leads",     "Leads",       "LEADS"),
+                "cpl":         _float(r, "cpl",       "CPL",         "Cpl"),
+                "ctr":         _float(r, "ctr",       "CTR",         "Ctr"),
+                "impresiones": _int(r,   "impresiones","Impresiones","IMPRESIONES"),
             })
         return out
 
@@ -187,25 +214,27 @@ def calcular_campanas():
     mkt = _cache["mkt_fisico"]
     mkt_resumen = {}
     for r in mkt:
-        tipo = r.get("tipo_accion", "otro")
+        tipo = _str(r, "tipo_accion", "Tipo_accion", "Tipo", "tipo") or "otro"
         if tipo not in mkt_resumen:
             mkt_resumen[tipo] = {"costo": 0, "leads": 0, "acciones": 0}
-        mkt_resumen[tipo]["costo"]   += _float(r, "costo")
-        mkt_resumen[tipo]["leads"]   += _int(r,   "leads_atribuidos")
+        mkt_resumen[tipo]["costo"]    += _float(r, "costo",            "Costo")
+        mkt_resumen[tipo]["leads"]    += _int(r,   "leads_atribuidos", "Leads_atribuidos", "Leads")
         mkt_resumen[tipo]["acciones"] += 1
 
     # Presupuesto vs real por canal/mes
     presup = {}
     for r in _cache["presupuesto"]:
-        key = f"{r.get('mes','')}|{r.get('canal','')}"
+        mes   = _str(r, "mes",   "Mes",   "MES")
+        canal = _str(r, "canal", "Canal", "CANAL")
+        key   = f"{mes}|{canal}"
         presup[key] = {
-            "mes":       r.get("mes", ""),
-            "proyecto":  r.get("proyecto", ""),
-            "canal":     r.get("canal", ""),
-            "presupuesto":    _float(r, "presupuesto"),
-            "meta_leads":     _int(r,   "meta_leads"),
-            "meta_cpl":       _float(r, "meta_cpl"),
-            "meta_separaciones": _int(r,"meta_separaciones"),
+            "mes":               mes,
+            "proyecto":          _str(r,   "proyecto",          "Proyecto"),
+            "canal":             canal,
+            "presupuesto":       _float(r, "presupuesto",       "Presupuesto"),
+            "meta_leads":        _int(r,   "meta_leads",        "Meta_leads",   "Meta Leads"),
+            "meta_cpl":          _float(r, "meta_cpl",          "Meta_CPL",     "Meta CPL"),
+            "meta_separaciones": _int(r,   "meta_separaciones", "Meta_sep",     "Meta Sep"),
         }
 
     return {
