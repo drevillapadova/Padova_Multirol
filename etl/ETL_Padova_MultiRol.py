@@ -789,8 +789,31 @@ def process_stock_data(df_ventas=None):
     latest_file = max(list_of_files, key=os.path.getctime)
     df = pd.read_excel(latest_file)
     df.columns = df.columns.str.strip()
+    print(f"   -> Columnas en raw: {df.columns.tolist()}")
     if 'Proyecto' in df.columns:
         df = df[df['Proyecto'].str.upper().isin(TARGET_PROJECTS)]
+
+    # Normalizar nombres de columnas con acentos/espacios
+    import unicodedata
+    def _norm(s):
+        return unicodedata.normalize('NFD', str(s).lower()).encode('ascii', 'ignore').decode()
+
+    col_at = next((c for c in df.columns if 'area' in _norm(c) and 'tech' in _norm(c)), None)
+    col_al = next((c for c in df.columns if 'area' in _norm(c) and ('libre' in _norm(c) or 'jard' in _norm(c))), None)
+    col_dorm = next((c for c in df.columns if 'dorm' in _norm(c) or 'habitac' in _norm(c)), None)
+
+    if col_at and col_at != 'AreaTechada':
+        df = df.rename(columns={col_at: 'AreaTechada'})
+        print(f"   -> Renombrado '{col_at}' → 'AreaTechada'")
+    if col_al and col_al != 'AreaLibre':
+        df = df.rename(columns={col_al: 'AreaLibre'})
+        print(f"   -> Renombrado '{col_al}' → 'AreaLibre'")
+    if col_dorm and col_dorm != 'NroDormitorios':
+        df = df.rename(columns={col_dorm: 'NroDormitorios'})
+        print(f"   -> Renombrado '{col_dorm}' → 'NroDormitorios'")
+    elif not col_dorm and 'NroDormitorios' not in df.columns and 'TipoInmueble' in df.columns:
+        df['NroDormitorios'] = df['TipoInmueble'].str.extract(r'(\d)[\s_]?[Dd]', expand=False)
+        print("   -> NroDormitorios extraído de TipoInmueble")
 
     # Calcular precio por m2: PrecioVentaSoles / (AreaTechada + AreaLibre/2)
     try:
@@ -801,8 +824,10 @@ def process_stock_data(df_ventas=None):
             pv = pd.to_numeric(df[col_precio].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
             area_total = at + al / 2
             df['PrecioM2'] = (pv / area_total.replace(0, float('nan'))).round(2)
+            print(f"   -> PrecioM2 calculado ({df['PrecioM2'].notna().sum()} filas)")
         else:
             df['PrecioM2'] = None
+            print(f"   !! PrecioM2=None (no se encontró AreaTechada)")
     except Exception as e:
         print(f"   !! Warning PrecioM2: {e}")
         df['PrecioM2'] = None
