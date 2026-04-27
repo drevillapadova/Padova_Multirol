@@ -813,28 +813,28 @@ def process_stock_data(df_ventas=None):
         df['NroDormitorios'] = df['TipoInmueble'].str.extract(r'(\d)[\s_]?[Dd]', expand=False)
         print("   -> NroDormitorios extraído de TipoInmueble")
 
-    # Calcular precio por m2: PrecioVentaSoles / (AreaTechada + AreaLibre/2)
-    try:
-        col_precio = 'PrecioVentaSoles' if 'PrecioVentaSoles' in df.columns else 'PrecioVenta'
-        if col_precio in df.columns and 'AreaTechada' in df.columns:
-            at = pd.to_numeric(df['AreaTechada'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
-            al = pd.to_numeric(df.get('AreaLibre', pd.Series(0, index=df.index)).astype(str).str.replace(',', ''), errors='coerce').fillna(0)
-            pv = pd.to_numeric(df[col_precio].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
-            area_total = at + al / 2
-            df['PrecioM2'] = (pv / area_total.replace(0, float('nan'))).round(2)
-            print(f"   -> PrecioM2 calculado ({df['PrecioM2'].notna().sum()} filas)")
-        else:
-            df['PrecioM2'] = None
-            print(f"   !! PrecioM2=None (no se encontró AreaTechada)")
-    except Exception as e:
-        print(f"   !! Warning PrecioM2: {e}")
-        df['PrecioM2'] = None
     if "Moneda" in df.columns:
         df = corregir_moneda_sunny(df, col_moneda='Moneda')
         col_fecha_stock = "FechaSepDefinitiva" if "FechaSepDefinitiva" in df.columns else None
         col_precio_stock = "PrecioVenta" if "PrecioVenta" in df.columns else "PrecioLista"
         if col_precio_stock in df.columns:
             df = convertir_precios_a_soles(df, col_precio_stock, "Moneda", col_fecha=col_fecha_stock)
+
+    # Calcular PrecioM2 = PrecioVentaSoles / (AreaTechada + AreaLibre)
+    try:
+        if 'PrecioVentaSoles' in df.columns and 'AreaTechada' in df.columns:
+            at = pd.to_numeric(df['AreaTechada'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
+            al = pd.to_numeric(df['AreaLibre'].astype(str).str.replace(',', ''), errors='coerce').fillna(0) if 'AreaLibre' in df.columns else pd.Series(0, index=df.index)
+            pv = pd.to_numeric(df['PrecioVentaSoles'].astype(str).str.replace(',', ''), errors='coerce').fillna(0)
+            area_total = (at + al).replace(0, float('nan'))
+            df['PrecioM2'] = (pv / area_total).round(2)
+            print(f"   -> PrecioM2 calculado ({df['PrecioM2'].notna().sum()} filas)")
+        else:
+            df['PrecioM2'] = None
+            print(f"   !! PrecioM2=None (falta PrecioVentaSoles o AreaTechada)")
+    except Exception as e:
+        print(f"   !! Warning PrecioM2: {e}")
+        df['PrecioM2'] = None
     print(f"   -> {len(df):,} filas")
 
     output_filename = os.path.join(DOWNLOAD_DIR, f"Reporte_Stock_{datetime.now().strftime('%Y%m%d')}.xlsx")
