@@ -793,25 +793,23 @@ def process_stock_data(df_ventas=None):
     if 'Proyecto' in df.columns:
         df = df[df['Proyecto'].str.upper().isin(TARGET_PROJECTS)]
 
-    # Normalizar nombres de columnas con acentos/espacios
+    # Normalizar columnas con nombres distintos a los esperados por el dashboard
     import unicodedata
     def _norm(s):
         return unicodedata.normalize('NFD', str(s).lower()).encode('ascii', 'ignore').decode()
 
+    # AreaTechada: Evolta exporta 'Areatechada' (t minúscula)
     col_at = next((c for c in df.columns if 'area' in _norm(c) and 'tech' in _norm(c)), None)
-    col_al = next((c for c in df.columns if 'area' in _norm(c) and ('libre' in _norm(c) or 'jard' in _norm(c))), None)
-    col_dorm = next((c for c in df.columns if 'dorm' in _norm(c) or 'habitac' in _norm(c)), None)
-
     if col_at and col_at != 'AreaTechada':
         df = df.rename(columns={col_at: 'AreaTechada'})
         print(f"   -> Renombrado '{col_at}' → 'AreaTechada'")
-    if col_al and col_al != 'AreaLibre':
-        df = df.rename(columns={col_al: 'AreaLibre'})
-        print(f"   -> Renombrado '{col_al}' → 'AreaLibre'")
+
+    # NroDormitorios: Evolta exporta 'NumDormitorio'
+    col_dorm = next((c for c in df.columns if _norm(c) in ('numdormitorio', 'numdormitorios', 'nrodormitorio', 'nrodormitorios')), None)
     if col_dorm and col_dorm != 'NroDormitorios':
         df = df.rename(columns={col_dorm: 'NroDormitorios'})
         print(f"   -> Renombrado '{col_dorm}' → 'NroDormitorios'")
-    elif not col_dorm and 'NroDormitorios' not in df.columns and 'TipoInmueble' in df.columns:
+    elif 'NroDormitorios' not in df.columns and 'TipoInmueble' in df.columns:
         df['NroDormitorios'] = df['TipoInmueble'].str.extract(r'(\d)[\s_]?[Dd]', expand=False)
         print("   -> NroDormitorios extraído de TipoInmueble")
 
