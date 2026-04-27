@@ -867,9 +867,9 @@ function renderJVentas(){
 
   document.getElementById('jv-kpis').innerHTML =
     kpi('N° de ventas',`${fN(v.length)} <span class="unit">und.</span>`,'<span class="delta neutral">acumulado</span>')+
-    kpi('Monto de ventas',fM(monto),'ventas confirmadas')+
+    kpi('Monto de ventas',fFull(monto),'ventas confirmadas')+
     kpi('Separaciones',`${fN(sep.length)} <span class="unit">und.</span>`,'en proceso')+
-    kpi('Monto separaciones',fM(montoSep),'estimado separaciones');
+    kpi('Monto separaciones',fFull(montoSep),'estimado separaciones');
 
   // Prospectos filtrados
   const prosp=(D.prospectos||[]).filter(r=>!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
@@ -896,7 +896,7 @@ function renderJVentas(){
   const canon={};
   const getCanon=nm=>{const k=normKey(nm);if(!canon[k])canon[k]=toTitle(nm);return canon[k];};
 
-  // ── TABLA 1: Conversiones (una fila por asesor, agregado) ──
+  // ── TABLA 1: Conversiones (una fila por asesor, usando fechas de etapa) ──
   const convMap={};
   prosp.filter(r=>matchAsesor(String(r.Responsable||'').trim())).forEach(r=>{
     const nm=String(r.Responsable||'').trim();
@@ -904,14 +904,9 @@ function renderJVentas(){
     if(!convMap[k])convMap[k]={name:getCanon(nm),leads:0,vis:0,seps:0,ventas:0,proyectos:new Set()};
     convMap[k].leads++;
     convMap[k].proyectos.add(String(r.Proyecto||'').trim());
-    const est=String(r.Estado||'').toLowerCase();
-    if(est.includes('visita'))convMap[k].vis++;
-    if(est.includes('separac'))convMap[k].seps++;
-  });
-  Object.entries(ventMap).filter(([nm])=>matchAsesor(nm)).forEach(([nm,d])=>{
-    const k=normKey(nm);
-    if(!convMap[k])convMap[k]={name:getCanon(nm),leads:0,vis:0,seps:d.seps,ventas:d.ventas,proyectos:new Set()};
-    else{convMap[k].ventas=d.ventas;convMap[k].seps=Math.max(convMap[k].seps,d.seps);}
+    if(String(r.FechaVisita||'').trim())convMap[k].vis++;
+    if(String(r.FechaSeparacion||'').trim())convMap[k].seps++;
+    if(String(r.FechaVenta||'').trim())convMap[k].ventas++;
   });
 
   const T={lv:0.25,vs:0.30,sv:0.70};
@@ -990,7 +985,7 @@ function renderJVentas(){
   prosp.filter(r=>matchAsesor(String(r.Responsable||'').trim())).forEach(r=>{
     const nm=String(r.Responsable||'').trim();
     const k=normKey(nm);
-    const n=parseInt(r.NroAcciones||'0',10)||0;
+    const n=parseInt(r.Cant_Acciones||'0',10)||0;
     if(!tqMap[k])tqMap[k]={name:getCanon(nm),b12:0,b34:0,b5:0,b6:0,total:0,sum:0};
     tqMap[k].total++;tqMap[k].sum+=n;
     if(n<=2)tqMap[k].b12++;
