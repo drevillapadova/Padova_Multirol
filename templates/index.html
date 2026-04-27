@@ -682,6 +682,7 @@ const PLBL  = {'HELIO - SANTA BEATRIZ':'Helio','SUNNY':'Sunny Park','LITORAL 900
 async function loadAll(){
   document.querySelectorAll('.page-sub').forEach(el=>el.textContent='Actualizando...');
   try{
+    await fetch(API+'/api/refresh',{method:'POST'}).catch(()=>{});
     const [fR,vR,cR,pR,dR] = await Promise.all([
       fetch(API+'/api/funnel').then(r=>r.json()),
       fetch(API+'/api/ventas').then(r=>r.json()),
