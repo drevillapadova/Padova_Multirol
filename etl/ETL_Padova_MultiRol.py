@@ -275,8 +275,9 @@ COLS_STOCK = [
 COLS_PROSPECTOS = [
     'Proyecto','Responsable',
     'ComoSeEntero','FormaContacto','NivelInteres','MotivoCerrado',
-    'FechaRegistro','Fecha_PrimeraAccion','NroAcciones',
-    'Estado','NombreCliente','Genero','RangoEdad','Distrito',
+    'FechaRegistro','Fecha_PrimeraAccion','Cant_Acciones',
+    'FechaVisita','FechaSeparacion','FechaVenta',
+    'Estado','Score','RangoEdad',
     'TiempoRespuesta_min',
 ]
 
