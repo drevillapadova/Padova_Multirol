@@ -795,12 +795,22 @@ function renderDirector(){
     const tipo=String(r.TipoInmueble||'').toUpperCase();
     return dorm===String(d)||tipo.includes(d+'D')||tipo.includes(d+' DORM');
   });
+  // Claves de ventas filtradas (año/mes/proyecto/tipo) para cruzar con stock
+  const _ventaKeys=new Set(
+    v.filter(r=>String(r.NroInmueble||'').trim())
+     .map(r=>String(r.Proyecto||'').toUpperCase()+'||'+String(r.NroInmueble||'').trim())
+  );
   const typs=[1,2,3].map(d=>{
     const sAll=byDorm(sGlob,d);
-    const vAll=byDorm(v,d);
+    // Vendidas del periodo: cruzar stock (clasificación confiable) con ventas filtradas
+    const sVend=_ventaKeys.size>0
+      ? sAll.filter(r=>_ventaKeys.has(String(r.Proyecto||'').toUpperCase()+'||'+String(r.NroInmuebleActual||r.NroInmueble||'').trim()))
+      : sAll.filter(r=>{const e=String(r.Estado||'').toLowerCase();return e.includes('vendid')||e.includes('minuta')||e.includes('escritura');});
     const sDisp=sAll.filter(r=>String(r.Estado||'').toLowerCase().includes('disponib'));
     const sSep=sAll.filter(r=>String(r.Estado||'').toLowerCase().includes('separac'));
-    const tickArr=vAll.filter(r=>Number(r.PrecioVentaSoles||r.PrecioVenta||0)>0);
+    // Ticket desde las ventas que coinciden con este dormitorio
+    const _sKeys=new Set(sAll.map(r=>String(r.Proyecto||'').toUpperCase()+'||'+String(r.NroInmuebleActual||r.NroInmueble||'').trim()));
+    const tickArr=v.filter(r=>_sKeys.has(String(r.Proyecto||'').toUpperCase()+'||'+String(r.NroInmueble||'').trim())&&Number(r.PrecioVentaSoles||r.PrecioVenta||0)>0);
     const tick=tickArr.length?Math.round(tickArr.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0)/tickArr.length):null;
     const m2Arr=sAll.filter(r=>Number(r.PrecioM2||0)>0);
     const m2avg=m2Arr.length?Math.round(m2Arr.reduce((a,r)=>a+Number(r.PrecioM2||0),0)/m2Arr.length):null;
@@ -808,7 +818,7 @@ function renderDirector(){
     const area=areaArr.length?Math.round(areaArr.reduce((a,r)=>a+Number(r.AreaTechada||0),0)/areaArr.length):null;
     return`<div class="typ">
       <div class="t"><span class="code">${d}D</span><span style="font-size:11px;color:var(--ink-3)">${area?area+' m² prom.':'—'}</span></div>
-      <div class="n">${vAll.length}</div><div class="r">unidades vendidas</div>
+      <div class="n">${sVend.length}</div><div class="r">unidades vendidas</div>
       <div class="split">
         <div>Ticket prom.<b>${tick?fM(tick):'—'}</b></div>
         <div>Disp.<b>${sDisp.length}</b></div>
