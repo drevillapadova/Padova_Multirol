@@ -736,7 +736,7 @@ def normalizar_ventas_unpivot(df):
 
 def process_ventas_data(df_stock=None):
     print("\n>> [TRANSFORM VENTAS] Consolidando...")
-    precargar_tc_bcrp("2024-01-01")
+    precargar_tc_bcrp("2023-01-01")
     dataframes = {}
     for año in AÑOS_VENTAS:
         ruta = None
