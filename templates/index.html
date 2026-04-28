@@ -755,7 +755,9 @@ function renderDirector(){
         avgM2?'<span class="delta up">desde stock disponible</span>':'Sin PrecioM2 en stock');
 
   // ── Contenido: respeta TODOS los filtros (año/mes/proyecto) ──
-  const v=filtrarVentas('dir');
+  const _tipo=document.getElementById('dir-tipo')?.value||'';
+  let v=filtrarVentas('dir');
+  if(_tipo){const _t=_tipo;v=v.filter(r=>String(r.TipoInmueble||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(_t));}
 
   // Ventas por mes
   const stockM2={};
@@ -820,7 +822,15 @@ function renderDirector(){
   <div class="section-title"><h2>Desempeño de ventas</h2><div class="hint">Montos en S/ con IGV · filtros de año y mes aplican solo al contenido</div></div>
   <div class="grid-2-1">
     <div class="card">
-      <div class="card-hd"><div><h3>Ventas por mes</h3><p>Unidades vendidas y monto total acumulado</p></div></div>
+      <div class="card-hd"><div><h3>Ventas por mes</h3><p>Unidades vendidas y monto total acumulado</p></div>
+        <select id="dir-tipo" onchange="renderDirector()" style="background:var(--bg);border:1px solid var(--line);color:var(--ink-2);font-size:12px;padding:5px 10px;border-radius:6px;cursor:pointer">
+          <option value="">Todos los tipos</option>
+          <option value="departamento"${_tipo==='departamento'?' selected':''}>Departamento</option>
+          <option value="azotea"${_tipo==='azotea'?' selected':''}>Azotea</option>
+          <option value="estacionamiento"${_tipo==='estacionamiento'?' selected':''}>Estacionamiento</option>
+          <option value="deposito"${_tipo==='deposito'?' selected':''}>Depósito</option>
+        </select>
+      </div>
       <table class="tbl" style="text-align:center">
         <thead><tr>
           <th style="text-align:center">Mes</th>
