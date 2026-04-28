@@ -757,7 +757,7 @@ function renderDirector(){
   // ── Contenido: respeta TODOS los filtros (año/mes/proyecto) ──
   const _tipo=document.getElementById('dir-tipo')?.value||'';
   let v=filtrarVentas('dir');
-  if(_tipo){const _t=_tipo;v=v.filter(r=>String(r.TipoInmueble||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(_t));}
+  if(_tipo){v=v.filter(r=>String(r.TipoInmueble||'').toLowerCase().includes(_tipo));}
 
   // Ventas por mes
   const stockM2={};
