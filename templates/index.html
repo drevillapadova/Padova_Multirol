@@ -34,6 +34,19 @@ html,body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkM
 .nav-item.active{background:#1e293b;color:#fff;box-shadow:inset 2px 0 0 oklch(0.65 0.18 250)}
 .nav-item .dot{width:6px;height:6px;border-radius:50%;background:#475569;flex-shrink:0}
 .nav-item.active .dot{background:oklch(0.7 0.18 250)}
+.nav-lbl{transition:opacity .15s}
+.nav-collapse{padding:5px 6px;background:none;border:none;border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-left:auto;flex-shrink:0;transition:background .15s}
+.nav-collapse:hover{background:#1e293b}
+.hbg{display:flex;flex-direction:column;gap:4px}
+.hbg i{display:block;width:16px;height:2px;background:#64748b;border-radius:2px;transition:background .15s}
+.nav-collapse:hover .hbg i{background:#cbd5e1}
+.app{transition:grid-template-columns .22s ease}
+.app.sb-collapsed{grid-template-columns:52px 1fr}
+.app.sb-collapsed .sidebar{padding:16px 8px;overflow:visible}
+.app.sb-collapsed .nav-group,.app.sb-collapsed .nav-lbl{display:none}
+.app.sb-collapsed .brand{justify-content:center;padding:6px 0 18px;flex-direction:column;gap:8px}
+.app.sb-collapsed .nav-item{justify-content:center;padding:9px 6px}
+.app.sb-collapsed .nav-collapse{margin-left:0}
 
 /* ── FILTROS ── */
 .filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:18px;padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:9px}
@@ -66,6 +79,7 @@ main{overflow-x:hidden}
 .kpi-6{grid-template-columns:repeat(6,1fr)}
 .kpi-5{grid-template-columns:repeat(5,1fr)}
 .kpi-4{grid-template-columns:repeat(4,1fr)}
+.kpi-2{grid-template-columns:repeat(2,1fr)}
 .kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 14px 12px;display:flex;flex-direction:column;gap:5px;min-height:108px;position:relative}
 .kpi.highlight{background:linear-gradient(180deg,#fff,oklch(0.98 0.02 250));border-color:oklch(0.9 0.05 250)}
 .kpi .tag{position:absolute;top:10px;right:10px;font-size:10px;padding:2px 6px;border-radius:4px;background:var(--brand-soft);color:var(--brand);font-weight:600}
@@ -270,15 +284,16 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 .bud-row .foot{display:flex;justify-content:space-between;font-size:10px;color:var(--ink-3);font-family:var(--mono)}
 
 /* ── PRICING ── */
-.typ-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:12px 18px}
-.typ{border:1px solid var(--line);border-radius:8px;padding:11px;display:flex;flex-direction:column;gap:5px}
+.typ-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px 18px}
+.typ{border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:6px}
 .typ .t{display:flex;align-items:center;justify-content:space-between}
-.typ .code{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--brand);background:var(--brand-soft);padding:2px 6px;border-radius:4px}
-.typ .n{font-family:var(--mono);font-size:20px;font-weight:600;color:var(--ink);letter-spacing:-0.01em}
+.typ .code{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--brand);background:var(--brand-soft);padding:2px 7px;border-radius:4px}
+.typ .n{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--ink);letter-spacing:-0.02em;line-height:1}
 .typ .r{font-size:11px;color:var(--ink-3)}
-.typ .split{display:flex;gap:12px;margin-top:3px}
-.typ .split>div{font-size:11px;color:var(--ink-3)}
-.typ .split b{display:block;font-family:var(--mono);font-size:12px;color:var(--ink);font-weight:500;margin-top:1px}
+.typ-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px}
+.typ-stat{background:var(--bg);border:1px solid var(--line-2);border-radius:7px;padding:7px 8px;text-align:center}
+.typ-stat .sl{font-size:10px;color:var(--ink-4);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;white-space:nowrap}
+.typ-stat .sv{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink);margin-top:3px}
 .pvm{display:flex;flex-direction:column;gap:9px}
 .pvm-row{display:grid;grid-template-columns:44px 1fr 86px;gap:9px;align-items:center;font-size:12px}
 .pvm-row .k{font-family:var(--mono);font-size:11px;color:var(--ink-2);font-weight:500}
@@ -392,7 +407,7 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
   .rank-row{grid-template-columns:24px 1fr 80px}
   .rank-row .bar-wrap{display:none}
 }
-@media(max-width:640px){.kpi-6,.kpi-5,.kpi-4{grid-template-columns:1fr}.fstep{grid-template-columns:110px 1fr}
+@media(max-width:640px){.kpi-6,.kpi-5,.kpi-4,.kpi-2{grid-template-columns:1fr}.fstep{grid-template-columns:110px 1fr}
   .filter-bar{flex-direction:column;align-items:flex-start}.filter-sep{display:none}
 }
 </style>
@@ -409,17 +424,20 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 <aside class="sidebar">
   <div class="brand">
     <div class="brand-mark">P</div>
-    <div>
+    <div class="nav-lbl">
       <div class="brand-name">Padova SAC</div>
       <div class="brand-sub">MultiRol Suite</div>
     </div>
+    <button class="nav-collapse" onclick="toggleSidebar()" title="Colapsar menú">
+      <span class="hbg"><i></i><i></i><i></i></span>
+    </button>
   </div>
   <div class="nav-group">Roles</div>
-  <div class="nav-item active" onclick="nav('director',this)"><span class="dot"></span>Director Comercial</div>
-  <div class="nav-item" onclick="nav('jventas',this)"><span class="dot"></span>Jefe de Ventas</div>
-  <div class="nav-item" onclick="nav('jmkt',this)"><span class="dot"></span>Jefe de Marketing</div>
-  <div class="nav-item" onclick="nav('admventas',this)"><span class="dot"></span>Adm. de Ventas</div>
-  <div class="nav-item" onclick="nav('mktproy',this)"><span class="dot"></span>Marketing del Proyecto</div>
+  <div class="nav-item active" onclick="nav('director',this)" title="Director Comercial"><span class="dot"></span><span class="nav-lbl">Director Comercial</span></div>
+  <div class="nav-item" onclick="nav('jventas',this)" title="Jefe de Ventas"><span class="dot"></span><span class="nav-lbl">Jefe de Ventas</span></div>
+  <div class="nav-item" onclick="nav('jmkt',this)" title="Jefe de Marketing"><span class="dot"></span><span class="nav-lbl">Jefe de Marketing</span></div>
+  <div class="nav-item" onclick="nav('admventas',this)" title="Adm. de Ventas"><span class="dot"></span><span class="nav-lbl">Adm. de Ventas</span></div>
+  <div class="nav-item" onclick="nav('mktproy',this)" title="Marketing del Proyecto"><span class="dot"></span><span class="nav-lbl">Marketing del Proyecto</span></div>
 </aside>
 
 <!-- ═══════════ DIRECTOR COMERCIAL ═══════════ -->
@@ -439,12 +457,15 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
         <select id="dir-mes" onchange="renderDirector()"><option value="">Mes</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Setiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
       </label>
       <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
-        <select id="dir-proj" onchange="renderDirector()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO</option><option>DOMINGO ORUE</option></select>
+        <select id="dir-proj" onchange="renderDirector()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO 4</option><option>LOMAS DE CARABAYLLO 5</option><option>DOMINGO ORUE</option></select>
+      </label>
+      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◈</span>
+        <select id="dir-tipo" onchange="renderDirector()"><option value="">Tipo: Todos</option><option value="departamento">Departamento</option><option value="azotea">Azotea</option><option value="estacionamiento">Estacionamiento</option><option value="deposito">Depósito</option></select>
       </label>
       <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
     </div>
   </div>
-  <div class="kpi-row kpi-6" id="dir-kpis"><div class="loading">Cargando datos...</div></div>
+  <div class="kpi-row kpi-2" id="dir-kpis"><div class="loading">Cargando datos...</div></div>
   <div id="dir-content"><div class="loading">Cargando...</div></div>
 </div>
 
@@ -467,7 +488,10 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
         <select id="jv-mes" onchange="renderJVentas()"><option value="">Mes</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Setiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
       </label>
       <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
-        <select id="jv-proj" onchange="renderJVentas()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO</option><option>DOMINGO ORUE</option></select>
+        <select id="jv-proj" onchange="renderJVentas()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO 4</option><option>LOMAS DE CARABAYLLO 5</option><option>DOMINGO ORUE</option></select>
+      </label>
+      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◈</span>
+        <select id="jv-tipo" onchange="renderJVentas()"><option value="">Tipo: Todos</option><option value="departamento">Departamento</option><option value="azotea">Azotea</option><option value="estacionamiento">Estacionamiento</option><option value="deposito">Depósito</option></select>
       </label>
       <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
     </div>
@@ -492,7 +516,7 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
         <select id="jmkt-mes" onchange="renderJMkt()"><option value="">Mes</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Setiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
       </label>
       <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
-        <select id="jmkt-proj" onchange="renderJMkt()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO</option><option>DOMINGO ORUE</option></select>
+        <select id="jmkt-proj" onchange="renderJMkt()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO 4</option><option>LOMAS DE CARABAYLLO 5</option><option>DOMINGO ORUE</option></select>
       </label>
       <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
     </div>
@@ -516,7 +540,7 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
         <select id="adm-mes" onchange="renderAdmVentas()"><option value="">Mes</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Setiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
       </label>
       <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
-        <select id="adm-proj" onchange="renderAdmVentas()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO</option><option>DOMINGO ORUE</option></select>
+        <select id="adm-proj" onchange="renderAdmVentas()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO 4</option><option>LOMAS DE CARABAYLLO 5</option><option>DOMINGO ORUE</option></select>
       </label>
       <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
     </div>
@@ -540,7 +564,7 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
         <select id="mp-mes" onchange="renderMktProy()"><option value="">Mes</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Setiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
       </label>
       <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
-        <select id="mp-proj" onchange="renderMktProy()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO</option><option>DOMINGO ORUE</option></select>
+        <select id="mp-proj" onchange="renderMktProy()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO 4</option><option>LOMAS DE CARABAYLLO 5</option><option>DOMINGO ORUE</option></select>
       </label>
       <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
     </div>
@@ -561,6 +585,7 @@ const fFull = n => 'S/ '+Number(n||0).toLocaleString('en-US',{minimumFractionDig
 const fN  = n => Number(n||0).toLocaleString('es-PE');
 const pct = (a,b) => b ? Math.round(a/b*100)+'%' : '0%';
 const fM  = n => { const v=Number(n||0); return v>=1000000?'S/ '+(v/1000000).toFixed(1)+'M':v>=1000?'S/ '+(v/1000).toFixed(0)+'k':fS(v); };
+const normStr = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 const MN  = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
 function parseDate(f){
@@ -675,20 +700,59 @@ function getDisp(proj=''){
   return f.filter(r=>String(r.Estado||'').toLowerCase().includes('disponib'));
 }
 
-const PROJS = ['HELIO - SANTA BEATRIZ','SUNNY','LITORAL 900','LOMAS DE CARABAYLLO','DOMINGO ORUE'];
-const PLBL  = {'HELIO - SANTA BEATRIZ':'Helio','SUNNY':'Sunny Park','LITORAL 900':'Litoral 900','LOMAS DE CARABAYLLO':'Lomas Carabayllo','DOMINGO ORUE':'Domingo Orue'};
+const PROJS = ['HELIO - SANTA BEATRIZ','SUNNY','LITORAL 900','LOMAS DE CARABAYLLO 4','LOMAS DE CARABAYLLO 5','DOMINGO ORUE'];
+const PLBL  = {'HELIO - SANTA BEATRIZ':'Helio','SUNNY':'Sunny Park','LITORAL 900':'Litoral 900','LOMAS DE CARABAYLLO 4':'Lomas 4','LOMAS DE CARABAYLLO 5':'Lomas 5','DOMINGO ORUE':'Domingo Orue'};
+
+const METAS = {
+  'HELIO - SANTA BEATRIZ': {
+    'departamento':    { uni: 366, monto: 98932648 },
+    'estacionamiento': { uni: 131, monto:  7149500 },
+    'deposito':        { uni:  46, monto:   518407 },
+  },
+  'LITORAL 900': {
+    'departamento':    { uni: 122, monto: 84055628 },
+    'estacionamiento': { uni: 135, monto:  8286960 },
+    'deposito':        { uni:  48, monto:   544400 },
+  },
+  'SUNNY': {
+    'departamento':    { uni: 110, monto: 26766469 },
+    'estacionamiento': { uni: 126, monto:  1938263 },
+    'deposito':        { uni:  66, monto:   386520 },
+  },
+  'LOMAS DE CARABAYLLO 4': {
+    'departamento':    { uni: 120, monto: 23420558 },
+    'estacionamiento': { uni:  42, monto:  1005300 },
+    'azotea':          { uni:  48, monto:   469820 },
+  },
+  'LOMAS DE CARABAYLLO 5': {
+    'departamento':    { uni: 120, monto: 24305937 },
+    'estacionamiento': { uni:  30, monto:   709500 },
+    'azotea':          { uni:  48, monto:   482623 },
+  },
+};
+function calcMeta(proj, tipo) {
+  let uni = 0, monto = 0;
+  const projs = proj ? [proj] : Object.keys(METAS);
+  for (const p of projs) {
+    const pm = METAS[p] || {};
+    const tipos = tipo ? [tipo] : Object.keys(pm);
+    for (const t of tipos) { if (pm[t]) { uni += pm[t].uni; monto += pm[t].monto; } }
+  }
+  return { uni, monto };
+}
 
 // ─── FETCH ─────────────────────────────────────────────────────────────────
 async function loadAll(){
   document.querySelectorAll('.page-sub').forEach(el=>el.textContent='Actualizando...');
   try{
     await fetch(API+'/api/refresh',{method:'POST'}).catch(()=>{});
-    const [fR,vR,cR,pR,dR] = await Promise.all([
+    const [fR,vR,cR,pR,dR,viR] = await Promise.all([
       fetch(API+'/api/funnel').then(r=>r.json()),
       fetch(API+'/api/ventas').then(r=>r.json()),
       fetch(API+'/api/campanas').then(r=>r.json()),
       fetch(API+'/api/prospectos').then(r=>r.json()),
       fetch(API+'/api/desistimientos').then(r=>r.json()),
+      fetch(API+'/api/visitas').then(r=>r.json()),
     ]);
     D.funnel     = fR.data||{};
     D.ventas     = vR.ventas||[];
@@ -696,6 +760,7 @@ async function loadAll(){
     D.campanas   = cR.data||{};
     D.prospectos = pR.data||[];
     D.desist     = dR.data?.registros||[];
+    D.visitas    = viR.data||[];
     D.updatedAt  = fR.updated_at||vR.updated_at||'—';
     // también stock completo
     fetch(API+'/api/stock').then(r=>r.json()).then(s=>{D.stock=s.data||[];renderAll();}).catch(()=>renderAll());
@@ -731,33 +796,43 @@ function renderAll(){
 // ══════════════════════════════════════════════════════════════════════════
 function renderDirector(){
   const proj = filtrarProj('dir');
+  const _tipo = document.getElementById('dir-tipo')?.value||'';
 
-  // ── KPIs: solo filtra por proyecto (ignoran año/mes) ──
-  const vGlob=(D.ventas||[]).filter(r=>!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
-  const sGlob=(D.stock||[]).filter(r=>!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
-  const avancePct=Math.min(Math.round(vGlob.length/120*100),100);
+  // ── KPIs: filtra por proyecto y tipo de inmueble (ignoran año/mes) ──
+  const vGlob=(D.ventas||[]).filter(r=>(!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase())&&(!_tipo||normStr(r.TipoInmueble).includes(_tipo)));
+  const sGlob=(D.stock||[]).filter(r=>(!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase())&&(!_tipo||normStr(r.TipoInmueble).includes(_tipo)));
+  const meta=calcMeta(proj,_tipo);
+  const avancePct=meta.uni?Math.min(Math.round(vGlob.length/meta.uni*100),100):0;
+  const montoGlob=vGlob.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
+  const avanceMontoP=meta.monto?Math.min(Math.round(montoGlob/meta.monto*100),100):0;
   const mesesAct=Math.max(1,Object.keys((()=>{const m={};vGlob.forEach(r=>{const d=parseDate(r.FechaVenta||r.FechaEntrega_Minuta||'');if(d)m[d.getFullYear()+'-'+(d.getMonth()+1)]=1;});return m;})()).length);
   const vel=(vGlob.length/mesesAct).toFixed(1);
-  // Precio m² desde stock (disponibles con PrecioM2)
   const m2Rows=sGlob.filter(r=>Number(r.PrecioM2||0)>0);
   const avgM2=m2Rows.length?Math.round(m2Rows.reduce((a,r)=>a+Number(r.PrecioM2||0),0)/m2Rows.length):null;
 
   document.getElementById('dir-sub').textContent='Actualizado: '+D.updatedAt;
   document.getElementById('dir-kpis').innerHTML=
-    kpiH('Meta revisada · Unidades','120 <span class="unit">und.</span>','Revisión ejecutiva Q1–Q2 2026')+
-    kpiH('Meta revisada · Monto','S/ 41.5<span class="unit">M</span>','Revisión ejecutiva Q1–Q2 2026')+
-    kpi('Avance de meta · Unidades',`${fN(vGlob.length)} <span class="unit">/ 120 und.</span>`,
-        `Faltan ${Math.max(0,120-vGlob.length)} und. para cerrar meta`,'',`<div class="bar"><i style="width:${avancePct}%"></i></div>`)+
-    kpi('Avance de meta · %',`${avancePct}<span class="unit">%</span>`,
-        'Acumulado del periodo','',`<div class="bar ok"><i style="width:${avancePct}%"></i></div>`)+
+    kpiH('Meta · Unidades',meta.uni?`${fN(meta.uni)} <span class="unit">und.</span>`:'—','Según proyecto y tipo de inmueble')+
+    kpiH('Meta · Monto',meta.monto?fFull(meta.monto):'—','Según proyecto y tipo de inmueble')+
+    kpi('Avance de meta · Unidades',`${fN(vGlob.length)} <span class="unit">/ ${meta.uni?fN(meta.uni):'—'} und.</span>`,
+        meta.uni?(vGlob.length>=meta.uni
+          ?`<span class="delta up">✓ Meta cumplida</span>`
+          :`<span class="delta down">▼ Faltan ${fN(meta.uni-vGlob.length)} und.</span>`)
+        :'Sin meta definida','',
+        `<div class="bar"><i style="width:${avancePct}%"></i></div>`)+
+    kpi('Avance de meta · Monto',`${fFull(montoGlob)} <span class="unit">/ ${meta.monto?fFull(meta.monto):'—'}</span>`,
+        meta.monto?(montoGlob>=meta.monto
+          ?`<span class="delta up">✓ Meta cumplida</span>`
+          :`<span class="delta down">▼ Faltan ${fFull(meta.monto-montoGlob)}</span>`)
+        :'Sin meta definida','',
+        `<div class="bar ok"><i style="width:${avanceMontoP}%"></i></div>`)+
     kpi('Velocidad de venta',`${vel} <span class="unit">und / mes</span>`,'<span class="delta neutral">acumulado</span>')+
-    kpi('Precio / m² promedio',avgM2?`S/&nbsp;${fN(avgM2)}`:'—',
+    kpi('Precio / m² promedio',avgM2?fFull(avgM2):'—',
         avgM2?'<span class="delta up">desde stock disponible</span>':'Sin PrecioM2 en stock');
 
-  // ── Contenido: respeta TODOS los filtros (año/mes/proyecto) ──
-  const _tipo=document.getElementById('dir-tipo')?.value||'';
+  // ── Contenido: respeta TODOS los filtros (año/mes/proyecto/tipo) ──
   let v=filtrarVentas('dir');
-  if(_tipo){v=v.filter(r=>String(r.TipoInmueble||'').toLowerCase().includes(_tipo));}
+  if(_tipo){v=v.filter(r=>normStr(r.TipoInmueble).includes(_tipo));}
 
   // Ventas por mes
   const stockM2={};
@@ -789,27 +864,35 @@ function renderDirector(){
     </tr>`;
   }).join('');
 
-  // Tipologías desde stock
+  // Tipologías desde stock — solo dormitorios que existen en el proyecto filtrado
   const byDorm=(lst,d)=>lst.filter(r=>{
     const dorm=String(r.NroDormitorios||'').trim();
     const tipo=String(r.TipoInmueble||'').toUpperCase();
     return dorm===String(d)||tipo.includes(d+'D')||tipo.includes(d+' DORM');
   });
-  // Lookup NroDormitorios desde stock (todas las unidades, incluso vendidas)
   const _dormLookup={};
   (D.stock||[]).forEach(r=>{
     const k=String(r.Proyecto||'').toUpperCase()+'||'+String(r.NroInmuebleActual||r.NroInmueble||'').trim();
     if(k.split('||')[1]) _dormLookup[k]=String(r.NroDormitorios||'').trim();
   });
-  const typs=[1,2,3].map(d=>{
+  // Detectar dormitorios desde stock + ventas para no perder ningún registro
+  const dormSet=new Set();
+  sGlob.forEach(r=>{const d=String(r.NroDormitorios||'').trim();if(/^\d+$/.test(d)&&d!=='0')dormSet.add(d);});
+  vGlob.forEach(r=>{
+    const k=String(r.Proyecto||'').toUpperCase()+'||'+String(r.NroInmueble||'').trim();
+    const d=_dormLookup[k]||String(r.NroDormitorios||'').trim();
+    if(/^\d+$/.test(d)&&d!=='0')dormSet.add(d);
+  });
+  const dorms=[...dormSet].map(Number).sort((a,b)=>a-b);
+  const typs=dorms.map(d=>{
     const sAll=byDorm(sGlob,d);
     const sDisp=sAll.filter(r=>String(r.Estado||'').toLowerCase().includes('disponib'));
     const sSep=sAll.filter(r=>String(r.Estado||'').toLowerCase().includes('separac'));
-    // Vendidas: SIEMPRE desde v (ya filtrado por año/mes/proyecto/tipo)
-    const vendidas=v.filter(r=>{
+    // usa vGlob (mismo origen que el KPI de avance de meta)
+    const vendidas=vGlob.filter(r=>{
       const k=String(r.Proyecto||'').toUpperCase()+'||'+String(r.NroInmueble||'').trim();
-      const dorm=_dormLookup[k];
-      if(dorm) return dorm===String(d);
+      const dorm=_dormLookup[k]||String(r.NroDormitorios||'').trim();
+      if(dorm&&dorm!=='0') return dorm===String(d);
       const tipo=String(r.TipoInmueble||'').toUpperCase();
       return tipo.includes(d+'D')||tipo.includes(d+' DORM');
     });
@@ -822,27 +905,19 @@ function renderDirector(){
     return`<div class="typ">
       <div class="t"><span class="code">${d}D</span><span style="font-size:11px;color:var(--ink-3)">${area?area+' m² prom.':'—'}</span></div>
       <div class="n">${vendidas.length}</div><div class="r">unidades vendidas</div>
-      <div class="split">
-        <div>Ticket prom.<b>${tick?fM(tick):'—'}</b></div>
-        <div>Disp.<b>${sDisp.length}</b></div>
-        <div>Sep.<b>${sSep.length}</b></div>
+      <div class="typ-stats">
+        <div class="typ-stat"><div class="sl">Ticket prom.</div><div class="sv">${tick?fM(tick):'—'}</div></div>
+        <div class="typ-stat"><div class="sl">Disponibles</div><div class="sv">${sDisp.length}</div></div>
+        <div class="typ-stat"><div class="sl">Separadas</div><div class="sv">${sSep.length}</div></div>
       </div>
-      ${m2avg?`<div style="font-size:11px;color:var(--ink-3);padding:6px 0 0">S/ ${fN(m2avg)} / m²</div>`:''}
     </div>`;
   }).join('');
 
   document.getElementById('dir-content').innerHTML=`
-  <div class="section-title"><h2>Desempeño de ventas</h2><div class="hint">Montos en S/ con IGV · filtros de año y mes aplican solo al contenido</div></div>
-  <div class="grid-2-1">
+  <div class="section-title"><h2>Desempeño de ventas</h2><div class="hint">Montos en S/ con IGV · año y mes aplican solo al contenido · tipo de inmueble aplica a toda la vista</div></div>
+  <div class="grid-2">
     <div class="card">
       <div class="card-hd"><div><h3>Ventas por mes</h3><p>Unidades vendidas y monto total acumulado</p></div>
-        <select id="dir-tipo" onchange="renderDirector()" style="background:var(--bg);border:1px solid var(--line);color:var(--ink-2);font-size:12px;padding:5px 10px;border-radius:6px;cursor:pointer">
-          <option value="">Todos los tipos</option>
-          <option value="departamento"${_tipo==='departamento'?' selected':''}>Departamento</option>
-          <option value="azotea"${_tipo==='azotea'?' selected':''}>Azotea</option>
-          <option value="estacionamiento"${_tipo==='estacionamiento'?' selected':''}>Estacionamiento</option>
-          <option value="deposito"${_tipo==='deposito'?' selected':''}>Depósito</option>
-        </select>
       </div>
       <table class="tbl" style="text-align:center">
         <thead><tr>
@@ -887,9 +962,14 @@ function tipCard(code,m2,vend,ticket,stock){
 function renderJVentas(){
   const proj = filtrarProj('jv');
   const vend = document.getElementById('jv-vend')?.value||'';
+  const _tipo = document.getElementById('jv-tipo')?.value||'';
+  const _año  = document.getElementById('jv-año')?.value||'';
+  const _mes  = document.getElementById('jv-mes')?.value||'';
   let v = filtrarVentas('jv');
-  if(vend) v = v.filter(r=>String(r.Vendedor||'').trim()===vend);
-  const sep = getSeps(proj);
+  if(vend)  v = v.filter(r=>String(r.Vendedor||'').trim()===vend);
+  if(_tipo) v = v.filter(r=>normStr(r.TipoInmueble).includes(_tipo));
+  let sep = getSeps(proj);
+  if(_tipo) sep = sep.filter(r=>normStr(r.TipoInmueble).includes(_tipo));
   const monto = v.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
   const montoSep = sep.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||r.PrecioLista||0),0);
   document.getElementById('jv-sub').textContent = 'Actualizado: '+D.updatedAt+' · Equipo de ventas';
@@ -907,12 +987,20 @@ function renderJVentas(){
     kpi('Separaciones',`${fN(sep.length)} <span class="unit">und.</span>`,'en proceso')+
     kpi('Monto separaciones',fFull(montoSep),'estimado separaciones');
 
-  // Prospectos filtrados
-  const prosp=(D.prospectos||[]).filter(r=>!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
+  // Prospectos filtrados por proyecto + año/mes de registro
+  const prosp=(D.prospectos||[]).filter(r=>{
+    if(proj&&String(r.Proyecto||'').toUpperCase()!==proj.toUpperCase())return false;
+    if(_año||_mes){
+      const fd=String(r.FechaRegistro||r.Fecha_PrimeraAccion||'');
+      if(_año&&!fd.includes(_año))return false;
+      if(_mes&&fd.slice(5,7)!==_mes&&fd.slice(3,5)!==_mes)return false;
+    }
+    return true;
+  });
 
   // Ventas/seps por vendedor
   const ventMap={};
-  (D.ventas||[]).filter(r=>!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase())
+  (D.ventas||[]).filter(r=>(!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase())&&(!_tipo||normStr(r.TipoInmueble).includes(_tipo)))
     .forEach(r=>{
       const nm=String(r.Vendedor||'Sin asignar').trim();
       if(!ventMap[nm])ventMap[nm]={ventas:0,seps:0};
@@ -925,53 +1013,116 @@ function renderJVentas(){
   });
 
   // ── helpers de nombre ──
-  const ASESORES=['roy','anthony','nancy','adriana','lady','stefany'];
-  const matchAsesor=nm=>ASESORES.some(a=>nm.toLowerCase().includes(a));
   const normKey=nm=>nm.toLowerCase().replace(/\s+/g,' ').trim();
   const toTitle=s=>s.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());
-  const canon={};
-  const getCanon=nm=>{const k=normKey(nm);if(!canon[k])canon[k]=toTitle(nm);return canon[k];};
 
-  // ── TABLA 1: Conversiones (una fila por asesor, usando fechas de etapa) ──
+  // Asesores asignados: patrón → proyecto display
+  const ASESOR_MAP=[
+    {pat:'stephany', proj:'Helio - Santa Beatriz'},
+    {pat:'stefany',  proj:'Helio - Santa Beatriz'},
+    {pat:'anthony',  proj:'Helio - Santa Beatriz'},
+    {pat:'roy',      proj:'Litoral 900'},
+    {pat:'adriana',  proj:'Sunny'},
+    {pat:'nancy',    proj:'Lomas de Carabayllo'},
+  ];
+  const getAsesorEntry=nm=>ASESOR_MAP.find(a=>nm.toLowerCase().includes(a.pat));
+
+  // ── TABLA 1: Conversiones por asesor ──
+  // Funnel: Leads (LeadUnicoxMesProyecto=SI) → Prospectos (NivelInteres=ALTO) → Visitas → Seps → Ventas
+  // Sets de documentos para cruce entre reportes
+  const _docVentas=new Set(
+    (D.ventas||[])
+      .filter(r=>!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase())
+      .filter(r=>!_tipo||normStr(r.TipoInmueble).includes(_tipo))
+      .map(r=>String(r.NroDocumentoTitular||'').trim().toUpperCase())
+      .filter(Boolean)
+  );
+  const _docVisitas=new Set(
+    (D.visitas||[])
+      .filter(r=>!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase())
+      .map(r=>String(r.NroDocTitular||'').trim().toUpperCase())
+      .filter(Boolean)
+  );
+  const _docSeps=new Set(
+    (D.stock||[])
+      .filter(r=>String(r.Estado||'').toLowerCase().includes('separac'))
+      .filter(r=>!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase())
+      .map(r=>String(r.NroDocumento||'').trim().toUpperCase())
+      .filter(Boolean)
+  );
+
   const convMap={};
-  prosp.filter(r=>matchAsesor(String(r.Responsable||'').trim())).forEach(r=>{
+  prosp.forEach(r=>{
     const nm=String(r.Responsable||'').trim();
+    const entry=getAsesorEntry(nm);
+    if(!entry)return;
     const k=normKey(nm);
-    if(!convMap[k])convMap[k]={name:getCanon(nm),leads:0,vis:0,seps:0,ventas:0,proyectos:new Set()};
-    convMap[k].leads++;
-    convMap[k].proyectos.add(String(r.Proyecto||'').trim());
-    if(String(r.FechaVisita||'').trim())convMap[k].vis++;
-    if(String(r.FechaSeparacion||'').trim())convMap[k].seps++;
-    if(String(r.FechaVenta||'').trim())convMap[k].ventas++;
+    if(!convMap[k])convMap[k]={name:toTitle(nm),proj:entry.proj,leads:0,prosp:0,vis:0,seps:0,ventas:0};
+    const doc=String(r.NroDocumento||'').trim().toUpperCase();
+    const hasDoc=doc.length>0;
+    // Leads únicos: usa LeadUnicoxMesProyecto si existe, si no cuenta todos
+    const esUnico=String(r.LeadUnicoxMesProyecto||'').toUpperCase();
+    if(esUnico==='SI'||esUnico==='')convMap[k].leads++;
+    // Prospectos = NivelInteres ALTO
+    if(String(r.NivelInteres||'').toUpperCase()==='ALTO')convMap[k].prosp++;
+    // Visita: cruce por doc si disponible, sino FechaVisita del prospectos
+    if(hasDoc?_docVisitas.has(doc):String(r.FechaVisita||'').trim())convMap[k].vis++;
+    // Separaciones: cruce por doc si disponible, sino FechaSeparacion del prospectos
+    if(hasDoc?_docSeps.has(doc):String(r.FechaSeparacion||'').trim())convMap[k].seps++;
+    // Ventas: cruce por doc si disponible, sino FechaVenta del prospectos
+    if(hasDoc?_docVentas.has(doc):String(r.FechaVenta||'').trim())convMap[k].ventas++;
   });
 
-  const T={lv:0.25,vs:0.30,sv:0.70};
-  const pill=(conv,tgt)=>{const p=Math.round(conv*100);const cl=conv>=tgt?'g':conv>=tgt*0.5?'w':'b';return`<span class="pill ${cl}">${p}%</span>`;};
+  // Targets: L→P 30%, P→V 25%, V→S 30%, S→VE 70%
+  const T={lp:0.30,pv:0.25,vs:0.30,sv:0.70};
+  const convCell=(n,denom,conv,tgt)=>{
+    const cl=conv>=tgt?'g':conv>=tgt*0.5?'w':'b';
+    return`<td style="text-align:center;padding:10px 6px;width:11%">
+      <div style="font-family:var(--mono);font-size:15px;font-weight:700;line-height:1;color:var(--ink)">${n}</div>
+      <div style="margin-top:3px;font-size:10px;color:var(--ink-3);font-family:var(--mono)">${n}/${denom}</div>
+      <div style="margin-top:3px"><span class="pill ${cl}">${Math.round(conv*100)}%</span></div>
+    </td>`;
+  };
+  const leadsCell=n=>`<td style="text-align:center;padding:10px 6px;width:11%;font-family:var(--mono);font-size:15px;font-weight:700;color:var(--ink)">${n}</td>`;
+  const scoreCell=score=>{
+    const sc=score>=80?'var(--ok)':score>=50?'var(--warn)':'var(--bad)';
+    const bg=score>=80?'var(--ok-soft)':score>=50?'var(--warn-soft)':'var(--bad-soft)';
+    return`<td style="text-align:center;padding:10px 6px;width:11%">
+      <div style="background:${bg};color:${sc};font-family:var(--mono);font-size:15px;font-weight:700;border-radius:8px;padding:6px 8px;line-height:1;display:inline-block">${score}</div>
+    </td>`;
+  };
 
-  const convRows=Object.entries(convMap).sort((a,b)=>b[1].leads-a[1].leads).map(([,d],i)=>{
-    const pj=[...d.proyectos].filter(Boolean).join(', ')||'—';
-    const lv=d.leads?d.vis/d.leads:0;
+  const convRows=Object.entries(convMap).sort((a,b)=>b[1].leads-a[1].leads).map(([,d])=>{
+    const lp=d.leads?d.prosp/d.leads:0;
+    const pv=d.prosp?d.vis/d.prosp:0;
     const vs=d.vis?d.seps/d.vis:0;
     const sv=d.seps?d.ventas/d.seps:0;
-    const score=Math.min(Math.round(([lv/T.lv,vs/T.vs,sv/T.sv].reduce((a,b)=>a+b,0)/3)*100),100);
-    const sc=score>=80?'var(--ok)':score>=50?'var(--warn)':'var(--bad)';
+    const score=Math.min(Math.round(([lp/T.lp,pv/T.pv,vs/T.vs,sv/T.sv].reduce((a,b)=>a+b,0)/4)*100),100);
     return`<tr>
-      <td style="width:32px;color:var(--ink-3);font-weight:600">${i+1}</td>
-      <td style="white-space:nowrap;font-weight:600">${d.name}</td>
-      <td style="font-size:11px;color:var(--ink-3);min-width:120px">${pj}</td>
-      <td class="r">${d.leads?pill(lv,T.lv):'—'}</td>
-      <td class="r">${d.vis?pill(vs,T.vs):'—'}</td>
-      <td class="r">${d.seps?pill(sv,T.sv):'—'}</td>
-      <td class="r" style="width:54px"><b style="color:${sc}">${score}</b></td>
+      <td style="padding:10px 14px">
+        <div style="display:flex;align-items:center;gap:9px">
+          <div class="avv">${d.name[0].toUpperCase()}</div>
+          <div>
+            <div style="font-weight:600;font-size:13px;color:var(--ink)">${d.name}</div>
+            <div style="font-size:11px;color:var(--ink-3);margin-top:1px">${d.proj}</div>
+          </div>
+        </div>
+      </td>
+      ${leadsCell(d.leads)}
+      ${convCell(d.prosp,d.leads,lp,T.lp)}
+      ${convCell(d.vis,d.prosp,pv,T.pv)}
+      ${convCell(d.seps,d.vis,vs,T.vs)}
+      ${convCell(d.ventas,d.seps,sv,T.sv)}
+      ${scoreCell(score)}
     </tr>`;
   }).join('');
 
-  // ── TABLA 2: Tiempo de respuesta (asesor+proyecto, normalizado) ──
+  // ── TABLA 2: Tiempo de respuesta — solo asesores asignados ──
   const tMesMap={};
-  prosp.filter(r=>matchAsesor(String(r.Responsable||'').trim())).forEach(r=>{
+  prosp.filter(r=>getAsesorEntry(String(r.Responsable||'').trim())).forEach(r=>{
     const nm=String(r.Responsable||'').trim();
-    const pj=String(r.Proyecto||'—').trim();
-    const k=normKey(nm)+'|||'+pj;
+    const entry=getAsesorEntry(nm);
+    const k=normKey(nm);
     let mes='';
     const fd=String(r.FechaRegistro||r.Fecha_PrimeraAccion||'');
     if(fd){
@@ -980,14 +1131,14 @@ function renderJVentas(){
       else try{mes=new Date(fd).toISOString().slice(0,7);}catch{}
     }
     const t=parseFloat(r.TiempoRespuesta_min||'');
-    if(!tMesMap[k])tMesMap[k]={asesor:getCanon(nm),proyecto:pj,meses:{}};
+    if(!tMesMap[k])tMesMap[k]={asesor:toTitle(nm),proj:entry.proj,meses:{}};
     if(mes&&!isNaN(t)&&t>0){
       if(!tMesMap[k].meses[mes])tMesMap[k].meses[mes]=[];
       tMesMap[k].meses[mes].push(t);
     }
   });
   const meses=[...new Set(Object.values(tMesMap).flatMap(d=>Object.keys(d.meses)))].sort().slice(-4);
-  const mesHeaders=meses.map(m=>{const[,mo]=m.split('-');return`<th class="r">${MN[+mo]}</th>`;}).join('');
+  const mesHeaders=meses.map(m=>{const[,mo]=m.split('-');return`<th style="text-align:center;width:11%">${MN[+mo]}</th>`;}).join('');
 
   const tRespRows2=Object.entries(tMesMap).sort((a,b)=>{
     const aA=Object.values(a[1].meses).flat(),bA=Object.values(b[1].meses).flat();
@@ -1000,29 +1151,38 @@ function renderJVentas(){
     const tStr=avg===null?'—':avg<60?avg+' min':`${Math.floor(avg/60)}h ${avg%60}m`;
     const diag=avg===null?'Sin dato':avg<=15?'Excelente':avg<=30?'Óptimo':avg<=60?'Aceptable':'Mejorar';
     const dCl=avg===null?'n':avg<=15?'g':avg<=30?'g':avg<=60?'w':'b';
+    const tCl=avg===null?'':avg<=30?'good':avg<=60?'warnn':'bad';
     const mesCells=meses.map(mes=>{
       const arr=d.meses[mes]||[];
       const m2=arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):null;
-      const s=m2===null?'—':m2<60?m2+'m':`${Math.floor(m2/60)}h`;
-      const cl2=m2===null?'':m2<=30?'good':m2<=60?'warnn':'bad';
-      return`<td class="r ${cl2}" style="font-size:12px">${s}</td>`;
+      const s=m2===null?'—':m2<60?m2+' min':`${Math.floor(m2/60)}h ${m2%60}m`;
+      const cl2=m2===null?'var(--ink-4)':m2<=30?'var(--ok)':m2<=60?'var(--warn)':'var(--bad)';
+      return`<td style="text-align:center;width:11%;font-family:var(--mono);font-size:13px;font-weight:600;color:${cl2}">${s}</td>`;
     }).join('');
     return`<tr>
-      <td style="white-space:nowrap;font-weight:600">${d.asesor}</td>
-      <td style="font-size:11px;color:var(--ink-3);min-width:120px">${d.proyecto}</td>
+      <td style="padding:10px 14px">
+        <div style="display:flex;align-items:center;gap:9px">
+          <div class="avv">${d.asesor[0].toUpperCase()}</div>
+          <div>
+            <div style="font-weight:600;font-size:13px;color:var(--ink)">${d.asesor}</div>
+            <div style="font-size:11px;color:var(--ink-3);margin-top:1px">${d.proj}</div>
+          </div>
+        </div>
+      </td>
       ${mesCells}
-      <td class="r">${tStr}</td>
-      <td class="r"><span class="pill ${dCl}">${diag}</span></td>
+      <td style="text-align:center;width:11%;font-family:var(--mono);font-size:13px;font-weight:700" class="${tCl}">${tStr}</td>
+      <td style="text-align:center;width:11%"><span class="pill ${dCl}">${diag}</span></td>
     </tr>`;
   }).join('');
 
-  // ── TABLA 3: Toques por lead (normalizado, solo 6 asesores) ──
+  // ── TABLA 3: Toques por lead — solo asesores asignados ──
   const tqMap={};
-  prosp.filter(r=>matchAsesor(String(r.Responsable||'').trim())).forEach(r=>{
+  prosp.filter(r=>getAsesorEntry(String(r.Responsable||'').trim())).forEach(r=>{
     const nm=String(r.Responsable||'').trim();
+    const entry=getAsesorEntry(nm);
     const k=normKey(nm);
     const n=parseInt(r.Cant_Acciones||'0',10)||0;
-    if(!tqMap[k])tqMap[k]={name:getCanon(nm),b12:0,b34:0,b5:0,b6:0,total:0,sum:0};
+    if(!tqMap[k])tqMap[k]={name:toTitle(nm),proj:entry.proj,b12:0,b34:0,b5:0,b6:0,total:0,sum:0};
     tqMap[k].total++;tqMap[k].sum+=n;
     if(n<=2)tqMap[k].b12++;
     else if(n<=4)tqMap[k].b34++;
@@ -1031,42 +1191,62 @@ function renderJVentas(){
   });
   const tqRows=Object.entries(tqMap).sort((a,b)=>b[1].total-a[1].total).map(([,d])=>{
     const prom=d.total?(d.sum/d.total).toFixed(1):'—';
-    const bar=`<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;min-width:80px">
+    const bar=`<div style="display:flex;height:8px;border-radius:4px;overflow:hidden">
       <div style="flex:${d.b12};background:#dc2626" title="1-2: ${d.b12}"></div>
       <div style="flex:${d.b34};background:#f59e0b" title="3-4: ${d.b34}"></div>
       <div style="flex:${d.b5};background:#22c55e" title="5: ${d.b5}"></div>
       <div style="flex:${d.b6};background:#3b82f6" title="6+: ${d.b6}"></div>
     </div>`;
+    const numCell=(n,t)=>`<td style="text-align:center;width:11%;font-family:var(--mono);font-size:14px;font-weight:700;color:var(--ink)">
+      ${n}<div style="font-size:10px;font-weight:400;color:var(--ink-3);margin-top:2px">${pct(n,t)}</div>
+    </td>`;
     return`<tr>
-      <td style="white-space:nowrap;font-weight:600">${d.name}</td>
-      <td class="r"><b>${prom}</b></td>
-      <td class="r">${d.b12} <small style="color:var(--ink-4)">(${pct(d.b12,d.total)})</small></td>
-      <td class="r">${d.b34} <small style="color:var(--ink-4)">(${pct(d.b34,d.total)})</small></td>
-      <td class="r">${d.b5} <small style="color:var(--ink-4)">(${pct(d.b5,d.total)})</small></td>
-      <td class="r">${d.b6} <small style="color:var(--ink-4)">(${pct(d.b6,d.total)})</small></td>
-      <td style="min-width:90px">${bar}</td>
+      <td style="padding:10px 14px">
+        <div style="display:flex;align-items:center;gap:9px">
+          <div class="avv">${d.name[0].toUpperCase()}</div>
+          <div>
+            <div style="font-weight:600;font-size:13px;color:var(--ink)">${d.name}</div>
+            <div style="font-size:11px;color:var(--ink-3);margin-top:1px">${d.proj}</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;width:11%;font-family:var(--mono);font-size:16px;font-weight:700;color:var(--ink)">${prom}</td>
+      ${numCell(d.b12,d.total)}
+      ${numCell(d.b34,d.total)}
+      ${numCell(d.b5,d.total)}
+      ${numCell(d.b6,d.total)}
+      <td style="padding:10px 14px">${bar}</td>
     </tr>`;
   }).join('');
 
   document.getElementById('jv-content').innerHTML=`
   <div class="section-title"><h2>Conversiones y score por asesor</h2><div class="hint">Meta: Lead→Visita 25% · Visita→Sep 30% · Sep→Venta 70%</div></div>
   <div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>Tabla de conversiones</h3><p>Tasa real vs. meta por etapa · Score ponderado 0-100</p></div></div>
-    <div style="overflow-x:auto"><table class="mtable">
-      <thead><tr><th>#</th><th>Asesor</th><th>Proyecto</th>
-        <th class="r">Lead→Visita <small style="opacity:.6">25%</small></th>
-        <th class="r">Visita→Sep <small style="opacity:.6">30%</small></th>
-        <th class="r">Sep→Venta <small style="opacity:.6">70%</small></th>
-        <th class="r">Score</th></tr></thead>
+    <div class="card-hd"><div><h3>Tabla de conversiones</h3><p>Número real y tasa de conversión por etapa · Score ponderado 0–100</p></div></div>
+    <div style="overflow-x:auto"><table class="mtable" style="table-layout:fixed">
+      <thead><tr>
+        <th style="text-align:left">Asesor</th>
+        <th style="text-align:center;width:11%">Leads</th>
+        <th style="text-align:center;width:11%">Prospectos <small style="opacity:.6">meta 30%</small></th>
+        <th style="text-align:center;width:11%">Visitas <small style="opacity:.6">meta 25%</small></th>
+        <th style="text-align:center;width:11%">Separaciones <small style="opacity:.6">meta 30%</small></th>
+        <th style="text-align:center;width:11%">Ventas <small style="opacity:.6">meta 70%</small></th>
+        <th style="text-align:center;width:11%">Score</th>
+      </tr></thead>
       <tbody>${convRows||'<tr><td colspan="7" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de prospectos</td></tr>'}</tbody>
     </table></div>
   </div>
   <div class="section-title"><h2>Tiempo de primera respuesta</h2><div class="hint">Primera acción al lead · SLA óptimo ≤30 min</div></div>
   <div class="card" style="margin-bottom:16px">
     <div class="card-hd"><div><h3>Promedio por asesor y mes</h3><p>Minutos entre registro del lead y primera acción registrada</p></div></div>
-    <div style="overflow-x:auto"><table class="mtable">
-      <thead><tr><th>Asesor</th><th>Proyecto</th>${mesHeaders}<th class="r">Promedio</th><th class="r">Diagnóstico</th></tr></thead>
-      <tbody>${tRespRows2||`<tr><td colspan="${5+meses.length}" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de TiempoRespuesta_min</td></tr>`}</tbody>
+    <div style="overflow-x:auto"><table class="mtable" style="table-layout:fixed">
+      <thead><tr>
+        <th style="text-align:left">Asesor</th>
+        ${mesHeaders}
+        <th style="text-align:center;width:11%">Promedio</th>
+        <th style="text-align:center;width:11%">Diagnóstico</th>
+      </tr></thead>
+      <tbody>${tRespRows2||`<tr><td colspan="${4+meses.length}" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de TiempoRespuesta_min</td></tr>`}</tbody>
     </table></div>
   </div>
   <div class="section-title"><h2>Toques por lead</h2><div class="hint">NroAcciones registradas por prospecto · distribución por asesor</div></div>
@@ -1079,11 +1259,15 @@ function renderJVentas(){
         <span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#3b82f6;margin-right:4px"></i>6+</span>
       </div>
     </div>
-    <div style="overflow-x:auto"><table class="mtable">
+    <div style="overflow-x:auto"><table class="mtable" style="table-layout:fixed">
       <thead><tr>
-        <th>Asesor</th><th class="r">Promedio</th><th class="r">1-2 toques</th>
-        <th class="r">3-4 toques</th><th class="r">5 toques</th><th class="r">6+ toques</th>
-        <th>Distribución</th>
+        <th style="text-align:left">Asesor</th>
+        <th style="text-align:center;width:11%">Promedio</th>
+        <th style="text-align:center;width:11%">1-2 toques</th>
+        <th style="text-align:center;width:11%">3-4 toques</th>
+        <th style="text-align:center;width:11%">5 toques</th>
+        <th style="text-align:center;width:11%">6+ toques</th>
+        <th style="text-align:left;width:11%">Distribución</th>
       </tr></thead>
       <tbody>${tqRows||'<tr><td colspan="7" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de NroAcciones</td></tr>'}</tbody>
     </table></div>
@@ -1582,6 +1766,16 @@ function nav(id, el){
   document.getElementById('panel-'+id)?.classList.add('active');
   el.classList.add('active');
 }
+
+function toggleSidebar(){
+  const collapsed = document.querySelector('.app').classList.toggle('sb-collapsed');
+  localStorage.setItem('sb-collapsed', collapsed ? '1' : '0');
+}
+
+(function(){
+  if(localStorage.getItem('sb-collapsed')==='1')
+    document.querySelector('.app')?.classList.add('sb-collapsed');
+})();
 
 // ─── INIT ──────────────────────────────────────────────────────────────────
 loadAll();

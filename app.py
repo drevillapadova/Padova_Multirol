@@ -1,4 +1,4 @@
-import os, io, requests
+import os, io, re, requests
 from datetime import datetime
 from flask import Flask, jsonify, render_template, request
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -26,8 +26,29 @@ TABS = {
 TARGET_PROJECTS = [
     'SUNNY', 'LITORAL 900',
     'HELIO - SANTA BEATRIZ',
-    'LOMAS DE CARABAYLLO'
+    'LOMAS DE CARABAYLLO 4',
+    'LOMAS DE CARABAYLLO 5',
+    'DOMINGO ORUE',
 ]
+
+
+_ALLOWED_PROJECTS = {p.upper() for p in TARGET_PROJECTS if 'LOMAS' not in p}
+
+def _normalizar_proyectos(registros):
+    """Whitelist de proyectos: renombra Lomas por etapa, descarta todo lo demás."""
+    result = []
+    for r in registros:
+        proj = str(r.get("Proyecto", "")).upper().strip()
+        if proj == "LOMAS DE CARABAYLLO":
+            m = re.search(r'\d+', str(r.get("Etapa", "")))
+            num = m.group() if m else ""
+            if num in ("4", "5"):
+                r = dict(r)
+                r["Proyecto"] = f"LOMAS DE CARABAYLLO {num}"
+                result.append(r)
+        elif proj in _ALLOWED_PROJECTS:
+            result.append(r)
+    return result
 
 # ─── CACHE ───────────────────────────────────────────────────
 _cache = {k: [] for k in TABS}
@@ -318,7 +339,9 @@ def actualizar_cache():
     ts = datetime.now(LIMA).strftime("%H:%M:%S")
     print(f"\n[{ts}] Actualizando cache desde Google Sheets...")
     for key in TABS:
-        _cache[key] = leer_tab(key)
+        _cache[key] = _normalizar_proyectos(leer_tab(key))
+    _cache["ventas"] = [r for r in _cache["ventas"]
+                        if str(r.get("EstadoOC", "")).strip() == "Activo"]
     _cache["updated_at"] = datetime.now(LIMA).strftime("%d/%m/%Y %H:%M")
     print(f"   -> Cache OK · {_cache['updated_at']}")
 

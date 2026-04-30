@@ -253,7 +253,7 @@ AÑOS_PROSP_VISITAS     = [2026]
 COLS_VENTAS = [
     'CorrelativoOC','FechaVenta','FechaEntrega_Minuta','FechaDevolucion',
     'Fecha_Registro_Sistema','FechaProspecto',
-    'Estado','EstadoOC','NombresTitular',
+    'Estado','EstadoOC','NombresTitular','NroDocumentoTitular',
     'Genero','RangoEdad','Distrito_Procedencia',
     'ComoSeEntero','NivelInteres','PerfilCrediticio',
     'TipoFinanciamiento','EntidadFinanciamiento',
@@ -270,20 +270,20 @@ COLS_STOCK = [
     'Proyecto','Etapa','TipoInmueble','NroInmuebleActual','NroPiso','Vista',
     'Estado','Moneda','PrecioVenta','PrecioLista','PrecioVentaSoles',
     'AreaTechada','AreaLibre','NroDormitorios','FechaSepDefinitiva','PrecioM2',
+    'NroDocumento','Nombres','Correo','Distrito','NivelInteres','ComoSeEntero',
 ]
 
 COLS_PROSPECTOS = [
-    'Proyecto','Responsable',
-    'ComoSeEntero','FormaContacto','NivelInteres','MotivoCerrado',
+    'Proyecto','TipoInmueble','Nombres','ApellidoPaterno',
+    'NroDocumento','CorreoElectronico','ComoSeEntero','NivelInteres',
     'FechaRegistro','Fecha_PrimeraAccion','Cant_Acciones',
-    'FechaVisita','FechaSeparacion','FechaVenta',
-    'Estado','Score','RangoEdad',
-    'TiempoRespuesta_min',
+    'Estado','SubEstado','Responsable','Motivo_Cerrado_Actual',
+    'TiempoRespuesta_min','LeadUnicoxMesProyecto',
 ]
 
 COLS_VISITAS = [
-    'Proyecto','Responsable','Vendedor',
-    'FechaVisita','Estado','TipoVisita','NombreCliente','NroDocumento',
+    'Proyecto','Etapa','TipoInmueble','NombresTitular','NroDocTitular',
+    'CorreoElectronico','Distrito_Procedencia','ComoSeEntero','Vendedor',
 ]
 
 
@@ -1036,6 +1036,22 @@ def main():
                 f2 = pd.to_datetime(df_prospectos[col_fin], dayfirst=True, errors='coerce')
                 df_prospectos['TiempoRespuesta_min'] = [business_minutes(a, b) for a, b in zip(f1, f2)]
                 print(f"   -> TiempoRespuesta_min calculado")
+            # Calcular LeadUnicoxMesProyecto: primera aparición de ese doc/tel en el mismo mes-proyecto
+            id_col = next((c for c in ['NroDocumento','NroDocumentoTitular','TelefonoCelular',
+                                        'TelefonoCelular1','Celular','DNI'] if c in df_prospectos.columns), None)
+            fecha_col = next((c for c in ['FechaRegistro','Fecha_Registro','Fecha_Registro_Sistema']
+                               if c in df_prospectos.columns), None)
+            if id_col and fecha_col:
+                df_prospectos = df_prospectos.sort_values(fecha_col, na_position='last')
+                mes_col = pd.to_datetime(df_prospectos[fecha_col], dayfirst=True, errors='coerce').dt.to_period('M').astype(str)
+                key_col = (df_prospectos[id_col].astype(str).str.strip() + '|||' +
+                           df_prospectos['Proyecto'].astype(str).str.strip() + '|||' + mes_col)
+                df_prospectos['LeadUnicoxMesProyecto'] = (~key_col.duplicated(keep='first')).map({True:'SI', False:'NO'})
+                n_unicos = (df_prospectos['LeadUnicoxMesProyecto'] == 'SI').sum()
+                print(f"   -> LeadUnicoxMesProyecto: {n_unicos:,} únicos de {len(df_prospectos):,} (col id: {id_col})")
+            else:
+                df_prospectos['LeadUnicoxMesProyecto'] = 'SI'
+                print(f"   !! LeadUnicoxMesProyecto: sin columna identificadora ({id_col}), todos marcados SI")
             df_prospectos = filtrar_cols(df_prospectos, COLS_PROSPECTOS)
             print(f"   -> PROSPECTOS total: {len(df_prospectos):,} filas, {len(df_prospectos.columns)} cols")
     except Exception as e:
