@@ -271,6 +271,7 @@ COLS_STOCK = [
     'Estado','Moneda','PrecioVenta','PrecioLista','PrecioVentaSoles',
     'AreaTechada','AreaLibre','NroDormitorios','FechaSepDefinitiva','PrecioM2',
     'NroDocumento','Nombres','Correo','Distrito','NivelInteres','ComoSeEntero',
+    'Vendedor',
 ]
 
 COLS_PROSPECTOS = [

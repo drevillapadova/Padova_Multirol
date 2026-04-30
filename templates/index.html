@@ -1027,30 +1027,8 @@ function renderJVentas(){
   ];
   const getAsesorEntry=nm=>ASESOR_MAP.find(a=>nm.toLowerCase().includes(a.pat));
 
-  // ── TABLA 1: Conversiones por asesor ──
-  // Funnel: Leads (LeadUnicoxMesProyecto=SI) → Prospectos (NivelInteres=ALTO) → Visitas → Seps → Ventas
-  // Sets de documentos para cruce entre reportes
-  const _docVentas=new Set(
-    (D.ventas||[])
-      .filter(r=>!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase())
-      .filter(r=>!_tipo||normStr(r.TipoInmueble).includes(_tipo))
-      .map(r=>String(r.NroDocumentoTitular||'').trim().toUpperCase())
-      .filter(Boolean)
-  );
-  const _docVisitas=new Set(
-    (D.visitas||[])
-      .filter(r=>!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase())
-      .map(r=>String(r.NroDocTitular||'').trim().toUpperCase())
-      .filter(Boolean)
-  );
-  const _docSeps=new Set(
-    (D.stock||[])
-      .filter(r=>String(r.Estado||'').toLowerCase().includes('separac'))
-      .filter(r=>!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase())
-      .map(r=>String(r.NroDocumento||'').trim().toUpperCase())
-      .filter(Boolean)
-  );
-
+  // ── TABLA 1: Conversiones por asesor — cada número desde su propio reporte ──
+  // Leads + Prospectos: desde prospectos por Responsable
   const convMap={};
   prosp.forEach(r=>{
     const nm=String(r.Responsable||'').trim();
@@ -1058,19 +1036,41 @@ function renderJVentas(){
     if(!entry)return;
     const k=normKey(nm);
     if(!convMap[k])convMap[k]={name:toTitle(nm),proj:entry.proj,leads:0,prosp:0,vis:0,seps:0,ventas:0};
-    const doc=String(r.NroDocumento||'').trim().toUpperCase();
-    const hasDoc=doc.length>0;
-    // Leads únicos: usa LeadUnicoxMesProyecto si existe, si no cuenta todos
     const esUnico=String(r.LeadUnicoxMesProyecto||'').toUpperCase();
     if(esUnico==='SI'||esUnico==='')convMap[k].leads++;
-    // Prospectos = NivelInteres ALTO
     if(String(r.NivelInteres||'').toUpperCase()==='ALTO')convMap[k].prosp++;
-    // Visita: cruce por doc si disponible, sino FechaVisita del prospectos
-    if(hasDoc?_docVisitas.has(doc):String(r.FechaVisita||'').trim())convMap[k].vis++;
-    // Separaciones: cruce por doc si disponible, sino FechaSeparacion del prospectos
-    if(hasDoc?_docSeps.has(doc):String(r.FechaSeparacion||'').trim())convMap[k].seps++;
-    // Ventas: cruce por doc si disponible, sino FechaVenta del prospectos
-    if(hasDoc?_docVentas.has(doc):String(r.FechaVenta||'').trim())convMap[k].ventas++;
+  });
+
+  // Visitas: desde reporte de visitas por Vendedor
+  (D.visitas||[])
+    .filter(r=>!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase())
+    .forEach(r=>{
+      const nm=String(r.Vendedor||'').trim();
+      const entry=getAsesorEntry(nm);
+      if(!entry)return;
+      const k=normKey(nm);
+      if(!convMap[k])convMap[k]={name:toTitle(nm),proj:entry.proj,leads:0,prosp:0,vis:0,seps:0,ventas:0};
+      convMap[k].vis++;
+    });
+
+  // Separaciones: desde stock por Vendedor
+  sep.filter(r=>normStr(r.TipoInmueble).includes('departamento')).forEach(r=>{
+    const nm=String(r.Vendedor||'').trim();
+    const entry=getAsesorEntry(nm);
+    if(!entry)return;
+    const k=normKey(nm);
+    if(!convMap[k])convMap[k]={name:toTitle(nm),proj:entry.proj,leads:0,prosp:0,vis:0,seps:0,ventas:0};
+    convMap[k].seps++;
+  });
+
+  // Ventas: desde reporte de ventas por Vendedor
+  v.filter(r=>normStr(r.TipoInmueble).includes('departamento')).forEach(r=>{
+    const nm=String(r.Vendedor||'').trim();
+    const entry=getAsesorEntry(nm);
+    if(!entry)return;
+    const k=normKey(nm);
+    if(!convMap[k])convMap[k]={name:toTitle(nm),proj:entry.proj,leads:0,prosp:0,vis:0,seps:0,ventas:0};
+    convMap[k].ventas++;
   });
 
   // Targets: L→P 30%, P→V 25%, V→S 30%, S→VE 70%
