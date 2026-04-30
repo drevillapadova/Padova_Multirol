@@ -18,7 +18,7 @@ TABS = {
     "visitas":     "865520375",
     "meta_ads":    "1427834245",
     "google_ads":  "457505928",
-    "tiktok_ads":  "515829502",
+    "inversion":   "515829502",
     "mkt_fisico":  "961281144",
     "presupuesto": "485749651",
 }
@@ -45,6 +45,9 @@ def _normalizar_proyectos(registros):
             if num in ("4", "5"):
                 r = dict(r)
                 r["Proyecto"] = f"LOMAS DE CARABAYLLO {num}"
+                result.append(r)
+            elif num == "":
+                # Sin etapa (ej. prospectos/visitas): conservar como LOMAS genérico
                 result.append(r)
         elif proj in _ALLOWED_PROJECTS:
             result.append(r)
@@ -114,6 +117,16 @@ def _str(d, *keys):
             if v and v not in ("None", "nan", ""):
                 return v
     return ""
+
+
+def _parse_sol(v):
+    """Parsea 'S/.4.550,00' o '4,550.00' → float (formato peruano: . miles, , decimal)."""
+    s = re.sub(r'[S/\s]', '', str(v)).strip().lstrip('.')
+    s = s.replace('.', '').replace(',', '.')
+    try:
+        return float(s) if s else 0.0
+    except Exception:
+        return 0.0
 
 
 def filtrar_proyecto(lst, proyecto, campo="Proyecto"):
@@ -213,8 +226,7 @@ def calcular_campanas():
         return out
 
     detalle = (agg(_cache["meta_ads"],   "Meta Ads")
-             + agg(_cache["google_ads"], "Google Ads")
-             + agg(_cache["tiktok_ads"], "TikTok Ads"))
+             + agg(_cache["google_ads"], "Google Ads"))
 
     # Resumen por canal
     resumen = {}
@@ -264,6 +276,40 @@ def calcular_campanas():
         "mkt_fisico":  {"detalle": mkt, "resumen": mkt_resumen},
         "presupuesto": list(presup.values()),
     }
+
+
+_MES_NUM = {
+    'enero':1,'febrero':2,'marzo':3,'abril':4,'mayo':5,'junio':6,
+    'julio':7,'agosto':8,'septiembre':9,'setiembre':9,
+    'octubre':10,'noviembre':11,'diciembre':12,
+}
+
+def parsear_inversion():
+    """Convierte la pestaña inversión (tabla pivote) a lista de {proyecto, canal, mes, monto}."""
+    registros = _cache.get("inversion", [])
+    if not registros:
+        return []
+    all_keys = list(registros[0].keys())
+    # Detectar columnas de proyecto y canal (pueden ser PROYECTO/CANAL o Unnamed: 0/1)
+    proj_key  = next((k for k in all_keys if str(k).upper() in ('PROYECTO', 'UNNAMED: 0')), all_keys[0])
+    canal_key = next((k for k in all_keys if str(k).upper() in ('CANAL', 'UNNAMED: 1')), all_keys[1] if len(all_keys)>1 else '')
+    mes_cols  = [k for k in all_keys if k not in (proj_key, canal_key)]
+    result = []
+    for r in registros:
+        proyecto = str(r.get(proj_key, '')).strip()
+        canal    = str(r.get(canal_key, '')).strip()
+        if not proyecto or proyecto.upper() in ('PROYECTO', 'TOTAL', 'TOTALES'):
+            continue
+        for col in mes_cols:
+            monto = _parse_sol(r.get(col, ''))
+            if monto > 0:
+                result.append({
+                    'proyecto': proyecto,
+                    'canal':    canal,
+                    'mes':      col.strip(),
+                    'monto':    monto,
+                })
+    return result
 
 
 def calcular_desistimientos():
@@ -334,12 +380,15 @@ def calcular_stock_resumen():
 # CACHE — actualización
 # ══════════════════════════════════════════════════════════════
 
+TABS_CON_PROYECTO = {"ventas", "stock", "prospectos", "visitas"}
+
 def actualizar_cache():
     global _cache
     ts = datetime.now(LIMA).strftime("%H:%M:%S")
     print(f"\n[{ts}] Actualizando cache desde Google Sheets...")
     for key in TABS:
-        _cache[key] = _normalizar_proyectos(leer_tab(key))
+        raw = leer_tab(key)
+        _cache[key] = _normalizar_proyectos(raw) if key in TABS_CON_PROYECTO else raw
     _cache["ventas"] = [r for r in _cache["ventas"]
                         if str(r.get("EstadoOC", "")).strip() == "Activo"]
     _cache["updated_at"] = datetime.now(LIMA).strftime("%d/%m/%Y %H:%M")
@@ -437,6 +486,14 @@ def api_visitas():
 def api_campanas():
     return jsonify({
         "data": calcular_campanas(),
+        "updated_at": _cache["updated_at"]
+    })
+
+
+@app.route("/api/inversion")
+def api_inversion():
+    return jsonify({
+        "data": parsear_inversion(),
         "updated_at": _cache["updated_at"]
     })
 

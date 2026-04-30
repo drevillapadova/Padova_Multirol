@@ -576,9 +576,11 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 
 <script>
 const API = '';
-let D = {funnel:{}, ventas:[], stock:[], campanas:{}, desist:[], prospectos:[], updatedAt:'—'};
+let D = {funnel:{}, ventas:[], stock:[], campanas:{}, desist:[], prospectos:[], visitas:[], inversion:[], updatedAt:'—'};
 let jmktChart = null;
 let _jmktMetrica = 'leads';
+
+const MES_ES = {'01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Setiembre','10':'Octubre','11':'Noviembre','12':'Diciembre'};
 
 const fS   = n => 'S/ '+Number(n||0).toLocaleString('es-PE',{minimumFractionDigits:0,maximumFractionDigits:0});
 const fFull = n => 'S/ '+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -746,13 +748,14 @@ async function loadAll(){
   document.querySelectorAll('.page-sub').forEach(el=>el.textContent='Actualizando...');
   try{
     await fetch(API+'/api/refresh',{method:'POST'}).catch(()=>{});
-    const [fR,vR,cR,pR,dR,viR] = await Promise.all([
+    const [fR,vR,cR,pR,dR,viR,invR] = await Promise.all([
       fetch(API+'/api/funnel').then(r=>r.json()),
       fetch(API+'/api/ventas').then(r=>r.json()),
       fetch(API+'/api/campanas').then(r=>r.json()),
       fetch(API+'/api/prospectos').then(r=>r.json()),
       fetch(API+'/api/desistimientos').then(r=>r.json()),
       fetch(API+'/api/visitas').then(r=>r.json()),
+      fetch(API+'/api/inversion').then(r=>r.json()),
     ]);
     D.funnel     = fR.data||{};
     D.ventas     = vR.ventas||[];
@@ -761,6 +764,7 @@ async function loadAll(){
     D.prospectos = pR.data||[];
     D.desist     = dR.data?.registros||[];
     D.visitas    = viR.data||[];
+    D.inversion  = invR.data||[];
     D.updatedAt  = fR.updated_at||vR.updated_at||'—';
     // también stock completo
     fetch(API+'/api/stock').then(r=>r.json()).then(s=>{D.stock=s.data||[];renderAll();}).catch(()=>renderAll());
@@ -1028,14 +1032,29 @@ function renderJVentas(){
   const getAsesorEntry=nm=>ASESOR_MAP.find(a=>nm.toLowerCase().includes(a.pat));
 
   // ── TABLA 1: Conversiones por asesor — cada número desde su propio reporte ──
-  // Leads + Prospectos: desde prospectos por Responsable
+  // Solo cuenta registros del proyecto asignado al asesor
+  const projMatchEntry=entry=>String(entry.proj).toUpperCase().includes(proj.toUpperCase().slice(0,6)||entry.proj.toUpperCase());
+  const entryMatchesProj=(entry,rProj)=>{
+    const ep=normStr(entry.proj), rp=normStr(String(rProj||''));
+    // lomas: acepta cualquier lomas
+    if(ep.includes('lomas'))return rp.includes('lomas');
+    return rp.includes(ep.split(' ')[0])||ep.includes(normStr(rProj||'').split(' ')[0]);
+  };
+
   const convMap={};
-  prosp.forEach(r=>{
-    const nm=String(r.Responsable||'').trim();
+  const addEntry=(nm,rProj)=>{
     const entry=getAsesorEntry(nm);
-    if(!entry)return;
+    if(!entry)return null;
+    if(!entryMatchesProj(entry,rProj))return null;
     const k=normKey(nm);
     if(!convMap[k])convMap[k]={name:toTitle(nm),proj:entry.proj,leads:0,prosp:0,vis:0,seps:0,ventas:0};
+    return k;
+  };
+
+  // Leads + Prospectos: desde prospectos por Responsable
+  prosp.forEach(r=>{
+    const k=addEntry(String(r.Responsable||'').trim(), r.Proyecto);
+    if(!k)return;
     const esUnico=String(r.LeadUnicoxMesProyecto||'').toUpperCase();
     if(esUnico==='SI'||esUnico==='')convMap[k].leads++;
     if(String(r.NivelInteres||'').toUpperCase()==='ALTO')convMap[k].prosp++;
@@ -1045,32 +1064,20 @@ function renderJVentas(){
   (D.visitas||[])
     .filter(r=>!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase())
     .forEach(r=>{
-      const nm=String(r.Vendedor||'').trim();
-      const entry=getAsesorEntry(nm);
-      if(!entry)return;
-      const k=normKey(nm);
-      if(!convMap[k])convMap[k]={name:toTitle(nm),proj:entry.proj,leads:0,prosp:0,vis:0,seps:0,ventas:0};
-      convMap[k].vis++;
+      const k=addEntry(String(r.Vendedor||'').trim(), r.Proyecto);
+      if(k)convMap[k].vis++;
     });
 
   // Separaciones: desde stock por Vendedor
   sep.filter(r=>normStr(r.TipoInmueble).includes('departamento')).forEach(r=>{
-    const nm=String(r.Vendedor||'').trim();
-    const entry=getAsesorEntry(nm);
-    if(!entry)return;
-    const k=normKey(nm);
-    if(!convMap[k])convMap[k]={name:toTitle(nm),proj:entry.proj,leads:0,prosp:0,vis:0,seps:0,ventas:0};
-    convMap[k].seps++;
+    const k=addEntry(String(r.Vendedor||'').trim(), r.Proyecto);
+    if(k)convMap[k].seps++;
   });
 
   // Ventas: desde reporte de ventas por Vendedor
   v.filter(r=>normStr(r.TipoInmueble).includes('departamento')).forEach(r=>{
-    const nm=String(r.Vendedor||'').trim();
-    const entry=getAsesorEntry(nm);
-    if(!entry)return;
-    const k=normKey(nm);
-    if(!convMap[k])convMap[k]={name:toTitle(nm),proj:entry.proj,leads:0,prosp:0,vis:0,seps:0,ventas:0};
-    convMap[k].ventas++;
+    const k=addEntry(String(r.Vendedor||'').trim(), r.Proyecto);
+    if(k)convMap[k].ventas++;
   });
 
   // Targets: L→P 30%, P→V 25%, V→S 30%, S→VE 70%
@@ -1092,7 +1099,8 @@ function renderJVentas(){
     </td>`;
   };
 
-  const convRows=Object.entries(convMap).sort((a,b)=>b[1].leads-a[1].leads).map(([,d])=>{
+  const convEntries=Object.entries(convMap).sort((a,b)=>b[1].leads-a[1].leads);
+  const convRows=convEntries.map(([,d])=>{
     const lp=d.leads?d.prosp/d.leads:0;
     const pv=d.prosp?d.vis/d.prosp:0;
     const vs=d.vis?d.seps/d.vis:0;
@@ -1116,6 +1124,24 @@ function renderJVentas(){
       ${scoreCell(score)}
     </tr>`;
   }).join('');
+
+  const tot=convEntries.reduce((acc,[,d])=>({
+    leads:acc.leads+d.leads,prosp:acc.prosp+d.prosp,
+    vis:acc.vis+d.vis,seps:acc.seps+d.seps,ventas:acc.ventas+d.ventas
+  }),{leads:0,prosp:0,vis:0,seps:0,ventas:0});
+  const tlp=tot.leads?tot.prosp/tot.leads:0;
+  const tpv=tot.prosp?tot.vis/tot.prosp:0;
+  const tvs=tot.vis?tot.seps/tot.vis:0;
+  const tsv=tot.seps?tot.ventas/tot.seps:0;
+  const convFoot=`<tfoot><tr>
+    <td style="padding:10px 14px;font-weight:700;color:var(--ink)">Total</td>
+    <td style="text-align:center;font-family:var(--mono);font-weight:700;font-size:15px">${tot.leads}</td>
+    <td style="text-align:center;font-family:var(--mono);font-weight:700;font-size:15px">${tot.prosp}</td>
+    <td style="text-align:center;font-family:var(--mono);font-weight:700;font-size:15px">${tot.vis}</td>
+    <td style="text-align:center;font-family:var(--mono);font-weight:700;font-size:15px">${tot.seps}</td>
+    <td style="text-align:center;font-family:var(--mono);font-weight:700;font-size:15px">${tot.ventas}</td>
+    <td></td>
+  </tr></tfoot>`;
 
   // ── TABLA 2: Tiempo de respuesta — solo asesores asignados ──
   const tMesMap={};
@@ -1234,6 +1260,7 @@ function renderJVentas(){
         <th style="text-align:center;width:11%">Score</th>
       </tr></thead>
       <tbody>${convRows||'<tr><td colspan="7" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de prospectos</td></tr>'}</tbody>
+      ${convRows?convFoot:''}
     </table></div>
   </div>
   <div class="section-title"><h2>Tiempo de primera respuesta</h2><div class="hint">Primera acción al lead · SLA óptimo ≤30 min</div></div>
@@ -1331,6 +1358,8 @@ function renderEvolucion(proj,metrica){
 
 function renderJMkt(){
   const proj   = filtrarProj('jmkt');
+  const año    = document.getElementById('jmkt-año')?.value||'';
+  const mes    = document.getElementById('jmkt-mes')?.value||'';
   const camp   = D.campanas||{};
   const res    = camp.resumen||{};
   const presup = camp.presupuesto||[];
@@ -1338,13 +1367,32 @@ function renderJMkt(){
   const ventas = filtrarVentas('jmkt');
   document.getElementById('jmkt-sub').textContent = 'Actualizado: '+D.updatedAt+' · Marketing';
 
-  const totInv   = Object.values(res).reduce((a,r)=>a+Number(r.inversion||0),0);
-  const totLeads = Object.values(res).reduce((a,r)=>a+Number(r.leads||0),0)||fp.prospectos||0;
-  const cplMix   = totLeads?Math.round(totInv/totLeads):0;
-  const totPres  = presup.reduce((a,p)=>a+Number(p.presupuesto||0),0);
-  const CAC      = ventas.length?Math.round(totInv/ventas.length):0;
+  // ── Leads desde prospectos (mismo criterio que JV) ──────────────────────
+  let prosp = D.prospectos||[];
+  if(proj) prosp = prosp.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
+  if(año)  prosp = prosp.filter(r=>{
+    const f=String(r.FechaRegistro||'');
+    return f.startsWith(año)||f.slice(6,10)===año;
+  });
+  if(mes)  prosp = prosp.filter(r=>{
+    const f=String(r.FechaRegistro||'');
+    return f.slice(5,7)===mes||f.slice(3,5)===mes;
+  });
+  const leadsN = prosp.filter(r=>{const u=String(r.LeadUnicoxMesProyecto||'').toUpperCase();return u==='SI'||u===''}).length;
 
-  const leadsN = totLeads;
+  // ── Inversión desde tab inversion ────────────────────────────────────────
+  const mesNombre = mes ? MES_ES[mes] : null;
+  let invData = D.inversion||[];
+  if(proj){
+    const pp=normStr(proj);
+    invData=invData.filter(r=>{const rp=normStr(r.proyecto||'');return pp.includes(rp.split(' ')[0])||rp.includes(pp.split(' ')[0]);});
+  }
+  if(mesNombre) invData=invData.filter(r=>String(r.mes||'').toLowerCase()===mesNombre.toLowerCase());
+  const totInv = Math.round(invData.reduce((a,r)=>a+Number(r.monto||0),0));
+
+  const cplMix = leadsN?Math.round(totInv/leadsN):0;
+  const CAC    = ventas.length?Math.round(totInv/ventas.length):0;
+  const totPres  = presup.reduce((a,p)=>a+Number(p.presupuesto||0),0);
   const contN  = fp.prospectos||0;
   const prospN = fp.prospectos||0;
   const visitN = fp.visitas||0;
