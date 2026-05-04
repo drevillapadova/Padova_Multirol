@@ -1431,7 +1431,7 @@ function renderJMkt(){
   if(proj) prosp = prosp.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
   if(año)  prosp = prosp.filter(r=>{const f=String(r.FechaRegistro||'');return f.startsWith(año)||f.slice(6,10)===año;});
   if(mes)  prosp = prosp.filter(r=>{const f=String(r.FechaRegistro||'');return f.slice(5,7)===mes||f.slice(3,5)===mes;});
-  const leadsN = prosp.filter(r=>{const u=String(r.LeadUnicoxMesProyecto||'').toUpperCase();return u==='SI'||u===''}).length;
+  const leadsN = prosp.filter(r=>String(r.LeadUnicoxMesProyecto||'').toUpperCase()==='SI').length;
   const prospN = prosp.filter(r=>String(r.NivelInteres||'').toUpperCase()==='ALTO').length;
 
   let visF = D.visitas||[];
@@ -1465,58 +1465,62 @@ function renderJMkt(){
   const fCPL = n => 'S/ '+Number(n||0).toFixed(2);
   const fCAC = n => 'S/ '+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 
-  function fmStep(lbl,sub,n,convTxt){
+  function fmStep(lbl,n,convTxt){
     const barW = topN ? Math.min(Math.round(Math.sqrt(n/topN)*100), 100) : 0;
     return `<div class="fstep">
-      <div class="lbl"><b>${lbl}</b><small>${sub}</small></div>
+      <div class="lbl"><b>${lbl}</b></div>
       <div class="track"><div class="fill" style="width:${Math.max(barW,3)}%"></div></div>
       <div class="right"><span class="pct-n">${fN(n)}</span><span class="pct">${convTxt}</span></div>
     </div>`;
   }
 
-  // Prospectos por temperatura (estimado desde funnel)
-  const califData=[
-    {n:'Calientes',   sub:'decisión <30 días, visita agendada', count:Math.round(prospN*0.27), color:'oklch(0.60 0.18 25)'},
-    {n:'Tibios',      sub:'interés claro, aún evaluando',       count:Math.round(prospN*0.36), color:'oklch(0.72 0.15 65)'},
-    {n:'Fríos',       sub:'en seguimiento largo plazo',          count:Math.round(prospN*0.24), color:'oklch(0.70 0.10 230)'},
-    {n:'Sin contacto reciente', sub:'>14 días sin gestión',     count:Math.round(prospN*0.13), color:'oklch(0.75 0.05 250)'},
-  ];
-  const totCal=califData.reduce((a,c)=>a+c.count,0)||1;
-  const califRows=califData.map(c=>`
+  // Calidad del lead — real desde NivelInteres
+  const NIVEL_ORDER=['INMEDIATO','ALTO','MEDIO','BAJO','NULO'];
+  const NIVEL_COL={'INMEDIATO':'oklch(0.50 0.20 25)','ALTO':'oklch(0.60 0.18 45)','MEDIO':'oklch(0.65 0.15 65)','BAJO':'oklch(0.70 0.10 230)','NULO':'oklch(0.75 0.05 250)'};
+  const nivelMap={};
+  prosp.forEach(r=>{const nv=String(r.NivelInteres||'Sin clasificar').toUpperCase().trim();nivelMap[nv]=(nivelMap[nv]||0)+1;});
+  const nivelEntries=[...NIVEL_ORDER.filter(k=>nivelMap[k]),...Object.keys(nivelMap).filter(k=>!NIVEL_ORDER.includes(k)&&nivelMap[k])].map(k=>({n:k,count:nivelMap[k]||0,color:NIVEL_COL[k]||'oklch(0.75 0.05 250)'}));
+  const totNivel=nivelEntries.reduce((a,c)=>a+c.count,0)||1;
+  const califRows=nivelEntries.map(c=>`
     <div class="list-row">
       <span class="sw" style="background:${c.color}"></span>
-      <span class="name">${c.n}<small>${c.sub}</small></span>
+      <span class="name">${c.n}</span>
       <span class="n">${c.count}</span>
-      <span class="pct-c">${pct(c.count,totCal)}</span>
-    </div>`).join('');
+      <span class="pct-c">${pct(c.count,totNivel)}</span>
+    </div>`).join('')||'<div style="padding:16px 18px;color:var(--ink-4);font-size:12px">Sin datos</div>';
 
-  // Cerrados sin venta (desistimientos)
-  const desistMap={};
-  (D.desist||[]).forEach(r=>{
-    const m=String(r.MotivoDesistimiento||r.Motivo||'Sin especificar').trim()||'Sin especificar';
-    desistMap[m]=(desistMap[m]||0)+1;
+  // Cerrados sin venta — desde Motivo_Cerrado_Actual en prospectos
+  const cerradosMap={};
+  prosp.filter(r=>String(r.Motivo_Cerrado_Actual||'').trim()).forEach(r=>{
+    const m=String(r.Motivo_Cerrado_Actual||'').trim();
+    cerradosMap[m]=(cerradosMap[m]||0)+1;
   });
-  const desistTotal=Object.values(desistMap).reduce((a,b)=>a+b,0);
+  const desistTotal=Object.values(cerradosMap).reduce((a,b)=>a+b,0);
   const DC=['oklch(0.60 0.18 25)','oklch(0.72 0.15 65)','oklch(0.65 0.14 150)','oklch(0.70 0.10 230)','oklch(0.55 0.15 290)','oklch(0.75 0.05 250)'];
-  const cerradosRows=Object.entries(desistMap).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([m,n],i)=>`
+  const cerradosRows=Object.entries(cerradosMap).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([m,n],i)=>`
     <div class="list-row">
       <span class="sw" style="background:${DC[i%DC.length]}"></span>
       <span class="name">${m}</span>
       <span class="n">${n}</span>
       <span class="pct-c">${pct(n,desistTotal)}</span>
-    </div>`).join('')||'<div style="padding:16px 18px;color:var(--ink-4);font-size:12px">Sin datos de desistimientos</div>';
+    </div>`).join('')||'<div style="padding:16px 18px;color:var(--ink-4);font-size:12px">Sin datos de cierres</div>';
 
-  // Leads por canal (chan-row)
+  // Leads por canal — desde ComoSeEntero en prospectos (solo LeadUnico=SI)
   const CC=['oklch(0.55 0.15 250)','oklch(0.65 0.14 150)','oklch(0.72 0.15 65)','oklch(0.60 0.18 25)','oklch(0.55 0.15 290)','oklch(0.70 0.10 230)','oklch(0.55 0.10 180)','oklch(0.75 0.05 250)'];
-  const canalEntries=Object.entries(res).sort((a,b)=>b[1].leads-a[1].leads);
-  const maxCL=canalEntries[0]?.[1]?.leads||1;
-  const chanRows=canalEntries.map(([c,d],i)=>`
+  const canalMap={};
+  prosp.filter(r=>String(r.LeadUnicoxMesProyecto||'').toUpperCase()==='SI').forEach(r=>{
+    const c=String(r.ComoSeEntero||'Sin especificar').trim()||'Sin especificar';
+    canalMap[c]=(canalMap[c]||0)+1;
+  });
+  const totLeads=Object.values(canalMap).reduce((a,b)=>a+b,0)||leadsN||1;
+  const maxCL=Math.max(...Object.values(canalMap),1);
+  const chanRows=Object.entries(canalMap).sort((a,b)=>b[1]-a[1]).map(([c,n],i)=>`
     <div class="chan-row">
       <div class="nm"><span class="sw" style="background:${CC[i%CC.length]}"></span>${c}</div>
-      <div class="chan-tr"><i style="width:${Math.round(d.leads/maxCL*100)}%;background:${CC[i%CC.length]}"></i></div>
-      <div class="v">${fN(d.leads)}</div>
-      <div class="p">${pct(d.leads,totLeads)}</div>
-    </div>`).join('')||'<div style="padding:16px 18px;color:var(--ink-4);font-size:12px">Sin datos de campañas</div>';
+      <div class="chan-tr"><i style="width:${Math.round(n/maxCL*100)}%;background:${CC[i%CC.length]}"></i></div>
+      <div class="v">${fN(n)}</div>
+      <div class="p">${pct(n,totLeads)}</div>
+    </div>`).join('')||'<div style="padding:16px 18px;color:var(--ink-4);font-size:12px">Sin datos de canales</div>';
 
   // Presupuesto rows
   const budRows=presup.slice(0,8).map(p=>{
@@ -1535,8 +1539,8 @@ function renderJMkt(){
 
   document.getElementById('jmkt-content').innerHTML = `
   <div class="kpi-row kpi-4">
-    ${kpi('Leads generados',`${fN(leadsN)} <span class="unit">leads</span>`,`${Object.keys(res).length||'—'} canales activos`)}
-    ${kpi('Inversón marketing',fInv(totInv),totPres?`${Math.round(totInv/(totPres||1)*100)}% del presupuesto mensual`:'—')}
+    ${kpi('Leads generados',`${fN(leadsN)} <span class="unit">leads</span>`,'todos los canales')}
+    ${kpi('Inversón marketing',fInv(totInv),totPres?`Presupuestado: ${fInv(totPres)}`:'—')}
     ${kpi('CPL Mix',fCPL(cplMix),'costo por lead · todos los canales')}
     ${kpi('Costo adquisición (CAC)',fCAC(CAC),'inversión por venta efectiva')}
   </div>
@@ -1544,19 +1548,19 @@ function renderJMkt(){
   <div class="card" style="margin-bottom:16px">
     <div class="card-hd"><div><h3>Embudo de conversión</h3><p>Avance de cada etapa vs. meta del mes · La línea negra marca la meta</p></div></div>
     <div class="funnel">
-      ${fmStep('Leads','Top del embudo',leadsN,`${fN(leadsN)} leads`)}
-      ${fmStep('Prospectos','Calificados por ejecutivo',prospN,leadsN?Math.round(prospN/leadsN*100)+'% conv.':'—')}
-      ${fmStep('Visitas','Al depto. piloto',visitN,prospN?Math.round(visitN/prospN*100)+'% conv.':'—')}
-      ${fmStep('Separaciones','Reservas firmadas',sepN,visitN?Math.round(sepN/visitN*100)+'% conv.':'—')}
-      ${fmStep('Ventas','Cierre efectivo',ventN,sepN?Math.round(ventN/sepN*100)+'% conv.':'—')}
+      ${fmStep('Leads',leadsN,'—')}
+      ${fmStep('Prospectos',prospN,leadsN?Math.round(prospN/leadsN*100)+'% conv.':'—')}
+      ${fmStep('Visitas',visitN,prospN?Math.round(visitN/prospN*100)+'% conv.':'—')}
+      ${fmStep('Separaciones',sepN,visitN?Math.round(sepN/visitN*100)+'% conv.':'—')}
+      ${fmStep('Ventas',ventN,sepN?Math.round(ventN/sepN*100)+'% conv.':'—')}
     </div>
   </div>
   <div class="section-title" style="margin-top:26px"><h2>Calidad del lead</h2><div class="hint">Distribución de prospectos activos y razones de cierre negativo</div></div>
   <div class="grid-2" style="margin-bottom:16px">
     <div class="card">
-      <div class="card-hd"><div><h3>Detalle de prospectos</h3><p>${fN(prospN)} prospectos activos · clasificación por temperatura</p></div></div>
+      <div class="card-hd"><div><h3>Detalle de prospectos</h3><p>${fN(totNivel)} prospectos · nivel de interés</p></div></div>
       <div class="list">${califRows}</div>
-      <div class="list-ft"><span style="font-family:inherit;font-weight:600">Total prospectos activos</span><span>${fN(prospN)}</span></div>
+      <div class="list-ft"><span style="font-family:inherit;font-weight:600">Total prospectos</span><span>${fN(totNivel)}</span></div>
     </div>
     <div class="card">
       <div class="card-hd"><div><h3>Cerrados sin venta · razones</h3><p>${fN(desistTotal)} prospectos descartados · motivo principal</p></div></div>
