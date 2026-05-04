@@ -391,6 +391,16 @@ def actualizar_cache():
         _cache[key] = _normalizar_proyectos(raw) if key in TABS_CON_PROYECTO else raw
     _cache["ventas"] = [r for r in _cache["ventas"]
                         if str(r.get("EstadoOC", "")).strip() == "Activo"]
+    # Normaliza campo de fecha en visitas → siempre disponible como "FechaRegistro"
+    _FECHA_VISITA_KEYS = ("FechaRegistro", "Fecha_Registro", "Fecha de Registro",
+                          "FechaVisita", "Fecha_Visita", "Fecha", "fecha")
+    for r in _cache["visitas"]:
+        if not r.get("FechaRegistro"):
+            for k in _FECHA_VISITA_KEYS:
+                v = str(r.get(k, "")).strip()
+                if v:
+                    r["FechaRegistro"] = v
+                    break
     _cache["updated_at"] = datetime.now(LIMA).strftime("%d/%m/%Y %H:%M")
     print(f"   -> Cache OK · {_cache['updated_at']}")
 
