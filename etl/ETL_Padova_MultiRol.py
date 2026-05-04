@@ -962,27 +962,35 @@ def main():
     driver = get_driver(DOWNLOAD_DIR)
     wait   = WebDriverWait(driver, 30)
 
-    archivos_ventas   = {}
+    archivos_ventas = {}
     try:
-        # 1. Login
         robust_login(driver, wait)
-
-        # 2. Stock
-        execute_stock_extraction(driver)
-
-        # 3. Ventas por año
-        archivos_ventas = execute_ventas_extraction(driver)
-
-        # 4. Prospectos por año
-        execute_prospectos_extraction(driver, wait)
-
-        # 5. Visitas por año
-        execute_visitas_extraction(driver, wait)
-
     except Exception as e:
-        print(f"!! CRITICAL ERROR: {e}")
-    finally:
+        print(f"!! CRITICAL ERROR login: {e}")
         driver.quit()
+        return
+
+    try:
+        execute_stock_extraction(driver)
+    except Exception as e:
+        print(f"!! ERROR Stock: {e} — continuando")
+
+    try:
+        archivos_ventas = execute_ventas_extraction(driver)
+    except Exception as e:
+        print(f"!! ERROR Ventas: {e} — continuando")
+
+    try:
+        execute_prospectos_extraction(driver, wait)
+    except Exception as e:
+        print(f"!! ERROR Prospectos: {e} — continuando")
+
+    try:
+        execute_visitas_extraction(driver, wait)
+    except Exception as e:
+        print(f"!! ERROR Visitas: {e} — continuando")
+
+    driver.quit()
 
     # Leer stock crudo para corrección de moneda
     df_stock_crudo = None
