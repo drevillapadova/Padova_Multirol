@@ -399,17 +399,60 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
   .sidebar.open{left:0}
   .overlay.open{display:block}
   .hamburger{display:flex}
+  .nav-collapse{display:none}
   .panel{padding:16px 14px 32px;margin-top:48px}
-  .filter-bar{gap:6px}
-  .filter-bar select{min-width:100px;font-size:11px}
+  .filter-bar{gap:6px;flex-wrap:wrap}
+  .filter-bar select{min-width:90px;font-size:11px}
   .topbar{flex-direction:column;align-items:flex-start;gap:10px;flex-wrap:wrap}
   .toolbar{width:100%;flex-wrap:wrap}
   .bar-row{grid-template-columns:100px 1fr 60px 44px}
   .rank-row{grid-template-columns:24px 1fr 80px}
   .rank-row .bar-wrap{display:none}
+  .page-title{font-size:18px}
+  .card-hd{flex-wrap:wrap;gap:8px;padding:12px 14px 10px}
+  .bud-sum{grid-template-columns:1fr 1fr}
+  .hh{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .hh-grid,.hh-hours{min-width:560px}
+  .week{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .week-grid,.week-labels{min-width:400px}
+  .kpi-row{gap:10px}
 }
-@media(max-width:640px){.kpi-6,.kpi-5,.kpi-4,.kpi-2{grid-template-columns:1fr}.fstep{grid-template-columns:110px 1fr}
-  .filter-bar{flex-direction:column;align-items:flex-start}.filter-sep{display:none}
+@media(max-width:640px){
+  .card{overflow-x:auto}
+  .kpi-6,.kpi-5,.kpi-4,.kpi-2{grid-template-columns:1fr}
+  .kpi-3{grid-template-columns:1fr 1fr}
+  .fstep{grid-template-columns:90px 1fr 80px;gap:8px}
+  .filter-bar{flex-direction:column;align-items:flex-start}
+  .filter-sep{display:none}
+  .panel{padding:12px 10px 32px;margin-top:44px}
+  .page-title{font-size:16px}
+  .section-title{padding:14px 0 6px}
+  .section-title h2{font-size:14px}
+  .card{border-radius:10px;margin-bottom:10px}
+  .card-hd h3{font-size:13px}
+  .card-hd p{font-size:11px}
+  .grid-2,.grid-3,.grid-2-1{gap:10px}
+  .bud-sum{grid-template-columns:1fr}
+  .chan-row{grid-template-columns:1fr 44px 44px;gap:6px;padding:8px 12px}
+  .chan-row .chan-tr{display:none}
+  .list-row{padding:8px 12px;gap:8px}
+  .funnel{padding:10px 12px 14px;gap:12px}
+  .kpi{padding:14px 14px 12px}
+  .kpi .val{font-size:20px}
+  .filter-bar select,.filter-bar input{font-size:12px;padding:6px 8px}
+  table.tbl{font-size:11.5px}
+  table.tbl thead th,table.tbl tbody td,table.tbl tfoot td{padding:8px 10px}
+  .topbar{gap:6px}
+  .gender{flex-direction:column;align-items:flex-start}
+  .donut{width:100px;height:100px}
+}
+@media(max-width:420px){
+  .kpi-3{grid-template-columns:1fr}
+  .fstep{grid-template-columns:80px 1fr 70px;gap:6px}
+  .fstep .right .pct-n{font-size:13px}
+  .page-title{font-size:15px}
+  .filter-bar select{min-width:80px;font-size:11px}
+  .bud-sum b{font-size:13px}
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
@@ -772,9 +815,9 @@ const METAS = {
     'deposito':        { uni:  48, monto:   544400 },
   },
   'SUNNY': {
-    'departamento':    { uni: 110, monto: 26766469 },
-    'estacionamiento': { uni: 126, monto:  1938263 },
-    'deposito':        { uni:  66, monto:   386520 },
+    'departamento':    { uni: 110, monto: 107065876 },
+    'estacionamiento': { uni: 126, monto:   7753052 },
+    'deposito':        { uni:  66, monto:   1546080 },
   },
   'LOMAS DE CARABAYLLO 4': {
     'departamento':    { uni: 120, monto: 23420558 },
@@ -1109,6 +1152,12 @@ function renderJVentas(){
   // Visitas: desde reporte de visitas por Vendedor
   (D.visitas||[])
     .filter(r=>!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase())
+    .filter(r=>{
+      const f=String(r.FechaVisita||'');
+      if(_año&&!f.startsWith(_año)&&f.slice(6,10)!==_año)return false;
+      if(_mes&&f.slice(5,7)!==_mes&&f.slice(3,5)!==_mes)return false;
+      return true;
+    })
     .forEach(r=>{
       const k=addEntry(String(r.Vendedor||'').trim(), r.Proyecto);
       if(k)convMap[k].vis++;
@@ -1140,7 +1189,6 @@ function renderJVentas(){
       <div style="font-family:var(--mono);font-size:15px;font-weight:700;line-height:1;color:var(--ink)">${n}</div>
       <div style="margin-top:3px;font-size:10px;color:var(--ink-3);font-family:var(--mono)">${n}/${denom}</div>
       <div style="margin-top:3px"><span class="pill ${cl}">${Math.round(conv*100)}%</span></div>
-      <div style="margin-top:2px;font-size:9px;color:var(--ink-4)">meta ${Math.round(tgt*100)}%</div>
     </td>`;
   };
 
@@ -1154,7 +1202,6 @@ function renderJVentas(){
       <div style="font-family:var(--mono);font-size:15px;font-weight:700;line-height:1;color:var(--ink)">${n}</div>
       <div style="margin-top:3px;font-size:10px;color:var(--ink-3);font-family:var(--mono)">${n}/${meta}</div>
       <div style="margin-top:3px"><span class="pill ${cl}">${efPct}%</span></div>
-      <div style="margin-top:2px;font-size:9px;color:var(--ink-4)">meta ${meta}</div>
     </td>`;
   };
 
@@ -1412,7 +1459,7 @@ function renderFunnelEvol(proj, año){
   (D.prospectos||[]).filter(byProj).filter(r=>String(r.NivelInteres||'').toUpperCase()==='ALTO')
     .forEach(r=>addM(r.FechaRegistro,'prosp'));
   // Visitas: desde D.visitas
-  (D.visitas||[]).filter(byProj).forEach(r=>addM(r.FechaVisita||r.Fecha||r.FechaRegistro,'vis'));
+  (D.visitas||[]).filter(byProj).forEach(r=>addM(r.FechaVisita,'vis'));
   // Separaciones: desde stock con FechaSepDefinitiva
   (D.stock||[]).filter(byProj).filter(r=>String(r.FechaSepDefinitiva||'').trim()&&String(r.FechaSepDefinitiva||'')!=='nan')
     .forEach(r=>addM(r.FechaSepDefinitiva,'sep'));
@@ -1506,8 +1553,8 @@ function renderJMkt(){
 
   let visF = D.visitas||[];
   if(proj) visF=visF.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
-  if(año)  visF=visF.filter(r=>{const f=String(r.FechaVisita||r.Fecha||r.FechaRegistro||'');return f.startsWith(año)||f.slice(6,10)===año;});
-  if(mes)  visF=visF.filter(r=>{const f=String(r.FechaVisita||r.Fecha||r.FechaRegistro||'');return f.slice(5,7)===mes||f.slice(3,5)===mes;});
+  if(año)  visF=visF.filter(r=>{const f=String(r.FechaVisita||'');return f.startsWith(año)||f.slice(6,10)===año;});
+  if(mes)  visF=visF.filter(r=>{const f=String(r.FechaVisita||'');return f.slice(5,7)===mes||f.slice(3,5)===mes;});
   const visitN = visF.length;
 
   let sepF = (D.stock||[]).filter(r=>String(r.FechaSepDefinitiva||'').trim()&&String(r.FechaSepDefinitiva||'')!=='nan');
@@ -1594,20 +1641,35 @@ function renderJMkt(){
       <div class="p">${pct(n,totLeads)}</div>
     </div>`).join('')||'<div style="padding:16px 18px;color:var(--ink-4);font-size:12px">Sin datos de canales</div>';
 
-  // Presupuesto rows
-  const budRows=presup.slice(0,8).map(p=>{
-    const canal=String(p.canal||'');
-    const pres=Number(p.presupuesto||0);
-    const inv=Number(res[canal]?.inversion||0);
-    const ep=pres?Math.min(Math.round(inv/pres*100),110):0;
-    const cls=ep>100?'over':ep<70?'low':'';
-    const note=ep>100?`<span class="fail">${ep}% ejec. · excedido</span>`:ep<70?`<span class="warn-c">${ep}% ejec. · sub-ejecutado</span>`:`<span>${ep}% ejec.</span>`;
-    return `<div class="bud-row">
-      <div class="head"><span class="n">${canal}</span><span class="v"><b>${fS(inv)}</b> / ${fS(pres)}</span></div>
-      <div class="tr"><div class="spent ${cls}" style="width:${Math.min(ep,100)}%"></div></div>
-      <div class="foot">${note}<span>CPL ${res[canal]?'S/ '+res[canal].cpl:'—'}</span></div>
-    </div>`;
-  }).join('')||'<div style="padding:12px;color:var(--ink-4);font-size:12px">Sin datos de presupuesto · completa la pestaña PRESUPUESTO en Google Sheets</div>';
+  // Presupuesto rows — tabla por proyecto con semáforo vs PPTO PERFIL
+  const ppProyectos = camp.presupuesto_proyectos||[];
+  const pctVal = v => Number(v||0);  // ya viene como % directo (ej. 1.60, 0.99)
+  let budRows = '<div style="padding:12px;color:var(--ink-4);font-size:12px">Sin datos · pestaña PRESUPUESTO en Google Sheets</div>';
+  if(ppProyectos.length){
+    let tbodyHtml = '';
+    ppProyectos.forEach(function(p){
+      const asignado   = Number(p.asignado||0);
+      const ejecutado  = Number(p.ejecutado||0);
+      const perfilPct  = pctVal(p.perfil_pct||0);
+      const costoVtaPct= pctVal(p.costo_venta_pct||0);
+      const overRatio  = perfilPct ? costoVtaPct/perfilPct : 0;
+      const pillCls    = overRatio>1.3 ? 'b' : overRatio>1 ? 'w' : 'g';
+      tbodyHtml += '<tr>'
+        +'<td style="padding:9px 14px;font-weight:500">'+p.proyecto+'</td>'
+        +'<td style="text-align:center;font-family:var(--mono);font-size:13px">'+fS(asignado)+'</td>'
+        +'<td style="text-align:center;font-family:var(--mono);font-size:13px">'+fS(ejecutado)+'</td>'
+        +'<td style="text-align:center"><span class="pill '+pillCls+'">'+costoVtaPct.toFixed(2)+'%</span></td>'
+        +'<td style="text-align:center;font-family:var(--mono);font-size:12px;color:var(--ink-3)">'+perfilPct.toFixed(2)+'%</td>'
+        +'</tr>';
+    });
+    budRows = '<table class="tbl" style="font-size:12px"><thead><tr>'
+      +'<th>Proyecto</th>'
+      +'<th style="text-align:center">Pres. Asignado</th>'
+      +'<th style="text-align:center">Pres. Ejecutado</th>'
+      +'<th style="text-align:center">Costo Venta Prom.</th>'
+      +'<th style="text-align:center">PPTO Perfil</th>'
+      +'</tr></thead><tbody>'+tbodyHtml+'</tbody></table>';
+  }
 
   document.getElementById('jmkt-content').innerHTML = `
   <div class="kpi-row kpi-4">
@@ -1643,15 +1705,8 @@ function renderJMkt(){
   <div class="section-title" style="margin-top:26px"><h2>Inversión y canales</h2><div class="hint">Presupuesto ejecutado y volumen de leads por origen</div></div>
   <div class="grid-2">
     <div class="card">
-      <div class="card-hd"><div><h3>Presupuesto de marketing</h3><p>Ejecución mensual vs. asignado</p></div></div>
-      <div class="bud">
-        <div class="bud-sum">
-          <div><small>Asignado</small><b>${fS(totPres)}</b></div>
-          <div><small>Ejecutado</small><b>${fS(totInv)}</b></div>
-          <div><small>Disponible</small><b style="color:var(--ok)">${fS(Math.max(totPres-totInv,0))}</b></div>
-        </div>
-        <div class="bud-list">${budRows}</div>
-      </div>
+      <div class="card-hd"><div><h3>Presupuesto de marketing</h3><p>Costo de venta vs. perfil máximo · semáforo por proyecto</p></div></div>
+      <div style="padding:0 0 4px">${budRows}</div>
     </div>
     <div class="card">
       <div class="card-hd"><div><h3>Leads por canal</h3><p>${fN(totLeads)} leads · distribución por origen de captación</p></div></div>
@@ -1930,8 +1985,13 @@ function generoCard(v){
 
 // ─── SIDEBAR TOGGLE ────────────────────────────────────────────────────────
 function toggleSidebar(){
-  document.querySelector('.sidebar').classList.toggle('open');
-  document.getElementById('overlay').classList.toggle('open');
+  if(window.innerWidth<=768){
+    document.querySelector('.sidebar').classList.toggle('open');
+    document.getElementById('overlay').classList.toggle('open');
+  } else {
+    const collapsed=document.querySelector('.app').classList.toggle('sb-collapsed');
+    localStorage.setItem('sb-collapsed',collapsed?'1':'0');
+  }
 }
 
 // ─── FILTRO HELPERS ─────────────────────────────────────────────────────────
@@ -1955,11 +2015,6 @@ function nav(id, el){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('panel-'+id)?.classList.add('active');
   el.classList.add('active');
-}
-
-function toggleSidebar(){
-  const collapsed = document.querySelector('.app').classList.toggle('sb-collapsed');
-  localStorage.setItem('sb-collapsed', collapsed ? '1' : '0');
 }
 
 (function(){

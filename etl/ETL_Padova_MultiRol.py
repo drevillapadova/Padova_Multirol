@@ -215,8 +215,9 @@ EMAIL_PASS = os.environ.get("EMAIL_PASS", "")
 URL_LOGIN              = "https://v4.evolta.pe/Login/Acceso/Index"
 URL_REPORTE_STOCK      = "https://v4.evolta.pe/Reportes/RepCargaStock/IndexNuevoRepStock"
 URL_REPORTE_VENTAS     = "https://v4.evolta.pe/Reportes/RepVenta/Index"
-URL_REPORTE_PROSPECTOS = "https://v4.evolta.pe/Reportes/RepHiloProspectos/IndexProspecto"  # NUEVO
-URL_REPORTE_VISITAS    = "https://v4.evolta.pe/Reportes/RepVisita/IndexVisita"              # NUEVO
+URL_REPORTE_PROSPECTOS       = "https://v4.evolta.pe/Reportes/RepHiloProspectos/IndexProspecto"
+URL_REPORTE_VISITAS          = "https://v4.evolta.pe/Reportes/RepVisita/IndexVisita"
+URL_REPORTE_INGRESO_DEPOSITO = "https://v4.evolta.pe/Reportes/RepIngresoxDeposito/Index"
 
 TARGET_PROJECTS = [
     'SUNNY', 'LITORAL 900', 'HELIO - SANTA BEATRIZ',
@@ -227,15 +228,17 @@ IS_CLOUD = os.name != 'nt'
 
 # Directorios
 if IS_CLOUD:
-    DOWNLOAD_DIR            = "/tmp/evolta_stock"
-    DOWNLOAD_DIR_VENTAS     = "/tmp/evolta_ventas"
-    DOWNLOAD_DIR_PROSPECTOS = "/tmp/evolta_prospectos"   # NUEVO
-    DOWNLOAD_DIR_VISITAS    = "/tmp/evolta_visitas"      # NUEVO
+    DOWNLOAD_DIR                    = "/tmp/evolta_stock"
+    DOWNLOAD_DIR_VENTAS             = "/tmp/evolta_ventas"
+    DOWNLOAD_DIR_PROSPECTOS         = "/tmp/evolta_prospectos"
+    DOWNLOAD_DIR_VISITAS            = "/tmp/evolta_visitas"
+    DOWNLOAD_DIR_INGRESO_DEPOSITO   = "/tmp/evolta_ingreso_deposito"
 else:
-    DOWNLOAD_DIR            = r"C:\Users\MKT\Documents\EVOLTA\descargas_stock"
-    DOWNLOAD_DIR_VENTAS     = r"C:\Users\MKT\Documents\EVOLTA\descargas_ventas"
-    DOWNLOAD_DIR_PROSPECTOS = r"C:\Users\MKT\Documents\EVOLTA\descargas_prospectos"  # NUEVO
-    DOWNLOAD_DIR_VISITAS    = r"C:\Users\MKT\Documents\EVOLTA\descargas_visitas"     # NUEVO
+    DOWNLOAD_DIR                    = r"C:\Users\MKT\Documents\EVOLTA\descargas_stock"
+    DOWNLOAD_DIR_VENTAS             = r"C:\Users\MKT\Documents\EVOLTA\descargas_ventas"
+    DOWNLOAD_DIR_PROSPECTOS         = r"C:\Users\MKT\Documents\EVOLTA\descargas_prospectos"
+    DOWNLOAD_DIR_VISITAS            = r"C:\Users\MKT\Documents\EVOLTA\descargas_visitas"
+    DOWNLOAD_DIR_INGRESO_DEPOSITO   = r"C:\Users\MKT\Documents\EVOLTA\descargas_ingreso_deposito"
 
 ONEDRIVE_OUTPUT_DIR = None if IS_CLOUD else r"C:\Users\MKT\OneDrive - PADOVA SAC\PADOVA - MKT - MIRANO INMOBILIARIA - VENTAS\Dashboards"
 ONEDRIVE_FILE_NAME  = "ReporteEvolta.xlsx"
@@ -243,7 +246,7 @@ ONEDRIVE_FILE_NAME  = "ReporteEvolta.xlsx"
 # ── NUEVO Sheet ID (dashboard multi-rol) ──
 GSHEETS_SPREADSHEET_ID = "1JIEEGPxJvCHvmGvVE6Zp9wBPUVXEF-iXy8FNaWr1PPI"
 
-for dir_path in [DOWNLOAD_DIR, DOWNLOAD_DIR_VENTAS, DOWNLOAD_DIR_PROSPECTOS, DOWNLOAD_DIR_VISITAS]:
+for dir_path in [DOWNLOAD_DIR, DOWNLOAD_DIR_VENTAS, DOWNLOAD_DIR_PROSPECTOS, DOWNLOAD_DIR_VISITAS, DOWNLOAD_DIR_INGRESO_DEPOSITO]:
     os.makedirs(dir_path, exist_ok=True)
 
 AÑOS_VENTAS            = [2023, 2024, 2025, 2026]
@@ -703,6 +706,92 @@ def execute_visitas_extraction(driver, wait):
 
 
 # ============================================================
+# EXTRACCIÓN — INGRESO x DEPÓSITO (ADM. VENTAS)
+# ============================================================
+
+def execute_ingreso_deposito_year(driver, wait, año):
+    print(f"\n>> [INGRESO_DEPOSITO {año}] Procesando...")
+    driver.get(URL_REPORTE_INGRESO_DEPOSITO)
+    time.sleep(4)
+    dismiss_popup(driver)
+
+    # Seleccionar "VENTA" en Etapa Comercial
+    try:
+        selects = driver.find_elements(By.TAG_NAME, "select")
+        for sel in selects:
+            try:
+                opts = [o.text.strip().upper() for o in sel.find_elements(By.TAG_NAME, "option")]
+                if "VENTA" in opts:
+                    Select(sel).select_by_visible_text("VENTA")
+                    print("   -> Etapa Comercial: VENTA seleccionado")
+                    time.sleep(0.5)
+                    break
+            except Exception:
+                pass
+    except Exception as e:
+        print(f"   !! Warning al seleccionar Etapa Comercial: {e}")
+
+    # Fechas
+    fecha_inicio = f"01/01/{año}"
+    fecha_fin = f"31/12/{año}" if año < datetime.now().year else datetime.now().strftime("%d/%m/%Y")
+    driver.execute_script(f"""
+        var inputs = document.querySelectorAll('input');
+        var df = [];
+        for(var i=0;i<inputs.length;i++){{
+            var v=inputs[i].value||'';
+            if(v.match(/\\d{{2}}\\/\\d{{2}}\\/\\d{{4}}/)) df.push(inputs[i]);
+        }}
+        if(df.length>=2){{
+            df[0].value='{fecha_inicio}'; df[0].dispatchEvent(new Event('change',{{bubbles:true}}));
+            df[1].value='{fecha_fin}';    df[1].dispatchEvent(new Event('change',{{bubbles:true}}));
+        }}
+    """)
+    time.sleep(1)
+
+    existing = set(glob.glob(os.path.join(DOWNLOAD_DIR, "*.*")))
+
+    for xpath in ["//button[contains(text(),'Exportar')]", "//button[@id='btnExportar']", "//button[@type='submit']"]:
+        try:
+            btn = wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
+            driver.execute_script("arguments[0].click();", btn)
+            print("   -> Click en Exportar")
+            break
+        except Exception:
+            pass
+
+    time.sleep(5)
+    archivo = esperar_descarga_nueva(DOWNLOAD_DIR, existing, timeout=480)
+    if not archivo:
+        print(f"   !! Warning: no se descargó ingreso_deposito {año}")
+        return None
+
+    ext  = os.path.splitext(archivo)[1].lower()
+    os.makedirs(DOWNLOAD_DIR_INGRESO_DEPOSITO, exist_ok=True)
+    dest = os.path.join(DOWNLOAD_DIR_INGRESO_DEPOSITO, f"ReporteIngresoDeposito{año}{ext}")
+    if os.path.exists(dest): os.remove(dest)
+    shutil.move(archivo, dest)
+    print(f"   -> [OK] {os.path.basename(dest)}")
+    return dest
+
+
+def execute_ingreso_deposito_extraction(driver, wait):
+    print("\n" + "="*60)
+    print(">> [INGRESO_DEPOSITO] Iniciando descarga por año")
+    print("="*60)
+    for f in glob.glob(os.path.join(DOWNLOAD_DIR_INGRESO_DEPOSITO, "*.*")):
+        try: os.remove(f)
+        except: pass
+    archivos = {}
+    for año in AÑOS_VENTAS:
+        try:
+            archivos[str(año)] = execute_ingreso_deposito_year(driver, wait, año)
+            time.sleep(2)
+        except Exception as e:
+            print(f"   !! Error ingreso_deposito {año}: {e}")
+    return archivos
+
+
+# ============================================================
 # TRANSFORMACIÓN — VENTAS
 # ============================================================
 
@@ -896,7 +985,7 @@ def subir_tab(spreadsheet, tab_name, df, batch_size=2000):
         print(f"   !! Error subiendo {tab_name}: {e}")
 
 
-def upload_to_gsheets(df_ventas, df_stock, df_prospectos=None, df_visitas=None):
+def upload_to_gsheets(df_ventas, df_stock, df_prospectos=None, df_visitas=None, df_ingreso_deposito=None):
     print("\n>> [GOOGLE SHEETS] Actualizando dashboard multi-rol...")
     try:
         scopes = ["https://www.googleapis.com/auth/spreadsheets",
@@ -905,10 +994,11 @@ def upload_to_gsheets(df_ventas, df_stock, df_prospectos=None, df_visitas=None):
         client = gspread.authorize(creds)
         sp     = client.open_by_key(GSHEETS_SPREADSHEET_ID)
 
-        subir_tab(sp, "VENTAS",      df_ventas)
-        subir_tab(sp, "STOCK",       df_stock)
-        subir_tab(sp, "PROSPECTOS",  df_prospectos)  # NUEVO
-        subir_tab(sp, "VISITAS",     df_visitas)     # NUEVO
+        subir_tab(sp, "VENTAS",             df_ventas)
+        subir_tab(sp, "STOCK",              df_stock)
+        subir_tab(sp, "PROSPECTOS",         df_prospectos)
+        subir_tab(sp, "VISITAS",            df_visitas)
+        subir_tab(sp, "INGRESO_DEPOSITO",   df_ingreso_deposito)
 
         print(f"   -> Dashboard: https://docs.google.com/spreadsheets/d/{GSHEETS_SPREADSHEET_ID}")
         return True
@@ -989,6 +1079,11 @@ def main():
         execute_visitas_extraction(driver, wait)
     except Exception as e:
         print(f"!! ERROR Visitas: {e} — continuando")
+
+    try:
+        execute_ingreso_deposito_extraction(driver, wait)
+    except Exception as e:
+        print(f"!! ERROR Ingreso Depósito: {e} — continuando")
 
     driver.quit()
 
@@ -1078,6 +1173,16 @@ def main():
     except Exception as e:
         print(f"!! VISITAS ERROR: {e}")
 
+    # Cargar ingreso depósito
+    df_ingreso_deposito = None
+    try:
+        df_ingreso_deposito = _leer_por_año(DOWNLOAD_DIR_INGRESO_DEPOSITO, "ReporteIngresoDeposito", AÑOS_VENTAS)
+        if df_ingreso_deposito is not None:
+            print(f"   -> INGRESO_DEPOSITO columnas disponibles: {list(df_ingreso_deposito.columns)}")
+            print(f"   -> INGRESO_DEPOSITO total: {len(df_ingreso_deposito):,} filas, {len(df_ingreso_deposito.columns)} cols")
+    except Exception as e:
+        print(f"!! INGRESO_DEPOSITO ERROR: {e}")
+
     if final_file:
         # Email
         try: dispatch_report(final_file)
@@ -1096,7 +1201,7 @@ def main():
         try:
             df_v_gs = filtrar_cols(df_ventas,   COLS_VENTAS)   if df_ventas   is not None else None
             df_s_gs = filtrar_cols(df_stock_gs, COLS_STOCK)    if df_stock_gs is not None else None
-            upload_to_gsheets(df_v_gs, df_s_gs, df_prospectos, df_visitas)
+            upload_to_gsheets(df_v_gs, df_s_gs, df_prospectos, df_visitas, df_ingreso_deposito)
         except Exception as e:
             print(f"!! GSHEETS ERROR: {e}")
 

@@ -1,4 +1,4 @@
-import os, io, re, requests
+import os, io, re, requests, math
 from datetime import datetime
 from flask import Flask, jsonify, render_template, request
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -17,7 +17,7 @@ TABS = {
     "prospectos":  "1786726820",
     "visitas":     "865520375",
     "meta_ads":    "1427834245",
-    "google_ads":  "457505928",
+    "ingreso_deposito": "457505928",
     "inversion":   "515829502",
     "mkt_fisico":  "961281144",
     "presupuesto": "485749651",
@@ -63,8 +63,9 @@ _cache["updated_at"] = None
 # ══════════════════════════════════════════════════════════════
 
 def csv_url(gid):
+    from time import time
     return (f"https://docs.google.com/spreadsheets/d/{SHEET_ID}"
-            f"/export?format=csv&gid={gid}")
+            f"/export?format=csv&gid={gid}&ts={int(time())}")
 
 
 def leer_tab(tab_key):
@@ -93,10 +94,20 @@ def _float(d, *keys):
         v = str(d.get(k, "")).replace(",", "").strip()
         try:
             f = float(v)
-            if f: return f
+            if f and math.isfinite(f): return f
         except Exception:
             pass
     return 0.0
+
+
+def _parse_num(s):
+    """Parsea valores tipo 'S/. 22,850,449.54', '$ 1,234.56' o '1.60%'."""
+    try:
+        v = str(s).replace(",", "").replace("S/.", "").replace("S/", "").replace("$", "").replace("%", "").strip()
+        f = float(v)
+        return f if math.isfinite(f) else 0.0
+    except Exception:
+        return 0.0
 
 
 def _int(d, *keys):
@@ -225,8 +236,7 @@ def calcular_campanas():
             })
         return out
 
-    detalle = (agg(_cache["meta_ads"],   "Meta Ads")
-             + agg(_cache["google_ads"], "Google Ads"))
+    detalle = agg(_cache["meta_ads"], "Meta Ads")
 
     # Resumen por canal
     resumen = {}
@@ -270,11 +280,39 @@ def calcular_campanas():
             "meta_separaciones": _int(r,   "meta_separaciones", "Meta_sep",     "Meta Sep"),
         }
 
+    # Presupuesto por proyecto — encabezados reales desde fila 5
+    presup_proyectos = []
+    for r in _cache["presupuesto"]:
+        proyecto = _str(r, "Proyectos Venta", "PROYECTO", "Proyecto", "proyecto")
+        if not proyecto or proyecto in ("nan", "None"):
+            continue
+        # Col J: header cambia cada mes ("PPTO EJECUTADO ACTUAL ABR 26", etc.)
+        ejecutado_key = None
+        for k in r:
+            if "EJECUTADO" in str(k).upper():
+                ejecutado_key = k
+                break
+        asignado  = _parse_num(r.get("PPTO MKT ASIGNADO SIN IGV", ""))
+        ejecutado = _parse_num(r.get(ejecutado_key, "")) if ejecutado_key else 0.0
+        # Litoral y La Molina manejan presupuesto en USD → convertir a soles (×4)
+        proy_up = proyecto.upper()
+        if "LITORAL" in proy_up or "MOLINA" in proy_up or "SUNNY" in proy_up:
+            asignado  *= 4
+            ejecutado *= 4
+        presup_proyectos.append({
+            "proyecto":        proyecto,
+            "asignado":        asignado,
+            "perfil_pct":      _parse_num(r.get("PPTO PERFIL", "")),
+            "ejecutado":       ejecutado,
+            "costo_venta_pct": _parse_num(r.get("Costo de Venta Prom.", "")),
+        })
+
     return {
-        "detalle":     detalle,
-        "resumen":     resumen,
-        "mkt_fisico":  {"detalle": mkt, "resumen": mkt_resumen},
-        "presupuesto": list(presup.values()),
+        "detalle":               detalle,
+        "resumen":               resumen,
+        "mkt_fisico":            {"detalle": mkt, "resumen": mkt_resumen},
+        "presupuesto":           list(presup.values()),
+        "presupuesto_proyectos": presup_proyectos,
     }
 
 
@@ -382,25 +420,37 @@ def calcular_stock_resumen():
 
 TABS_CON_PROYECTO = {"ventas", "stock", "prospectos", "visitas"}
 
+def leer_tab_header(tab_key, header_row):
+    """Lee una pestaña usando una fila específica como encabezado (0-indexed)."""
+    try:
+        url  = csv_url(TABS[tab_key])
+        resp = requests.get(url, timeout=30)
+        resp.raise_for_status()
+        resp.encoding = 'utf-8'
+        df   = pd.read_csv(io.StringIO(resp.text), header=header_row, low_memory=False)
+        df   = df.fillna("").astype(str)
+        records = df.to_dict(orient="records")
+        print(f"   -> {tab_key} (header={header_row+1}): {len(records):,} registros")
+        return records
+    except Exception as e:
+        print(f"   !! Error leyendo {tab_key}: {e}")
+        return []
+
+
 def actualizar_cache():
     global _cache
     ts = datetime.now(LIMA).strftime("%H:%M:%S")
     print(f"\n[{ts}] Actualizando cache desde Google Sheets...")
     for key in TABS:
-        raw = leer_tab(key)
+        if key == "presupuesto":
+            # Encabezados en fila 5 (0-indexed = 4), datos desde fila 6
+            raw = leer_tab_header(key, header_row=4)
+        else:
+            raw = leer_tab(key)
         _cache[key] = _normalizar_proyectos(raw) if key in TABS_CON_PROYECTO else raw
     _cache["ventas"] = [r for r in _cache["ventas"]
                         if str(r.get("EstadoOC", "")).strip() == "Activo"]
-    # Normaliza campo de fecha en visitas → siempre disponible como "FechaRegistro"
-    _FECHA_VISITA_KEYS = ("FechaRegistro", "Fecha_Registro", "Fecha de Registro",
-                          "FechaVisita", "Fecha_Visita", "Fecha", "fecha")
-    for r in _cache["visitas"]:
-        if not r.get("FechaRegistro"):
-            for k in _FECHA_VISITA_KEYS:
-                v = str(r.get(k, "")).strip()
-                if v:
-                    r["FechaRegistro"] = v
-                    break
+    # FechaVisita es el campo canónico confirmado en el Google Sheets de visitas
     _cache["updated_at"] = datetime.now(LIMA).strftime("%d/%m/%Y %H:%M")
     print(f"   -> Cache OK · {_cache['updated_at']}")
 
