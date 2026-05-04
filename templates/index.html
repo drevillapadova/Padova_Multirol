@@ -1373,6 +1373,78 @@ function canalBar(ventas){
 // ══════════════════════════════════════════════════════════════════════════
 // JEFE DE MARKETING
 // ══════════════════════════════════════════════════════════════════════════
+let _funnelChart=null;
+const _funnelVis={leads:true,prosp:true,vis:true,sep:true,vtas:true};
+function toggleFunnelLine(key,btn){
+  _funnelVis[key]=!_funnelVis[key];
+  btn.style.opacity=_funnelVis[key]?'1':'0.35';
+  if(_funnelChart){
+    const idx=['leads','prosp','vis','sep','vtas'].indexOf(key);
+    _funnelChart.data.datasets[idx].hidden=!_funnelVis[key];
+    _funnelChart.update();
+  }
+}
+function renderFunnelEvol(proj){
+  const ctx=document.getElementById('funnel-evo-chart');
+  if(!ctx)return;
+  if(_funnelChart){_funnelChart.destroy();_funnelChart=null;}
+  const months={};
+  const addM=(dateStr,key)=>{
+    const s=String(dateStr||'').trim();
+    if(!s||s==='nan'||s==='None')return;
+    let m='';
+    const pts=s.includes('/')?s.split('/'):null;
+    if(pts&&pts.length===3) m=pts[2].padStart(4,'20')+'-'+pts[1].padStart(2,'0');
+    else try{m=new Date(s).toISOString().slice(0,7);}catch{}
+    if(!m||m.startsWith('NaN'))return;
+    if(!months[m])months[m]={leads:0,prosp:0,vis:0,sep:0,vtas:0};
+    months[m][key]++;
+  };
+  // Leads desde campañas
+  ((D.campanas||{}).detalle||[])
+    .filter(r=>!proj||String(r.proyecto||r.Proyecto||'').toUpperCase()===proj.toUpperCase())
+    .forEach(r=>{
+      const m=String(r.mes||r.fecha||'').slice(0,7);
+      if(!m)return;
+      if(!months[m])months[m]={leads:0,prosp:0,vis:0,sep:0,vtas:0};
+      months[m].leads+=Number(r.leads||r.Leads||0);
+    });
+  // Prospectos, Visitas, Separaciones desde D.prospectos
+  (D.prospectos||[]).filter(r=>!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase())
+    .forEach(r=>{
+      addM(r.FechaRegistro,'prosp');
+      if(String(r.FechaVisita||'').trim())addM(r.FechaVisita,'vis');
+      if(String(r.FechaSeparacion||'').trim())addM(r.FechaSeparacion,'sep');
+      if(String(r.FechaVenta||'').trim())addM(r.FechaVenta,'vtas');
+    });
+  // Ventas desde D.ventas
+  (D.ventas||[]).filter(r=>!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase())
+    .forEach(r=>addM(r.FechaVenta||r.FechaEntrega_Minuta,'vtas'));
+  const lbls=Object.keys(months).sort();
+  const get=k=>lbls.map(m=>months[m][k]||0);
+  const colors={leads:'#3b82f6',prosp:'#8b5cf6',vis:'#f59e0b',sep:'#ec4899',vtas:'#22c55e'};
+  const names={leads:'Leads',prosp:'Prospectos',vis:'Visitas',sep:'Separaciones',vtas:'Ventas'};
+  _funnelChart=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:lbls.map(m=>{const[,mo]=m.split('-');return MN[+mo]+' '+m.slice(0,4);}),
+      datasets:['leads','prosp','vis','sep','vtas'].map(k=>({
+        label:names[k], data:get(k),
+        borderColor:colors[k], backgroundColor:colors[k]+'18',
+        tension:0.3, pointRadius:3, pointHoverRadius:5,
+        hidden:!_funnelVis[k], fill:false
+      }))
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},
+      scales:{
+        x:{grid:{color:'#f3f4f6'},ticks:{font:{size:10},maxRotation:45,maxTicksLimit:18}},
+        y:{grid:{color:'#f3f4f6'},beginAtZero:true,ticks:{font:{size:10}}}
+      }
+    }
+  });
+}
 function jmktSetMetrica(m,btn){
   _jmktMetrica=m;
   document.querySelectorAll('#jmkt-metrica-btns .chip').forEach(b=>b.classList.remove('active'));
@@ -1457,7 +1529,6 @@ function renderJMkt(){
   const cplMix  = leadsN ? totInv/leadsN : 0;
   const CAC     = ventF.length ? totInv/ventF.length : 0;
   const totPres = presup.reduce((a,p)=>a+Number(p.presupuesto||0),0);
-  const totLeads= Object.values(res).reduce((a,r)=>a+Number(r.leads||0),0)||leadsN||1;
   const topN    = leadsN||1;
 
   // Formatos específicos
@@ -1478,7 +1549,8 @@ function renderJMkt(){
   const NIVEL_ORDER=['INMEDIATO','ALTO','MEDIO','BAJO','NULO'];
   const NIVEL_COL={'INMEDIATO':'oklch(0.50 0.20 25)','ALTO':'oklch(0.60 0.18 45)','MEDIO':'oklch(0.65 0.15 65)','BAJO':'oklch(0.70 0.10 230)','NULO':'oklch(0.75 0.05 250)'};
   const nivelMap={};
-  prosp.forEach(r=>{const nv=String(r.NivelInteres||'Sin clasificar').toUpperCase().trim();nivelMap[nv]=(nivelMap[nv]||0)+1;});
+  const _excSub=r=>{const s=String(r.SubEstado||'').toUpperCase().trim();return s!=='DUPLICADO'&&s!=='RECONTACTO';};
+  prosp.filter(_excSub).forEach(r=>{const nv=String(r.NivelInteres||'Sin clasificar').toUpperCase().trim();nivelMap[nv]=(nivelMap[nv]||0)+1;});
   const nivelEntries=[...NIVEL_ORDER.filter(k=>nivelMap[k]),...Object.keys(nivelMap).filter(k=>!NIVEL_ORDER.includes(k)&&nivelMap[k])].map(k=>({n:k,count:nivelMap[k]||0,color:NIVEL_COL[k]||'oklch(0.75 0.05 250)'}));
   const totNivel=nivelEntries.reduce((a,c)=>a+c.count,0)||1;
   const califRows=nivelEntries.map(c=>`
@@ -1508,7 +1580,7 @@ function renderJMkt(){
   // Leads por canal — desde ComoSeEntero en prospectos (solo LeadUnico=SI)
   const CC=['oklch(0.55 0.15 250)','oklch(0.65 0.14 150)','oklch(0.72 0.15 65)','oklch(0.60 0.18 25)','oklch(0.55 0.15 290)','oklch(0.70 0.10 230)','oklch(0.55 0.10 180)','oklch(0.75 0.05 250)'];
   const canalMap={};
-  prosp.filter(r=>String(r.LeadUnicoxMesProyecto||'').toUpperCase()==='SI').forEach(r=>{
+  prosp.forEach(r=>{
     const c=String(r.ComoSeEntero||'Sin especificar').trim()||'Sin especificar';
     canalMap[c]=(canalMap[c]||0)+1;
   });
@@ -1540,13 +1612,13 @@ function renderJMkt(){
   document.getElementById('jmkt-content').innerHTML = `
   <div class="kpi-row kpi-4">
     ${kpi('Leads generados',`${fN(leadsN)} <span class="unit">leads</span>`,'todos los canales')}
-    ${kpi('Inversón marketing',fInv(totInv),totPres?`Presupuestado: ${fInv(totPres)}`:'—')}
+    ${kpi('Inversón marketing',fInv(totInv),'Presupuestado')}
     ${kpi('CPL Mix',fCPL(cplMix),'costo por lead · todos los canales')}
     ${kpi('Costo adquisición (CAC)',fCAC(CAC),'inversión por venta efectiva')}
   </div>
   <div class="section-title"><h2>Funnel mensual</h2><div class="hint">Conversión por etapa · % meta por cada paso</div></div>
   <div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>Embudo de conversión</h3><p>Avance de cada etapa vs. meta del mes · La línea negra marca la meta</p></div></div>
+    <div class="card-hd"><div><h3>Embudo de conversión</h3></div></div>
     <div class="funnel">
       ${fmStep('Leads',leadsN,'—')}
       ${fmStep('Prospectos',prospN,leadsN?Math.round(prospN/leadsN*100)+'% conv.':'—')}
@@ -1587,19 +1659,21 @@ function renderJMkt(){
       <div class="list-ft"><span style="font-family:inherit;font-weight:600">Total leads mes</span><span>${fN(totLeads)}</span></div>
     </div>
   </div>
-  <div class="section-title" style="margin-top:26px"><h2>Evolución de leads</h2><div class="hint">Tendencia mensual por canal de captación</div></div>
+  <div class="section-title" style="margin-top:26px"><h2>Evolución de leads</h2><div class="hint">Tendencia mensual · clic en las métricas para mostrar/ocultar</div></div>
   <div class="card" style="margin-bottom:8px">
     <div class="card-hd">
-      <div><h3>Leads por canal · evolución mensual</h3><p>Comparativa de captación por canal en el tiempo</p></div>
-      <div id="jmkt-metrica-btns" style="display:flex;gap:4px">
-        <button class="chip${_jmktMetrica==='leads'?' active':''}" onclick="jmktSetMetrica('leads',this)">Leads</button>
-        <button class="chip${_jmktMetrica==='inversion'?' active':''}" onclick="jmktSetMetrica('inversion',this)">Inversión</button>
-        <button class="chip${_jmktMetrica==='cpl'?' active':''}" onclick="jmktSetMetrica('cpl',this)">CPL</button>
-      </div>
+      <div><h3>${proj?(PLBL[proj]||proj):'Todos los proyectos'} — Evolución</h3><p>Leads, Prospectos, Visitas, Separaciones y Ventas por mes</p></div>
     </div>
-    <div style="height:260px;padding:12px 16px 16px"><canvas id="jmkt-evo-chart"></canvas></div>
+    <div style="display:flex;gap:8px;padding:0 16px 12px;flex-wrap:wrap">
+      <button class="chip active" style="border-color:#3b82f6;color:#3b82f6" onclick="toggleFunnelLine('leads',this)">● Leads</button>
+      <button class="chip active" style="border-color:#8b5cf6;color:#8b5cf6" onclick="toggleFunnelLine('prosp',this)">● Prospectos</button>
+      <button class="chip active" style="border-color:#f59e0b;color:#f59e0b" onclick="toggleFunnelLine('vis',this)">● Visitas</button>
+      <button class="chip active" style="border-color:#ec4899;color:#ec4899" onclick="toggleFunnelLine('sep',this)">● Separaciones</button>
+      <button class="chip active" style="border-color:#22c55e;color:#22c55e" onclick="toggleFunnelLine('vtas',this)">● Ventas</button>
+    </div>
+    <div style="height:300px;padding:0 16px 16px"><canvas id="funnel-evo-chart"></canvas></div>
   </div>`;
-  renderEvolucion(proj,_jmktMetrica);
+  renderFunnelEvol(proj);
 }
 
 // ══════════════════════════════════════════════════════════════════════════
