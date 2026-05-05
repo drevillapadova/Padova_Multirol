@@ -576,7 +576,8 @@ def api_refresh():
 # ARRANQUE
 # ══════════════════════════════════════════════════════════════
 
-actualizar_cache()
+import threading
+threading.Thread(target=actualizar_cache, daemon=True).start()
 
 scheduler = BackgroundScheduler(timezone=LIMA)
 scheduler.add_job(actualizar_cache, "interval", hours=1)
