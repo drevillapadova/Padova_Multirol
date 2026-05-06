@@ -39,15 +39,18 @@ def _normalizar_proyectos(registros):
     result = []
     for r in registros:
         proj = str(r.get("Proyecto", "")).upper().strip()
-        if proj == "LOMAS DE CARABAYLLO":
-            m = re.search(r'\d+', str(r.get("Etapa", "")))
+        if "LOMAS DE CARABAYLLO" in proj:
+            # Buscar número 4 o 5 en el nombre del proyecto o en Etapa
+            m = re.search(r'\b(4|5)\b', proj) or re.search(r'\d+', str(r.get("Etapa", "")))
             num = m.group() if m else ""
             if num in ("4", "5"):
                 r = dict(r)
                 r["Proyecto"] = f"LOMAS DE CARABAYLLO {num}"
                 result.append(r)
-            elif num == "":
-                # Sin etapa (ej. prospectos/visitas): conservar como LOMAS genérico
+            else:
+                # Sin etapa identificable (prospectos/visitas): conservar genérico
+                r = dict(r)
+                r["Proyecto"] = "LOMAS DE CARABAYLLO"
                 result.append(r)
         elif proj in _ALLOWED_PROJECTS:
             result.append(r)

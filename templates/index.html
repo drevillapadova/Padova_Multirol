@@ -685,6 +685,15 @@ const ASESOR_MAP=[
   {pat:'nancy',    proj:'Lomas de Carabayllo'},
 ];
 const normKey=nm=>nm.toLowerCase().replace(/\s+/g,' ').trim();
+// Comparación de proyecto: Lomas genérico coincide con Lomas 4 y Lomas 5
+function matchProj(rProj, filterProj){
+  if(!filterProj) return true;
+  const rp=String(rProj||'').toUpperCase().trim();
+  const fp=filterProj.toUpperCase().trim();
+  if(rp===fp) return true;
+  if(rp==='LOMAS DE CARABAYLLO' && fp.startsWith('LOMAS DE CARABAYLLO')) return true;
+  return false;
+}
 const toTitle=s=>s.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());
 const toShort=s=>toTitle(s).split(' ').slice(0,2).join(' ');
 
@@ -1451,7 +1460,7 @@ function renderFunnelEvol(proj, año){
     if(!months[m])months[m]={leads:0,prosp:0,vis:0,sep:0,vtas:0};
     months[m][key]++;
   };
-  const byProj=r=>!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase();
+  const byProj=r=>matchProj(r.Proyecto, proj);
   // Leads: prospectos LeadUnico=SI
   (D.prospectos||[]).filter(byProj).filter(r=>String(r.LeadUnicoxMesProyecto||'').toUpperCase()==='SI')
     .forEach(r=>addM(r.FechaRegistro,'leads'));
@@ -1545,20 +1554,20 @@ function renderJMkt(){
 
   // ── Funnel — misma lógica que Jefe de Ventas (todos los canales) ─────────
   let prosp = D.prospectos||[];
-  if(proj) prosp = prosp.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
+  if(proj) prosp = prosp.filter(r=>matchProj(r.Proyecto, proj));
   if(año)  prosp = prosp.filter(r=>{const f=String(r.FechaRegistro||'');return f.startsWith(año)||f.slice(6,10)===año;});
   if(mes)  prosp = prosp.filter(r=>{const f=String(r.FechaRegistro||'');return f.slice(5,7)===mes||f.slice(3,5)===mes;});
   const leadsN = prosp.filter(r=>String(r.LeadUnicoxMesProyecto||'').toUpperCase()==='SI').length;
   const prospN = prosp.filter(r=>String(r.NivelInteres||'').toUpperCase()==='ALTO').length;
 
   let visF = D.visitas||[];
-  if(proj) visF=visF.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
+  if(proj) visF=visF.filter(r=>matchProj(r.Proyecto, proj));
   if(año)  visF=visF.filter(r=>{const f=String(r.FechaVisita||'');return f.startsWith(año)||f.slice(6,10)===año;});
   if(mes)  visF=visF.filter(r=>{const f=String(r.FechaVisita||'');return f.slice(5,7)===mes||f.slice(3,5)===mes;});
   const visitN = visF.length;
 
   let sepF = (D.stock||[]).filter(r=>String(r.FechaSepDefinitiva||'').trim()&&String(r.FechaSepDefinitiva||'')!=='nan');
-  if(proj) sepF=sepF.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
+  if(proj) sepF=sepF.filter(r=>matchProj(r.Proyecto, proj));
   if(año)  sepF=sepF.filter(r=>{const f=String(r.FechaSepDefinitiva||'');return f.startsWith(año)||f.slice(6,10)===año;});
   if(mes)  sepF=sepF.filter(r=>{const f=String(r.FechaSepDefinitiva||'');return f.slice(5,7)===mes||f.slice(3,5)===mes;});
   const sepN = sepF.length;
@@ -1671,6 +1680,33 @@ function renderJMkt(){
       +'</tr></thead><tbody>'+tbodyHtml+'</tbody></table>';
   }
 
+  // SubEstado rows
+  const subMap={};
+  prosp.forEach(r=>{
+    const s=String(r.SubEstado||'').trim();
+    if(s&&s!=='nan'&&s!=='None') subMap[s]=(subMap[s]||0)+1;
+  });
+  const totSub=Object.values(subMap).reduce((a,b)=>a+b,0)||1;
+  const subRows=Object.entries(subMap).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([s,n],i)=>`
+    <div class="chan-row">
+      <div class="chan-n">${s}</div>
+      <div class="chan-tr"><i style="width:${Math.round(n/Object.values(subMap)[0]*100)}%;background:${CC[i%CC.length]}"></i></div>
+      <div class="v">${fN(n)}</div>
+      <div class="p">${pct(n,totSub)}</div>
+    </div>`).join('')||'<div style="padding:16px 18px;color:var(--ink-4);font-size:12px">Sin datos de sub-estado</div>';
+
+  // Presupuesto por canal (desde invData ya filtrada)
+  const canalInvMap={};
+  invData.forEach(r=>{const c=String(r.canal||'Sin canal').trim();canalInvMap[c]=(canalInvMap[c]||0)+Number(r.monto||0);});
+  const totCanalInv=Object.values(canalInvMap).reduce((a,b)=>a+b,0)||1;
+  const canalInvRows=Object.entries(canalInvMap).sort((a,b)=>b[1]-a[1]).map(([c,m],i)=>`
+    <div class="chan-row">
+      <div class="chan-n">${c}</div>
+      <div class="chan-tr"><i style="width:${Math.round(m/Object.values(canalInvMap)[0]*100)}%;background:${CC[i%CC.length]}"></i></div>
+      <div class="v">${fInv(m)}</div>
+      <div class="p">${pct(m,totCanalInv)}</div>
+    </div>`).join('')||'<div style="padding:16px 18px;color:var(--ink-4);font-size:12px">Sin datos de inversión</div>';
+
   document.getElementById('jmkt-content').innerHTML = `
   <div class="kpi-row kpi-4">
     ${kpi('Leads generados',`${fN(leadsN)} <span class="unit">leads</span>`,'todos los canales')}
@@ -1702,16 +1738,29 @@ function renderJMkt(){
       ${desistTotal?`<div class="list-ft"><span style="font-family:inherit;font-weight:600">Total cerrados sin venta</span><span>${fN(desistTotal)}</span></div>`:''}
     </div>
   </div>
-  <div class="section-title" style="margin-top:26px"><h2>Inversión y canales</h2><div class="hint">Presupuesto ejecutado y volumen de leads por origen</div></div>
-  <div class="grid-2">
+  <div class="section-title" style="margin-top:26px"><h2>Canales y sub-estados</h2><div class="hint">Distribución de leads por origen y estado actual</div></div>
+  <div class="grid-2" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-hd"><div><h3>Sub-estado de leads</h3><p>${fN(totSub)} prospectos · estado actual</p></div></div>
+      <div style="padding:10px 0 4px;max-height:280px;overflow-y:auto">${subRows}</div>
+      <div class="list-ft"><span style="font-family:inherit;font-weight:600">Total prospectos</span><span>${fN(totSub)}</span></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div><h3>Leads por canal</h3><p>${fN(totLeads)} leads · distribución por origen de captación</p></div></div>
+      <div style="padding:10px 0 4px;max-height:280px;overflow-y:auto">${chanRows}</div>
+      <div class="list-ft"><span style="font-family:inherit;font-weight:600">Total leads</span><span>${fN(totLeads)}</span></div>
+    </div>
+  </div>
+  <div class="section-title" style="margin-top:26px"><h2>Inversión y presupuesto</h2><div class="hint">Ejecución de presupuesto por proyecto y canal</div></div>
+  <div class="grid-2" style="margin-bottom:16px">
     <div class="card">
       <div class="card-hd"><div><h3>Presupuesto de marketing</h3><p>Costo de venta vs. perfil máximo · semáforo por proyecto</p></div></div>
       <div style="padding:0 0 4px">${budRows}</div>
     </div>
     <div class="card">
-      <div class="card-hd"><div><h3>Leads por canal</h3><p>${fN(totLeads)} leads · distribución por origen de captación</p></div></div>
-      <div style="padding:10px 0 4px;max-height:280px;overflow-y:auto">${chanRows}</div>
-      <div class="list-ft"><span style="font-family:inherit;font-weight:600">Total leads mes</span><span>${fN(totLeads)}</span></div>
+      <div class="card-hd"><div><h3>Presupuesto por canal</h3><p>${fInv(totInv)} invertido · desglose por canal</p></div></div>
+      <div style="padding:10px 0 4px;max-height:280px;overflow-y:auto">${canalInvRows}</div>
+      <div class="list-ft"><span style="font-family:inherit;font-weight:600">Total inversión</span><span>${fInv(totInv)}</span></div>
     </div>
   </div>
   <div class="section-title" style="margin-top:26px"><h2>Evolución de leads</h2><div class="hint">Tendencia mensual · clic en las métricas para mostrar/ocultar</div></div>
