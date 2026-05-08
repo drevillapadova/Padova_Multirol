@@ -583,6 +583,9 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
       <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
         <select id="adm-proj" onchange="renderAdmVentas()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO 4</option><option>LOMAS DE CARABAYLLO 5</option><option>DOMINGO ORUE</option></select>
       </label>
+      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◈</span>
+        <select id="adm-tipo" onchange="renderAdmVentas()"><option value="">Tipo: Todos</option><option value="departamento">Departamento</option><option value="azotea">Azotea</option><option value="estacionamiento">Estacionamiento</option><option value="deposito">Depósito</option></select>
+      </label>
       <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
     </div>
   </div>
@@ -617,7 +620,7 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 
 <script>
 const API = '';
-let D = {funnel:{}, ventas:[], stock:[], campanas:{}, desist:[], prospectos:[], visitas:[], inversion:[], updatedAt:'—'};
+let D = {funnel:{}, ventas:[], stock:[], campanas:{}, desist:[], prospectos:[], visitas:[], inversion:[], ingresoDeposito:[], updatedAt:'—'};
 let jmktChart = null;
 let _jmktMetrica = 'leads';
 
@@ -642,19 +645,19 @@ function calcBizMinutes(startStr, endStr, isSunny) {
   }
   const d1=parseD(startStr), d2=parseD(endStr);
   if(!d1||!d2||d2<=d1)return null;
-  const OPEN=9*60, CLOSE=18*60;
+  const OPEN=10*60, CLOSE=19*60+30;
 
   function isWorkDay(d){ const w=d.getDay(); return (w>=1&&w<=6)||(isSunny&&w===0); }
 
   // Ajusta inicio al próximo momento hábil: si entró fuera de horario, el reloj
-  // empieza en la apertura (9am) del siguiente día hábil
+  // empieza en la apertura (10am) del siguiente día hábil
   function nextBizOpen(d){
     const c=new Date(d);
     const min=c.getHours()*60+c.getMinutes();
-    if(isWorkDay(c)&&min>=OPEN&&min<CLOSE) return c;       // ya está en horario
-    if(isWorkDay(c)&&min<OPEN){ c.setHours(9,0,0,0); return c; } // mismo día, espera apertura
-    // después del cierre o día no hábil → próximo día hábil a las 9am
-    c.setDate(c.getDate()+1); c.setHours(9,0,0,0);
+    if(isWorkDay(c)&&min>=OPEN&&min<CLOSE) return c;        // ya está en horario
+    if(isWorkDay(c)&&min<OPEN){ c.setHours(10,0,0,0); return c; } // mismo día, espera apertura
+    // después del cierre o día no hábil → próximo día hábil a las 10am
+    c.setDate(c.getDate()+1); c.setHours(10,0,0,0);
     while(!isWorkDay(c)) c.setDate(c.getDate()+1);
     return c;
   }
@@ -679,11 +682,16 @@ function calcBizMinutes(startStr, endStr, isSunny) {
 const ASESOR_MAP=[
   {pat:'stephany', proj:'Helio - Santa Beatriz'},
   {pat:'stefany',  proj:'Helio - Santa Beatriz'},
+  {pat:'stefany',  proj:'Sunny'},
   {pat:'anthony',  proj:'Helio - Santa Beatriz'},
+  {pat:'anthony',  proj:'Domingo Orue'},
   {pat:'roy',      proj:'Litoral 900'},
   {pat:'adriana',  proj:'Sunny'},
   {pat:'nancy',    proj:'Lomas de Carabayllo'},
+  {pat:'usher',    proj:'Sunny'},
 ];
+// Pats con más de un proyecto (para key compuesta en tablas)
+const _multiProjPats=new Set(ASESOR_MAP.map(a=>a.pat).filter((p,i,arr)=>arr.indexOf(p)!==i));
 const normKey=nm=>nm.toLowerCase().replace(/\s+/g,' ').trim();
 // Comparación de proyecto: Lomas genérico coincide con Lomas 4 y Lomas 5
 function matchProj(rProj, filterProj){
@@ -855,7 +863,7 @@ async function loadAll(){
   document.querySelectorAll('.page-sub').forEach(el=>el.textContent='Actualizando...');
   try{
     await fetch(API+'/api/refresh',{method:'POST'}).catch(()=>{});
-    const [fR,vR,cR,pR,dR,viR,invR] = await Promise.all([
+    const [fR,vR,cR,pR,dR,viR,invR,idR] = await Promise.all([
       fetch(API+'/api/funnel').then(r=>r.json()),
       fetch(API+'/api/ventas').then(r=>r.json()),
       fetch(API+'/api/campanas').then(r=>r.json()),
@@ -863,15 +871,17 @@ async function loadAll(){
       fetch(API+'/api/desistimientos').then(r=>r.json()),
       fetch(API+'/api/visitas').then(r=>r.json()),
       fetch(API+'/api/inversion').then(r=>r.json()),
+      fetch(API+'/api/ingreso_deposito').then(r=>r.json()),
     ]);
-    D.funnel     = fR.data||{};
-    D.ventas     = vR.ventas||[];
-    D.stock      = [...(vR.ventas||[]),...(vR.separaciones||[])];
-    D.campanas   = cR.data||{};
-    D.prospectos = pR.data||[];
-    D.desist     = dR.data?.registros||[];
-    D.visitas    = viR.data||[];
-    D.inversion  = invR.data||[];
+    D.funnel          = fR.data||{};
+    D.ventas          = vR.ventas||[];
+    D.stock           = [...(vR.ventas||[]),...(vR.separaciones||[])];
+    D.campanas        = cR.data||{};
+    D.prospectos      = pR.data||[];
+    D.desist          = dR.data?.registros||[];
+    D.visitas         = viR.data||[];
+    D.inversion       = invR.data||[];
+    D.ingresoDeposito = idR.data||[];
     D.updatedAt  = fR.updated_at||vR.updated_at||'—';
     // también stock completo
     fetch(API+'/api/stock').then(r=>r.json()).then(s=>{D.stock=s.data||[];renderAll();}).catch(()=>renderAll());
@@ -1127,7 +1137,15 @@ function renderJVentas(){
     ventMap[nm].seps++;
   });
 
-  const getAsesorEntry=nm=>ASESOR_MAP.find(a=>nm.toLowerCase().includes(a.pat));
+  const getAsesorEntry=(nm,rProj='')=>{
+    const matches=ASESOR_MAP.filter(a=>nm.toLowerCase().includes(a.pat));
+    if(!matches.length)return null;
+    if(matches.length===1)return matches[0];
+    // Multi-proyecto: devuelve la entrada cuyo proj coincide con rProj
+    const rp=normStr(String(rProj||''));
+    return matches.find(e=>rp.includes(normStr(e.proj).split(' ')[0]))||matches[0];
+  };
+  const asesorKey=(nm,entry)=>normKey(nm)+(_multiProjPats.has(entry.pat)?'|'+normStr(entry.proj):'');
 
   // ── TABLA 1: Conversiones por asesor — cada número desde su propio reporte ──
   // Solo cuenta registros del proyecto asignado al asesor
@@ -1141,10 +1159,10 @@ function renderJVentas(){
 
   const convMap={};
   const addEntry=(nm,rProj)=>{
-    const entry=getAsesorEntry(nm);
+    const entry=getAsesorEntry(nm,rProj);
     if(!entry)return null;
     if(!entryMatchesProj(entry,rProj))return null;
-    const k=normKey(nm);
+    const k=asesorKey(nm,entry);
     if(!convMap[k])convMap[k]={name:toShort(nm),proj:entry.proj,leads:0,prosp:0,vis:0,seps:0,ventas:0};
     return k;
   };
@@ -1184,9 +1202,27 @@ function renderJVentas(){
     if(k)convMap[k].ventas++;
   });
 
-  // Metas personales
-  const getMetaV=nm=>{const n=nm.toLowerCase();if(n.includes('anthony')||n.includes('antony'))return 6;if(n.includes('stefany')||n.includes('stephany'))return 3;if(n.includes('adriana'))return 4;if(n.includes('roy'))return 2;if(n.includes('nancy'))return 10;return null;};
-  const getMetaS=nm=>{const n=nm.toLowerCase();if(n.includes('anthony')||n.includes('antony'))return 7;if(n.includes('stefany')||n.includes('stephany'))return 4;if(n.includes('adriana'))return 5;if(n.includes('roy'))return 3;if(n.includes('nancy'))return 15;return null;};
+  // Metas personales Mayo 2026
+  const getMetaV=(nm,proj='')=>{
+    const n=nm.toLowerCase(), p=proj.toLowerCase();
+    if(n.includes('anthony')||n.includes('antony'))return 7;
+    if(n.includes('stephany'))return 2;
+    if(n.includes('stefany'))return p.includes('sunny')?1:2;
+    if(n.includes('adriana'))return 4;
+    if(n.includes('roy'))return 3;
+    if(n.includes('nancy'))return 10;
+    return null;
+  };
+  const getMetaS=(nm,proj='')=>{
+    const n=nm.toLowerCase(), p=proj.toLowerCase();
+    if(n.includes('anthony')||n.includes('antony'))return 10;
+    if(n.includes('stephany'))return 3;
+    if(n.includes('stefany'))return p.includes('sunny')?2:3;
+    if(n.includes('adriana'))return 5;
+    if(n.includes('roy'))return 4;
+    if(n.includes('nancy'))return 15;
+    return null;
+  };
 
   // Celdas
   const leadsCell=n=>`<td style="text-align:center;padding:10px 6px;width:11%;font-family:var(--mono);font-size:15px;font-weight:700;color:var(--ink)">${n}</td>`;
@@ -1226,8 +1262,8 @@ function renderJVentas(){
   const convRows=convEntries.map(([,d])=>{
     const lp=d.leads?d.prosp/d.leads:0;       // Lead→Prosp, meta 50%
     const pv=d.prosp?d.vis/d.prosp:0;          // Prosp→Visita, meta 30%
-    const metaV=getMetaV(d.name);
-    const metaS=getMetaS(d.name);
+    const metaV=getMetaV(d.name,d.proj);
+    const metaS=getMetaS(d.name,d.proj);
     const efV =metaV?Math.min(d.ventas/metaV,1):0;   // 30%
     const efS =metaS?Math.min(d.seps/metaS,1):0;     // 30%
     const efPV=d.prosp?Math.min(pv/0.30,1):0;         // 20%
@@ -1267,66 +1303,98 @@ function renderJVentas(){
   </tr></tfoot>`;
 
   // ── TABLA 2: Tiempo de respuesta — solo asesores asignados ──
+  const _median=arr=>{if(!arr.length)return null;const s=[...arr].sort((a,b)=>a-b);const m=Math.floor(s.length/2);return s.length%2?s[m]:Math.round((s[m-1]+s[m])/2);};
+  const _mean=arr=>{if(!arr.length)return null;return Math.round(arr.reduce((a,b)=>a+b,0)/arr.length);};
+  const _fmt=v=>v===null?'—':v<60?v+' min':`${Math.floor(v/60)}h ${String(v%60).padStart(2,'0')}m`;
   const _excSubEst=r=>{const s=String(r.SubEstado||'').toUpperCase().trim();return s!=='DUPLICADO'&&s!=='RECONTACTO';};
-  const tMesMap={};
-  prosp.filter(r=>getAsesorEntry(String(r.Responsable||'').trim())&&_excSubEst(r)).forEach(r=>{
-    const nm=String(r.Responsable||'').trim();
-    const entry=getAsesorEntry(nm);
-    const k=normKey(nm);
-    let mes='';
-    const fd=String(r.FechaRegistro||r.Fecha_PrimeraAccion||'');
-    if(fd){
-      const parts=fd.includes('/')?fd.split('/'):null;
-      if(parts&&parts.length===3)mes=parts[2].padStart(4,'20')+'-'+parts[1].padStart(2,'0');
-      else try{mes=new Date(fd).toISOString().slice(0,7);}catch{}
+  // Tiempo de respuesta: proyecto+asesor siempre; si hay filtro de mes → ese mes + anterior
+  let _tRespMeses=null;
+  if(_mes){
+    const _tm=parseInt(_mes), _ty=parseInt(_año||new Date().getFullYear());
+    const _pm=_tm===1?{m:'12',y:_ty-1}:{m:String(_tm-1).padStart(2,'0'),y:_ty};
+    _tRespMeses=[`${_ty}-${_mes}`,`${_pm.y}-${_pm.m}`];
+  }
+  const prospTResp=(D.prospectos||[]).filter(r=>{
+    if(proj&&!matchProj(r.Proyecto,proj))return false;
+    if(_tRespMeses){
+      const _fd=String(r.Fecha_Registro_Sistema||r.FechaRegistro||'');
+      const _iso=_fd.match(/^(\d{4})-(\d{2})/);
+      if(_iso&&!_tRespMeses.includes(`${_iso[1]}-${_iso[2]}`))return false;
     }
-    const isSunny=normStr(r.Proyecto||'').includes('sunny');
-    const t=calcBizMinutes(r.FechaRegistro||'', r.Fecha_PrimeraAccion||'', isSunny);
+    return true;
+  });
+  const tMesMap={};
+  prospTResp.filter(r=>getAsesorEntry(String(r.Responsable||'').trim(),r.Proyecto)&&_excSubEst(r)).forEach(r=>{
+    const nm=String(r.Responsable||'').trim();
+    if(vend&&nm!==vend)return;
+    const entry=getAsesorEntry(nm,r.Proyecto);
+    const k=asesorKey(nm,entry);
+    let mes='';
+    const fd=String(r.Fecha_Registro_Sistema||r.FechaRegistro||r.FechaProspecto||r.Fecha_PrimeraAccion||'');
+    if(fd){
+      if(fd.includes('/')){
+        const parts=fd.split('/');
+        if(parts.length>=3)mes=parts[2].slice(0,4)+'-'+parts[1].padStart(2,'0');
+      } else {
+        const iso=fd.match(/^(\d{4})-(\d{2})/);
+        if(iso)mes=iso[1]+'-'+iso[2];
+      }
+    }
+    const _tmr=r.TiempoRespuesta_min;
+    let t=null;
+    if(_tmr!==undefined&&_tmr!==null&&_tmr!==''&&_tmr!=='nan'&&_tmr!=='None'){
+      const tv=Math.round(parseFloat(String(_tmr).replace(',',''))||0);
+      if(tv>0)t=tv;
+    }
+    if(t===null){
+      const isSunny=normStr(r.Proyecto||'').includes('sunny');
+      t=calcBizMinutes(r.FechaRegistro||'', r.Fecha_PrimeraAccion||'', isSunny);
+    }
     if(!tMesMap[k])tMesMap[k]={asesor:toShort(nm),proj:entry.proj,meses:{}};
     if(mes&&t!==null&&t>0){
       if(!tMesMap[k].meses[mes])tMesMap[k].meses[mes]=[];
       tMesMap[k].meses[mes].push(t);
     }
   });
-  const meses=[...new Set(Object.values(tMesMap).flatMap(d=>Object.keys(d.meses)))].sort().slice(-4);
-  const mesHeaders=meses.map(m=>{const[,mo]=m.split('-');return`<th style="text-align:center;width:11%">${MN[+mo]}</th>`;}).join('');
+  const meses=[...new Set(Object.values(tMesMap).flatMap(d=>Object.keys(d.meses)))].sort().slice(_mes?-2:-4);
+  const mesHeadersTop=meses.map(m=>{const[,mo]=m.split('-');return`<th colspan="3" style="text-align:center;border-bottom:1px solid var(--line)">${MN[+mo]}</th>`;}).join('');
+  const mesHeadersSub=meses.map(()=>`<th style="text-align:center;font-size:11px;color:var(--ink-3);padding:4px 2px">Med</th><th style="text-align:center;font-size:11px;color:var(--ink-3);padding:4px 2px">Prom</th><th style="text-align:center;font-size:11px;color:var(--ink-3);padding:4px 2px">N</th>`).join('');
+  const _tcl=v=>v===null?'var(--ink-4)':v<=30?'var(--ok)':v<=60?'var(--warn)':'var(--bad)';
 
-  const tRespRows2=Object.entries(tMesMap).sort((a,b)=>a[1].asesor.localeCompare(b[1].asesor,'es')).map(([,d])=>{
+  const _totalMesData={};
+  let _totalAllT=[];
+  const tRespRows2=Object.entries(tMesMap).sort((a,b)=>a[1].asesor.localeCompare(b[1].asesor,'es')||a[1].proj.localeCompare(b[1].proj,'es')).map(([,d])=>{
     const allT=Object.values(d.meses).flat();
-    const avg=allT.length?Math.round(allT.reduce((a,b)=>a+b,0)/allT.length):null;
-    const tStr=avg===null?'—':avg<60?avg+' min':`${Math.floor(avg/60)}h ${avg%60}m`;
-    const diag=avg===null?'Sin dato':avg<=15?'Excelente':avg<=30?'Óptimo':avg<=60?'Aceptable':'Mejorar';
-    const dCl=avg===null?'n':avg<=15?'g':avg<=30?'g':avg<=60?'w':'b';
-    const tCl=avg===null?'':avg<=30?'good':avg<=60?'warnn':'bad';
+    _totalAllT=[..._totalAllT,...allT];
+    const med=_median(allT), prom=_mean(allT);
     const mesCells=meses.map(mes=>{
       const arr=d.meses[mes]||[];
-      const m2=arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):null;
-      const s=m2===null?'—':m2<60?m2+' min':`${Math.floor(m2/60)}h ${m2%60}m`;
-      const cl2=m2===null?'var(--ink-4)':m2<=30?'var(--ok)':m2<=60?'var(--warn)':'var(--bad)';
-      return`<td style="text-align:center;width:11%;font-family:var(--mono);font-size:13px;font-weight:600;color:${cl2}">${s}</td>`;
+      (_totalMesData[mes]||(_totalMesData[mes]=[])).push(...arr);
+      const m2=_median(arr), p2=_mean(arr), n2=arr.length;
+      return`<td style="text-align:center;font-family:var(--mono);font-size:12px;font-weight:600;color:${_tcl(m2)}">${_fmt(m2)}</td><td style="text-align:center;font-family:var(--mono);font-size:12px;color:${_tcl(p2)}">${_fmt(p2)}</td><td style="text-align:center;font-family:var(--mono);font-size:11px;color:var(--ink-4)">${n2||'—'}</td>`;
     }).join('');
     return`<tr>
       <td style="padding:10px 14px">
         <div style="display:flex;align-items:center;gap:9px">
           <div class="avv">${d.asesor[0].toUpperCase()}</div>
-          <div>
-            <div style="font-weight:600;font-size:13px;color:var(--ink)">${d.asesor}</div>
-            <div style="font-size:11px;color:var(--ink-3);margin-top:1px">${d.proj}</div>
-          </div>
+          <div style="font-weight:600;font-size:13px;color:var(--ink)">${d.asesor}</div>
         </div>
       </td>
+      <td style="font-size:12px;color:var(--ink-3);padding:10px 14px">${d.proj}</td>
       ${mesCells}
-      <td style="text-align:center;width:11%;font-family:var(--mono);font-size:13px;font-weight:700" class="${tCl}">${tStr}</td>
-      <td style="text-align:center;width:11%"><span class="pill ${dCl}">${diag}</span></td>
+      <td style="text-align:center;font-family:var(--mono);font-size:13px;font-weight:700;color:${_tcl(med)}">${_fmt(med)}</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:13px;color:${_tcl(prom)}">${_fmt(prom)}</td>
     </tr>`;
   }).join('');
+  const _totMesCells=meses.map(mes=>{const arr=_totalMesData[mes]||[];const m2=_median(arr),p2=_mean(arr),n2=arr.length;return`<td style="text-align:center;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--ink)">${_fmt(m2)}</td><td style="text-align:center;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--ink)">${_fmt(p2)}</td><td style="text-align:center;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--ink-3)">${n2||'—'}</td>`;}).join('');
+  const tRespTotal=`<tr style="border-top:2px solid var(--line);background:var(--surface)"><td style="padding:10px 14px;font-weight:700;font-size:13px;color:var(--ink)" colspan="2">Total general</td>${_totMesCells}<td style="text-align:center;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink)">${_fmt(_median(_totalAllT))}</td><td style="text-align:center;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink)">${_fmt(_mean(_totalAllT))}</td></tr>`;
 
   // ── TABLA 3: Toques por lead — solo asesores asignados ──
   const tqMap={};
-  prosp.filter(r=>getAsesorEntry(String(r.Responsable||'').trim())&&_excSubEst(r)).forEach(r=>{
+  prosp.filter(r=>getAsesorEntry(String(r.Responsable||'').trim(),r.Proyecto)&&_excSubEst(r)).forEach(r=>{
     const nm=String(r.Responsable||'').trim();
-    const entry=getAsesorEntry(nm);
-    const k=normKey(nm);
+    const entry=getAsesorEntry(nm,r.Proyecto);
+    const k=asesorKey(nm,entry);
     const n=parseInt(r.Cant_Acciones||'0',10)||0;
     if(!tqMap[k])tqMap[k]={name:toShort(nm),proj:entry.proj,b12:0,b34:0,b5:0,b6:0,total:0,sum:0};
     tqMap[k].total++;tqMap[k].sum+=n;
@@ -1365,6 +1433,45 @@ function renderJVentas(){
     </tr>`;
   }).join('');
 
+  // ── Sub-estado por asesor ──
+  const _subExcl=new Set(['SEPARACION','SEPARACIÓN','VENTA']);
+  const subByAsesor={};
+  prosp.forEach(r=>{
+    const nm=String(r.Responsable||'').trim();
+    if(!nm) return;
+    const entry=getAsesorEntry(nm,r.Proyecto);
+    if(!entry||!entryMatchesProj(entry,r.Proyecto)) return;
+    if(vend&&nm!==vend) return;
+    const k=asesorKey(nm,entry);
+    const sub=String(r.SubEstado||'').trim();
+    if(!sub||sub==='nan'||sub==='None') return;
+    if(_subExcl.has(sub.toUpperCase())) return;
+    if(!subByAsesor[k])subByAsesor[k]={name:toShort(nm),proj:entry.proj,subs:{},total:0};
+    subByAsesor[k].subs[sub]=(subByAsesor[k].subs[sub]||0)+1;
+    subByAsesor[k].total++;
+  });
+  const allSubs=[...new Set(Object.values(subByAsesor).flatMap(a=>Object.keys(a.subs)))]
+    .filter(s=>!_subExcl.has(s.toUpperCase()))
+    .map(s=>({s,n:Object.values(subByAsesor).reduce((t,a)=>t+(a.subs[s]||0),0)}))
+    .sort((a,b)=>b.n-a.n).map(x=>x.s);
+  const subAsesorHeaders=allSubs.map(s=>`<th style="text-align:center;min-width:80px">${s}</th>`).join('');
+  const subAsesorRows=Object.entries(subByAsesor).sort((a,b)=>a[1].name.localeCompare(b[1].name,'es')).map(([,d])=>{
+    const cells=allSubs.map(s=>{const n=d.subs[s]||0;return`<td style="text-align:center;padding:10px 8px">${n?n:'<span style="color:var(--ink-4)">—</span>'}</td>`;}).join('');
+    return`<tr>
+      <td style="padding:10px 14px">
+        <div style="display:flex;align-items:center;gap:9px">
+          <div class="avv">${d.name[0].toUpperCase()}</div>
+          <div>
+            <div style="font-weight:600;font-size:13px;color:var(--ink)">${d.name}</div>
+            <div style="font-size:11px;color:var(--ink-3);margin-top:1px">${d.proj}</div>
+          </div>
+        </div>
+      </td>
+      ${cells}
+      <td style="text-align:center;padding:10px 8px;font-weight:700;color:var(--ink-2)">${d.total}</td>
+    </tr>`;
+  }).join('');
+
   document.getElementById('jv-content').innerHTML=`
   <div class="section-title"><h2>Conversiones y score por asesor</h2><div class="hint">Meta: Lead→Visita 25% · Visita→Sep 30% · Sep→Venta 70%</div></div>
   <div class="card" style="margin-bottom:16px">
@@ -1383,17 +1490,24 @@ function renderJVentas(){
       ${convRows?convFoot:''}
     </table></div>
   </div>
-  <div class="section-title"><h2>Tiempo de primera respuesta</h2><div class="hint">Primera acción al lead · SLA óptimo ≤30 min</div></div>
+  <div class="section-title"><h2>Tiempo de primera respuesta</h2><div class="hint">Primera acción al lead · horario 10am–7:30pm · SLA óptimo ≤30 min</div></div>
   <div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>Promedio por asesor y mes</h3><p>Minutos entre registro del lead y primera acción registrada</p></div></div>
-    <div style="overflow-x:auto"><table class="mtable" style="table-layout:fixed">
-      <thead><tr>
-        <th style="text-align:left">Asesor</th>
-        ${mesHeaders}
-        <th style="text-align:center;width:11%">Promedio</th>
-        <th style="text-align:center;width:11%">Diagnóstico</th>
-      </tr></thead>
-      <tbody>${tRespRows2||`<tr><td colspan="${4+meses.length}" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de TiempoRespuesta_min</td></tr>`}</tbody>
+    <div class="card-hd"><div><h3>Tiempo de primera respuesta por asesor y mes</h3><p>Minutos entre registro del lead y primera acción registrada · horario 10am–7:30pm</p></div></div>
+    <div style="overflow-x:auto"><table class="mtable">
+      <thead>
+        <tr>
+          <th style="text-align:left" rowspan="2">Asesor</th>
+          <th style="text-align:left" rowspan="2">Proyecto</th>
+          ${mesHeadersTop}
+          <th colspan="2" style="text-align:center;border-bottom:1px solid var(--line)">General</th>
+        </tr>
+        <tr>
+          ${mesHeadersSub}
+          <th style="text-align:center;font-size:11px;color:var(--ink-3);padding:4px 2px">Med</th>
+          <th style="text-align:center;font-size:11px;color:var(--ink-3);padding:4px 2px">Prom</th>
+        </tr>
+      </thead>
+      <tbody>${tRespRows2||`<tr><td colspan="${4+meses.length*3}" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de TiempoRespuesta_min</td></tr>`}${tRespTotal}</tbody>
     </table></div>
   </div>
   <div class="section-title"><h2>Toques por lead</h2><div class="hint">NroAcciones registradas por prospecto · distribución por asesor</div></div>
@@ -1417,6 +1531,18 @@ function renderJVentas(){
         <th style="text-align:left;width:11%">Distribución</th>
       </tr></thead>
       <tbody>${tqRows||'<tr><td colspan="7" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de NroAcciones</td></tr>'}</tbody>
+    </table></div>
+  </div>
+  <div class="section-title" style="margin-top:26px"><h2>Sub-estado por asesor</h2><div class="hint">Distribución de sub-estados de prospectos por cada asesor</div></div>
+  <div class="card">
+    <div class="card-hd"><div><h3>Sub-estado de leads</h3><p>Conteo de prospectos según estado actual · por asesor</p></div></div>
+    <div style="overflow-x:auto"><table class="mtable">
+      <thead><tr>
+        <th style="text-align:left">Asesor</th>
+        ${subAsesorHeaders||''}
+        <th style="text-align:center;min-width:60px">Total</th>
+      </tr></thead>
+      <tbody>${subAsesorRows||'<tr><td colspan="2" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de sub-estado</td></tr>'}</tbody>
     </table></div>
   </div>`;
 }
@@ -1687,10 +1813,11 @@ function renderJMkt(){
     if(s&&s!=='nan'&&s!=='None') subMap[s]=(subMap[s]||0)+1;
   });
   const totSub=Object.values(subMap).reduce((a,b)=>a+b,0)||1;
+  const maxSub=Math.max(...Object.values(subMap),1);
   const subRows=Object.entries(subMap).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([s,n],i)=>`
     <div class="chan-row">
-      <div class="chan-n">${s}</div>
-      <div class="chan-tr"><i style="width:${Math.round(n/Object.values(subMap)[0]*100)}%;background:${CC[i%CC.length]}"></i></div>
+      <div class="nm"><span class="sw" style="background:${CC[i%CC.length]}"></span>${s}</div>
+      <div class="chan-tr"><i style="width:${Math.round(n/maxSub*100)}%;background:${CC[i%CC.length]}"></i></div>
       <div class="v">${fN(n)}</div>
       <div class="p">${pct(n,totSub)}</div>
     </div>`).join('')||'<div style="padding:16px 18px;color:var(--ink-4);font-size:12px">Sin datos de sub-estado</div>';
@@ -1700,11 +1827,11 @@ function renderJMkt(){
   invData.forEach(r=>{const c=String(r.canal||'Sin canal').trim();canalInvMap[c]=(canalInvMap[c]||0)+Number(r.monto||0);});
   const totCanalInv=Object.values(canalInvMap).reduce((a,b)=>a+b,0)||1;
   const canalInvRows=Object.entries(canalInvMap).sort((a,b)=>b[1]-a[1]).map(([c,m],i)=>`
-    <div class="chan-row">
-      <div class="chan-n">${c}</div>
-      <div class="chan-tr"><i style="width:${Math.round(m/Object.values(canalInvMap)[0]*100)}%;background:${CC[i%CC.length]}"></i></div>
-      <div class="v">${fInv(m)}</div>
-      <div class="p">${pct(m,totCanalInv)}</div>
+    <div class="list-row">
+      <span class="sw" style="background:${CC[i%CC.length]}"></span>
+      <span class="name">${c}</span>
+      <span class="n">${fInv(m)}</span>
+      <span class="pct-c">${pct(m,totCanalInv)}</span>
     </div>`).join('')||'<div style="padding:16px 18px;color:var(--ink-4);font-size:12px">Sin datos de inversión</div>';
 
   document.getElementById('jmkt-content').innerHTML = `
@@ -1759,7 +1886,7 @@ function renderJMkt(){
     </div>
     <div class="card">
       <div class="card-hd"><div><h3>Presupuesto por canal</h3><p>${fInv(totInv)} invertido · desglose por canal</p></div></div>
-      <div style="padding:10px 0 4px;max-height:280px;overflow-y:auto">${canalInvRows}</div>
+      <div class="list">${canalInvRows}</div>
       <div class="list-ft"><span style="font-family:inherit;font-weight:600">Total inversión</span><span>${fInv(totInv)}</span></div>
     </div>
   </div>
@@ -1784,64 +1911,82 @@ function renderJMkt(){
 // ADM. DE VENTAS
 // ══════════════════════════════════════════════════════════════════════════
 function renderAdmVentas(){
-  const proj = filtrarProj('adm');
-  const v    = filtrarVentas('adm');
-  const sep  = getSeps(proj);
+  const proj  = filtrarProj('adm');
+  const _tipo = document.getElementById('adm-tipo')?.value||'';
+  let v       = filtrarVentas('adm');
+  if(_tipo) v = v.filter(r=>normStr(r.TipoInmueble).includes(_tipo));
+  let sep     = getSeps(proj);
+  if(_tipo) sep = sep.filter(r=>normStr(r.TipoInmueble).includes(_tipo));
   const monto = v.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
+
+  // Cobros desde ingreso_deposito (acumulado total, misma proj/tipo)
+  let ingDep = D.ingresoDeposito||[];
+  if(proj) ingDep = ingDep.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
+  if(_tipo) ingDep = ingDep.filter(r=>normStr(r.TipoInmueble_1||'').includes(_tipo));
+  const _pm=s=>{const v=String(s||'').replace(/S\/\./g,'').replace(/S\//g,'').replace(/\$/g,'').replace(/,/g,'').trim();const n=parseFloat(v);return isNaN(n)?0:n;};
+  const cobrado = ingDep.reduce((a,r)=>a+_pm(r.Monto_Cuota_Pagado),0);
+
+  // Monto total acumulado de ventas (sin filtro año/mes) para comparar con cobrado
+  let vTodas = D.ventas||[];
+  if(proj)  vTodas = vTodas.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
+  if(_tipo) vTodas = vTodas.filter(r=>normStr(r.TipoInmueble||'').includes(_tipo));
+  const montoTotal = vTodas.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
+  const pendiente  = Math.max(0, montoTotal - cobrado);
+
   document.getElementById('adm-sub').textContent = 'Actualizado: '+D.updatedAt+' · Cobranzas y contratos';
 
-  // ── Classify financing into hierarchy
-  function classFin(fin){
-    const f=String(fin||'').toLowerCase();
-    if(f.includes('contado')) return 'Al Contado';
-    if(f.includes('ahorro')) return 'AhorroCasa';
-    if(f.includes('califica')) return 'Califica Directo';
-    if(f.includes('mivivienda')||f.includes('mi vivienda')||f.includes('techo propio')) return 'MiVivienda';
-    if(f.includes('directo')||f.includes('leasing')||f.includes('financiamiento directo')) return 'Credito Directo';
-    if(f.includes('hipotecario')||f.includes('bcp')||f.includes('bbva')||f.includes('scotiabank')||f.includes('interbank')||f.includes('banco')) return 'Tradicionales';
-    return 'Otros';
-  }
+  // ── Distribución cruzando ventas ↔ ingDep por DNI, agrupado por tipo de ingDep ──
+  const parseMonto=s=>{const v=String(s||'').replace(/S\/\./g,'').replace(/S\//g,'').replace(/\$/g,'').replace(/,/g,'').trim();const n=parseFloat(v);return isNaN(n)?0:n;};
+  const normDNI=s=>String(s||'').trim().toUpperCase();
 
-  const finCounts={}, finMontos={};
-  v.forEach(r=>{
-    const cat=classFin(r.TipoFinanciamiento);
-    finCounts[cat]=(finCounts[cat]||0)+1;
-    finMontos[cat]=(finMontos[cat]||0)+Number(r.PrecioVentaSoles||r.PrecioVenta||0);
+  // Construir mapa DNI → {tipo, cobrado} desde ingDep
+  const ingDepTipoByDNI={}, ingDepCobByDNI={};
+  ingDep.forEach(r=>{
+    const dni=normDNI(r.Nro_Documento_Identidad);
+    if(!dni) return;
+    if(!ingDepTipoByDNI[dni]) ingDepTipoByDNI[dni]=String(r.Tipo_Financiamiento_SF||'Sin dato').trim()||'Sin dato';
+    ingDepCobByDNI[dni]=(ingDepCobByDNI[dni]||0)+parseMonto(r.Monto_Cuota_Pagado);
   });
 
-  const HIER=[
-    {lbl:'Cr\u00e9dito Hipotecario', cat:null, indent:0, grp:['Tradicionales','MiVivienda','AhorroCasa','Califica Directo'], color:'oklch(0.55 0.15 250)'},
-    {lbl:'Tradicionales',            cat:'Tradicionales',    indent:1, color:'oklch(0.65 0.14 150)'},
-    {lbl:'MiVivienda',               cat:'MiVivienda',       indent:1, color:'oklch(0.72 0.15 65)'},
-    {lbl:'\u00b7 AhorroCasa',        cat:'AhorroCasa',       indent:2, color:'oklch(0.60 0.18 25)'},
-    {lbl:'\u00b7 Califica Directo',  cat:'Califica Directo', indent:2, color:'oklch(0.55 0.15 290)'},
-    {lbl:'Cr\u00e9dito Directo',     cat:'Credito Directo',  indent:0, color:'oklch(0.70 0.10 230)'},
-    {lbl:'Al Contado',               cat:'Al Contado',       indent:0, color:'oklch(0.62 0.14 150)'},
-  ];
+  // Cruzar ventas por DNI → asignar tipo de ingDep; sin match → "Sin cobro registrado"
+  const finMap={};
+  const _af=t=>{if(!finMap[t])finMap[t]={total:0,cobradas:0,montoVenta:0,montoCobrado:0};};
+  vTodas.forEach(r=>{
+    const dni=normDNI(r.NroDocumentoTitular);
+    const mVenta=Number(r.PrecioVentaSoles||r.PrecioVenta||0);
+    if(dni&&ingDepTipoByDNI[dni]){
+      const tipo=ingDepTipoByDNI[dni];
+      _af(tipo);
+      finMap[tipo].total++;
+      finMap[tipo].cobradas++;
+      finMap[tipo].montoVenta+=mVenta;
+      finMap[tipo].montoCobrado+=ingDepCobByDNI[dni]||0;
+    } else {
+      _af('Sin cobro registrado');
+      finMap['Sin cobro registrado'].total++;
+      finMap['Sin cobro registrado'].montoVenta+=mVenta;
+    }
+  });
 
-  function grpN(cats){return(cats||[]).reduce((a,c)=>a+(finCounts[c]||0),0);}
-  function grpM(cats){return(cats||[]).reduce((a,c)=>a+(finMontos[c]||0),0);}
+  const cobradoTotal=Object.values(finMap).reduce((a,b)=>a+b.montoCobrado,0);
+  const pendGlobal=Math.max(0,montoTotal-cobradoTotal);
+  const FIN_COLORS=['oklch(0.55 0.15 250)','oklch(0.65 0.14 150)','oklch(0.72 0.15 65)','oklch(0.60 0.18 25)','oklch(0.55 0.15 290)','oklch(0.70 0.10 230)','oklch(0.62 0.14 150)'];
 
-  const finRows=HIER.map(h=>{
-    const n = h.cat ? (finCounts[h.cat]||0) : grpN(h.grp);
-    const m = h.cat ? (finMontos[h.cat]||0) : grpM(h.grp);
-    const isParent = !h.cat;
-    const rowStyle = isParent ? ' style="background:#fafbfc"' : '';
-    const nameCell = isParent
-      ? `<span class="finico"><span class="dot" style="background:${h.color}"></span><b>${h.lbl}</b></span>`
-      : `<span style="padding-left:${h.indent*14}px;display:inline-block">${h.lbl}</span>`;
-    const pv = v.length ? Math.round(n/v.length*100) : 0;
-    const prog = n ? `<div class="prog"><div class="t"><i class="ok" style="width:${pv}%"></i></div><span class="pctxt">${pv}%</span></div>` : '—';
-    return `<tr${rowStyle}>
-      <td>${nameCell}</td>
-      <td class="r">${n||'—'}</td>
-      <td class="r">—</td>
-      <td class="r">—</td>
-      <td class="r">${m?fS(m):'—'}</td>
-      <td class="r">—</td>
-      <td class="r">${prog}</td>
+  const finRows=Object.entries(finMap).sort((a,b)=>b[1].total-a[1].total).map(([tipo,d],i)=>{
+    const pend=d.total-d.cobradas;
+    const montoPend=Math.max(0,d.montoVenta-d.montoCobrado);
+    const pctAv=d.montoVenta?Math.min(Math.round(d.montoCobrado/d.montoVenta*100),100):0;
+    const prog=`<div class="prog"><div class="t"><i class="ok" style="width:${pctAv}%"></i></div><span class="pctxt">${pctAv}%</span></div>`;
+    return`<tr>
+      <td><span class="finico"><span class="dot" style="background:${FIN_COLORS[i%FIN_COLORS.length]}"></span>${tipo}</span></td>
+      <td style="text-align:center">${d.total}</td>
+      <td style="text-align:center">${d.cobradas}</td>
+      <td style="text-align:center">${pend}</td>
+      <td class="r">${d.montoCobrado?fFull(d.montoCobrado):'—'}</td>
+      <td class="r">${montoPend?fFull(montoPend):'—'}</td>
+      <td style="text-align:center;min-width:120px">${prog}</td>
     </tr>`;
-  }).join('');
+  }).join('')||`<tr><td colspan="7" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de financiamiento</td></tr>`;
 
   // ── Desembolsos list (latest ventas as proxies)
   const disRows = v.slice(0,7).map(r=>{
@@ -1856,15 +2001,13 @@ function renderAdmVentas(){
     </div>`;
   }).join('')||'<div style="padding:14px;color:var(--ink-4);font-size:12px">Sin registros</div>';
 
-  const cobPct = Math.min(Math.round((v.length/(v.length+sep.length||1))*100),100);
 
   document.getElementById('adm-content').innerHTML = `
-  <div class="kpi-row kpi-5">
-    ${kpi('Ventas totales (minuta)',`${fN(v.length)} <span class="unit">und.</span>`,'Escrituras firmadas acumuladas')}
-    ${kpi('Monto total de ventas',fM(monto),'Valor total de las minutas')}
-    ${kpi('Cobrado','—','Sin datos de cobros en CRM','',`<div class="bar ok"><i style="width:0%"></i></div>`)}
-    ${kpi('Pendiente por cobrar','—','Sin datos de pagos en CRM')}
-    ${kpi('% Recaudación',`${cobPct}<span class="unit">%</span>`,`${v.length} ventas de ${v.length+sep.length} total`,'',`<div class="bar ok"><i style="width:${cobPct}%"></i></div>`)}
+  <div class="kpi-row kpi-4">
+    ${kpi('Ventas totales',`${fN(vTodas.length)} <span class="unit">und.</span>`,'Escrituras firmadas acumuladas')}
+    ${kpi('Monto total de ventas',fFull(montoTotal),'Acumulado · todas las ventas')}
+    ${kpi('Monto cuota pagado',cobrado?fFull(cobrado):'—',cobrado?`${ingDep.length} registros de cobro`:'Sin datos en ingreso deposito')}
+    ${kpi('Pendiente por cobrar',cobrado?fFull(pendiente):'—',cobrado?'Venta − Cobrado':'—')}
   </div>
   <div class="section-title"><h2>Estado por tipo de financiamiento</h2><div class="hint">Clientes, unidades cobradas y monto recaudado</div></div>
   <div class="card" style="margin-bottom:16px">
@@ -1872,22 +2015,22 @@ function renderAdmVentas(){
     <table class="tbl">
       <thead><tr>
         <th>Financiamiento</th>
-        <th class="r">Clientes</th>
-        <th class="r">Unid. cobradas</th>
-        <th class="r">Unid. pend. cobrar</th>
-        <th class="r">Monto cobrado</th>
-        <th class="r">Monto pendiente</th>
-        <th class="r">% Avance</th>
+        <th style="text-align:center">Clientes</th>
+        <th style="text-align:center">Unid. Cobradas</th>
+        <th style="text-align:center">Unid. Pend. Cobrar</th>
+        <th class="r">Monto Cobrado</th>
+        <th class="r">Monto Pendiente</th>
+        <th style="text-align:center">% Avance</th>
       </tr></thead>
       <tbody>${finRows||'<tr><td colspan="7" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de financiamiento en el CRM</td></tr>'}</tbody>
       <tfoot><tr>
-        <td>Total cartera</td>
-        <td class="r">${v.length||'—'}</td>
-        <td class="r">—</td>
-        <td class="r">—</td>
-        <td class="r">${fS(monto)}</td>
-        <td class="r">—</td>
-        <td class="r">—</td>
+        <td><b>Total cartera</b></td>
+        <td style="text-align:center"><b>${vTodas.length}</b></td>
+        <td style="text-align:center"><b>${Object.values(finMap).reduce((a,b)=>a+b.cobradas,0)}</b></td>
+        <td style="text-align:center"><b>${Object.values(finMap).reduce((a,b)=>a+b.total-b.cobradas,0)}</b></td>
+        <td class="r"><b>${cobradoTotal?fFull(cobradoTotal):'—'}</b></td>
+        <td class="r"><b>${pendGlobal?fFull(pendGlobal):'—'}</b></td>
+        <td style="text-align:center"><b>${montoTotal?Math.min(Math.round(cobradoTotal/montoTotal*100),100):0}%</b></td>
       </tr></tfoot>
     </table>
   </div>

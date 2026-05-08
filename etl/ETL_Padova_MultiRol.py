@@ -117,26 +117,26 @@ def filtrar_cols(df, cols):
 
 
 def business_minutes(start, end):
-    """Minutos hábiles entre start y end (Lun-Sáb, 9:00-19:00)."""
+    """Minutos hábiles entre start y end (Lun-Sáb, 10:00-19:30)."""
     try:
         if pd.isnull(start) or pd.isnull(end) or end <= start:
             return None
-        BIZ_START, BIZ_END = 9, 19
         BIZ_DAYS = {0, 1, 2, 3, 4, 5}  # Lun=0 … Sáb=5
         total = 0.0
         cur = start
         while cur < end:
             if cur.weekday() not in BIZ_DAYS:
-                cur = (cur + timedelta(days=1)).replace(hour=BIZ_START, minute=0, second=0, microsecond=0)
+                cur = (cur + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
                 continue
-            day_s = cur.replace(hour=BIZ_START, minute=0, second=0, microsecond=0)
-            day_e = cur.replace(hour=BIZ_END,   minute=0, second=0, microsecond=0)
+            day_s = cur.replace(hour=10, minute=0,  second=0, microsecond=0)
+            day_e = cur.replace(hour=19, minute=30, second=0, microsecond=0)
             if cur < day_s: cur = day_s
+            if cur >= end: break   # respuesta antes de apertura → tiempo hábil = 0
             if cur >= day_e:
-                cur = (cur + timedelta(days=1)).replace(hour=BIZ_START, minute=0, second=0, microsecond=0)
+                cur = (cur + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
                 continue
             total += (min(end, day_e) - cur).total_seconds() / 60
-            cur = (cur + timedelta(days=1)).replace(hour=BIZ_START, minute=0, second=0, microsecond=0)
+            cur = (cur + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
         return round(total)
     except Exception:
         return None
@@ -1137,10 +1137,19 @@ def main():
             col_ini = next((c for c in ['FechaRegistro','Fecha_Registro','Fecha_Registro_Sistema'] if c in df_prospectos.columns), None)
             col_fin = next((c for c in ['Fecha_PrimeraAccion','Fecha_Primera_Accion','FechaPrimeraAccion'] if c in df_prospectos.columns), None)
             if col_ini and col_fin:
-                f1 = pd.to_datetime(df_prospectos[col_ini], dayfirst=True, errors='coerce')
-                f2 = pd.to_datetime(df_prospectos[col_fin], dayfirst=True, errors='coerce')
+                def _parse_fecha(col):
+                    # Intenta ISO primero, luego DD/MM/YYYY
+                    r = pd.to_datetime(col, format='%Y-%m-%d %H:%M:%S', errors='coerce')
+                    mask = r.isna() & col.notna() & (col.astype(str).str.strip().isin(['','nan','None'])==False)
+                    if mask.any():
+                        r2 = pd.to_datetime(col[mask], dayfirst=True, errors='coerce')
+                        r = r.copy(); r[mask] = r2
+                    return r
+                f1 = _parse_fecha(df_prospectos[col_ini])
+                f2 = _parse_fecha(df_prospectos[col_fin])
                 df_prospectos['TiempoRespuesta_min'] = [business_minutes(a, b) for a, b in zip(f1, f2)]
-                print(f"   -> TiempoRespuesta_min calculado")
+                n_ok = df_prospectos['TiempoRespuesta_min'].notna().sum()
+                print(f"   -> TiempoRespuesta_min calculado ({n_ok} registros con valor)")
             # Calcular LeadUnicoxMesProyecto: primera aparición de ese doc/tel en el mismo mes-proyecto
             id_col = next((c for c in ['NroDocumento','NroDocumentoTitular','TelefonoCelular',
                                         'TelefonoCelular1','Celular','DNI'] if c in df_prospectos.columns), None)

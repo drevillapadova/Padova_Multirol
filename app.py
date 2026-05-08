@@ -569,6 +569,15 @@ def api_desistimientos():
     })
 
 
+@app.route("/api/ingreso_deposito")
+def api_ingreso_deposito():
+    proyecto = request.args.get("proyecto", "").upper()
+    return jsonify({
+        "data": filtrar_proyecto(_cache["ingreso_deposito"], proyecto),
+        "updated_at": _cache["updated_at"]
+    })
+
+
 @app.route("/api/refresh", methods=["POST"])
 def api_refresh():
     actualizar_cache()
