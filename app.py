@@ -1,12 +1,59 @@
-import os, io, re, requests, math
+import os, io, re, requests, math, time
 from datetime import datetime
 from flask import Flask, jsonify, render_template, request
 from apscheduler.schedulers.background import BackgroundScheduler
+from dotenv import load_dotenv
 import pandas as pd
 import pytz
 
+load_dotenv()
+
 app  = Flask(__name__)
 LIMA = pytz.timezone("America/Lima")
+
+MONDAY_API_KEY = os.getenv("MONDAY_API_KEY", "")
+MONDAY_COBROS_BOARDS = [
+    {
+        "id": "18387756365", "label": "Helio - Santa Beatriz",
+        "date_col": "date_mky8et5v", "soles_col": "numeric_mkxwewtr",
+        "dol_col": None, "status_col": "status", "banco_col": "text_mkxwsr5f"
+    },
+    {
+        "id": "18386389435", "label": "Litoral 900",
+        "date_col": "date", "soles_col": "numeric_mkxwewtr",
+        "dol_col": "numeric_mkxwhxaf", "status_col": "status", "banco_col": "text_mkxwsr5f"
+    },
+]
+_monday_cache = {"data": None, "ts": 0}
+MONDAY_CACHE_TTL = 300  # 5 min
+
+
+def _fetch_monday_board(cfg):
+    items, cursor = [], None
+    hdrs = {"Authorization": MONDAY_API_KEY, "Content-Type": "application/json"}
+    while True:
+        cur_str = f', cursor:"{cursor}"' if cursor else ""
+        q = f'{{ boards(ids:[{cfg["id"]}]) {{ items_page(limit:500{cur_str}) {{ cursor items {{ id name group {{ title }} column_values {{ id text }} }} }} }} }}'
+        resp = requests.post("https://api.monday.com/v2", headers=hdrs,
+                             json={"query": q}, timeout=20)
+        page = resp.json()["data"]["boards"][0]["items_page"]
+        for item in page["items"]:
+            cv = {c["id"]: (c["text"] or "") for c in item["column_values"]}
+            status = cv.get(cfg["status_col"], "").strip()
+            fecha  = cv.get(cfg["date_col"], "").strip()
+            try:    soles = float(cv[cfg["soles_col"]]) if cv.get(cfg["soles_col"]) else None
+            except: soles = None
+            try:    dol = float(cv[cfg["dol_col"]]) if cfg["dol_col"] and cv.get(cfg["dol_col"]) else None
+            except: dol = None
+            grupo = item.get("group", {}).get("title", "")
+            items.append({"nombre": item["name"], "status": status,
+                          "fecha": fecha, "grupo": grupo,
+                          "soles": soles, "dolares": dol,
+                          "banco": cv.get(cfg["banco_col"], "").strip()})
+        cursor = page.get("cursor")
+        if not cursor:
+            break
+    return items
 
 # ─── SHEET CONFIG ────────────────────────────────────────────
 SHEET_ID = "1JIEEGPxJvCHvmGvVE6Zp9wBPUVXEF-iXy8FNaWr1PPI"
@@ -578,8 +625,28 @@ def api_ingreso_deposito():
     })
 
 
+@app.route("/api/monday_cobros")
+def api_monday_cobros():
+    global _monday_cache
+    if not MONDAY_API_KEY:
+        return jsonify({"error": "MONDAY_API_KEY no configurado"}), 500
+    if _monday_cache["data"] is not None and (time.time() - _monday_cache["ts"]) < MONDAY_CACHE_TTL:
+        return jsonify(_monday_cache["data"])
+    result = []
+    for cfg in MONDAY_COBROS_BOARDS:
+        try:
+            items = _fetch_monday_board(cfg)
+            result.append({"label": cfg["label"], "has_dolares": cfg["dol_col"] is not None, "items": items})
+        except Exception as e:
+            result.append({"label": cfg["label"], "has_dolares": False, "items": [], "error": str(e)})
+    _monday_cache = {"data": result, "ts": time.time()}
+    return jsonify(result)
+
+
 @app.route("/api/refresh", methods=["POST"])
 def api_refresh():
+    global _monday_cache
+    _monday_cache = {"data": None, "ts": 0}  # invalidate Monday cache on refresh
     actualizar_cache()
     return jsonify({"ok": True, "updated_at": _cache["updated_at"]})
 

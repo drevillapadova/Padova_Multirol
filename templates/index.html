@@ -261,7 +261,7 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 .campname small{color:var(--ink-3);display:block;margin-top:1px;font-size:10px}
 
 /* ── PROG ── */
-.prog{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.prog{display:flex;align-items:center;gap:8px;justify-content:center}
 .prog .t{width:65px;height:5px;background:#eef2f6;border-radius:99px;overflow:hidden}
 .prog .t i{display:block;height:100%;background:var(--brand);border-radius:99px}
 .prog .t .ok{background:var(--ok)}
@@ -705,7 +705,8 @@ function matchProj(rProj, filterProj){
   return false;
 }
 const toTitle=s=>s.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());
-const toShort=s=>toTitle(s).split(' ').slice(0,2).join(' ');
+const _NAME_ALIAS={'anthony junior':'Anthony Nolasco'};
+const toShort=s=>{const k=toTitle(s).split(' ').slice(0,2).join(' ');return _NAME_ALIAS[k.toLowerCase()]||k;};
 
 function parseDate(f){
   if(!f)return null;
@@ -887,6 +888,7 @@ async function loadAll(){
     D.updatedAt  = fR.updated_at||vR.updated_at||'—';
     // también stock completo
     fetch(API+'/api/stock').then(r=>r.json()).then(s=>{D.stock=s.data||[];renderAll();}).catch(()=>renderAll());
+    fetch(API+'/api/monday_cobros').then(r=>r.json()).then(m=>{D.monday_cobros=m;renderAdmVentas();}).catch(()=>{});
     _schedNextRefresh();
   }catch(e){
     console.error(e);
@@ -1175,7 +1177,7 @@ function renderJVentas(){
     if(!k)return;
     const esUnico=String(r.LeadUnicoxMesProyecto||'').toUpperCase();
     if(esUnico==='SI'||esUnico==='')convMap[k].leads++;
-    if(String(r.NivelInteres||'').toUpperCase()==='ALTO')convMap[k].prosp++;
+    if(['ALTO','MEDIO'].includes(String(r.NivelInteres||'').toUpperCase()))convMap[k].prosp++;
   });
 
   // Visitas: desde reporte de visitas por Vendedor
@@ -1362,7 +1364,7 @@ function renderJVentas(){
   const meses=[...new Set(Object.values(tMesMap).flatMap(d=>Object.keys(d.meses)))].sort().slice(_mes?-2:-4);
   const mesHeadersTop=meses.map(m=>{const[,mo]=m.split('-');return`<th colspan="3" style="text-align:center;border-bottom:1px solid var(--line)">${MN[+mo]}</th>`;}).join('');
   const mesHeadersSub=meses.map(()=>`<th style="text-align:center;font-size:11px;color:var(--ink-3);padding:4px 2px">Med</th><th style="text-align:center;font-size:11px;color:var(--ink-3);padding:4px 2px">Prom</th><th style="text-align:center;font-size:11px;color:var(--ink-3);padding:4px 2px">N</th>`).join('');
-  const _tcl=v=>v===null?'var(--ink-4)':v<=30?'var(--ok)':v<=60?'var(--warn)':'var(--bad)';
+  const _tcl=v=>v===null?'var(--ink-4)':v<240?'var(--ok)':v<=480?'var(--warn)':'var(--bad)';
 
   const _totalMesData={};
   let _totalAllT=[];
@@ -1380,17 +1382,19 @@ function renderJVentas(){
       <td style="padding:10px 14px">
         <div style="display:flex;align-items:center;gap:9px">
           <div class="avv">${d.asesor[0].toUpperCase()}</div>
-          <div style="font-weight:600;font-size:13px;color:var(--ink)">${d.asesor}</div>
+          <div>
+            <div style="font-weight:600;font-size:13px;color:var(--ink)">${d.asesor}</div>
+            <div style="font-size:11px;color:var(--ink-3);margin-top:1px">${d.proj}</div>
+          </div>
         </div>
       </td>
-      <td style="font-size:12px;color:var(--ink-3);padding:10px 14px">${d.proj}</td>
       ${mesCells}
       <td style="text-align:center;font-family:var(--mono);font-size:13px;font-weight:700;color:${_tcl(med)}">${_fmt(med)}</td>
       <td style="text-align:center;font-family:var(--mono);font-size:13px;color:${_tcl(prom)}">${_fmt(prom)}</td>
     </tr>`;
   }).join('');
   const _totMesCells=meses.map(mes=>{const arr=_totalMesData[mes]||[];const m2=_median(arr),p2=_mean(arr),n2=arr.length;return`<td style="text-align:center;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--ink)">${_fmt(m2)}</td><td style="text-align:center;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--ink)">${_fmt(p2)}</td><td style="text-align:center;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--ink-3)">${n2||'—'}</td>`;}).join('');
-  const tRespTotal=`<tr style="border-top:2px solid var(--line);background:var(--surface)"><td style="padding:10px 14px;font-weight:700;font-size:13px;color:var(--ink)" colspan="2">Total general</td>${_totMesCells}<td style="text-align:center;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink)">${_fmt(_median(_totalAllT))}</td><td style="text-align:center;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink)">${_fmt(_mean(_totalAllT))}</td></tr>`;
+  const tRespTotal=`<tr style="border-top:2px solid var(--line);background:var(--surface)"><td style="padding:10px 14px;font-weight:700;font-size:13px;color:var(--ink)">Total general</td>${_totMesCells}<td style="text-align:center;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink)">${_fmt(_median(_totalAllT))}</td><td style="text-align:center;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink)">${_fmt(_mean(_totalAllT))}</td></tr>`;
 
   // ── TABLA 3: Toques por lead — solo asesores asignados ──
   const tqMap={};
@@ -1459,7 +1463,7 @@ function renderJVentas(){
     .sort((a,b)=>b.n-a.n).map(x=>x.s);
   const subAsesorHeaders=allSubs.map(s=>`<th style="text-align:center;min-width:80px">${s}</th>`).join('');
   const subAsesorRows=Object.entries(subByAsesor).sort((a,b)=>a[1].name.localeCompare(b[1].name,'es')).map(([,d])=>{
-    const cells=allSubs.map(s=>{const n=d.subs[s]||0;return`<td style="text-align:center;padding:10px 8px">${n?n:'<span style="color:var(--ink-4)">—</span>'}</td>`;}).join('');
+    const cells=allSubs.map(s=>{const n=d.subs[s]||0;return`<td style="text-align:center;padding:10px 8px;font-family:var(--mono);font-size:14px;font-weight:700;color:var(--ink)">${n?n:'<span style="font-weight:400;color:var(--ink-4)">—</span>'}</td>`;}).join('');
     return`<tr>
       <td style="padding:10px 14px">
         <div style="display:flex;align-items:center;gap:9px">
@@ -1471,7 +1475,7 @@ function renderJVentas(){
         </div>
       </td>
       ${cells}
-      <td style="text-align:center;padding:10px 8px;font-weight:700;color:var(--ink-2)">${d.total}</td>
+      <td style="text-align:center;padding:10px 8px;font-family:var(--mono);font-size:14px;font-weight:700;color:var(--ink)">${d.total}</td>
     </tr>`;
   }).join('');
 
@@ -1495,12 +1499,11 @@ function renderJVentas(){
   </div>
   <div class="section-title"><h2>Tiempo de primera respuesta</h2><div class="hint">Primera acción al lead · horario 10am–7:30pm · SLA óptimo ≤30 min</div></div>
   <div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>Tiempo de primera respuesta por asesor y mes</h3><p>Minutos entre registro del lead y primera acción registrada · horario 10am–7:30pm</p></div></div>
+    <div class="card-hd"><div><h3>Tiempo de primera respuesta</h3><p>Minutos entre registro del lead y primera acción registrada · horario 10am–7:30pm</p></div></div>
     <div style="overflow-x:auto"><table class="mtable">
       <thead>
         <tr>
           <th style="text-align:left" rowspan="2">Asesor</th>
-          <th style="text-align:left" rowspan="2">Proyecto</th>
           ${mesHeadersTop}
           <th colspan="2" style="text-align:center;border-bottom:1px solid var(--line)">General</th>
         </tr>
@@ -1510,7 +1513,7 @@ function renderJVentas(){
           <th style="text-align:center;font-size:11px;color:var(--ink-3);padding:4px 2px">Prom</th>
         </tr>
       </thead>
-      <tbody>${tRespRows2||`<tr><td colspan="${4+meses.length*3}" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de TiempoRespuesta_min</td></tr>`}${tRespTotal}</tbody>
+      <tbody>${tRespRows2||`<tr><td colspan="${3+meses.length*3}" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de TiempoRespuesta_min</td></tr>`}${tRespTotal}</tbody>
     </table></div>
   </div>
   <div class="section-title"><h2>Toques por lead</h2><div class="hint">NroAcciones registradas por prospecto · distribución por asesor</div></div>
@@ -1593,8 +1596,8 @@ function renderFunnelEvol(proj, año){
   // Leads: prospectos LeadUnico=SI
   (D.prospectos||[]).filter(byProj).filter(r=>String(r.LeadUnicoxMesProyecto||'').toUpperCase()==='SI')
     .forEach(r=>addM(r.FechaRegistro,'leads'));
-  // Prospectos: NivelInteres=ALTO (misma lógica que el funnel)
-  (D.prospectos||[]).filter(byProj).filter(r=>String(r.NivelInteres||'').toUpperCase()==='ALTO')
+  // Prospectos: NivelInteres=ALTO o MEDIO
+  (D.prospectos||[]).filter(byProj).filter(r=>['ALTO','MEDIO'].includes(String(r.NivelInteres||'').toUpperCase()))
     .forEach(r=>addM(r.FechaRegistro,'prosp'));
   // Visitas: desde D.visitas
   (D.visitas||[]).filter(byProj).forEach(r=>addM(r.FechaVisita,'vis'));
@@ -1687,7 +1690,7 @@ function renderJMkt(){
   if(año)  prosp = prosp.filter(r=>{const f=String(r.FechaRegistro||'');return f.startsWith(año)||f.slice(6,10)===año;});
   if(mes)  prosp = prosp.filter(r=>{const f=String(r.FechaRegistro||'');return f.slice(5,7)===mes||f.slice(3,5)===mes;});
   const leadsN = prosp.filter(r=>String(r.LeadUnicoxMesProyecto||'').toUpperCase()==='SI').length;
-  const prospN = prosp.filter(r=>String(r.NivelInteres||'').toUpperCase()==='ALTO').length;
+  const prospN = prosp.filter(r=>['ALTO','MEDIO'].includes(String(r.NivelInteres||'').toUpperCase())).length;
 
   let visF = D.visitas||[];
   if(proj) visF=visF.filter(r=>matchProj(r.Proyecto, proj));
@@ -1942,32 +1945,28 @@ function renderAdmVentas(){
   const parseMonto=s=>{const v=String(s||'').replace(/S\/\./g,'').replace(/S\//g,'').replace(/\$/g,'').replace(/,/g,'').trim();const n=parseFloat(v);return isNaN(n)?0:n;};
   const normDNI=s=>String(s||'').trim().toUpperCase();
 
-  // Construir mapa DNI → {tipo, cobrado} desde ingDep
+  // Mapa DNI → total cobrado desde ingDep (TODOS los tipos de cuota)
   const ingDepTipoByDNI={}, ingDepCobByDNI={};
   ingDep.forEach(r=>{
     const dni=normDNI(r.Nro_Documento_Identidad);
     if(!dni) return;
-    if(!ingDepTipoByDNI[dni]) ingDepTipoByDNI[dni]=String(r.Tipo_Financiamiento_SF||'Sin dato').trim()||'Sin dato';
+    if(!ingDepTipoByDNI[dni]) ingDepTipoByDNI[dni]=(String(r.Tipo_Financiamiento_SF||'').split('/')[0].trim())||'Sin dato';
     ingDepCobByDNI[dni]=(ingDepCobByDNI[dni]||0)+parseMonto(r.Monto_Cuota_Pagado);
   });
 
-  // Cruzar ventas por DNI → asignar tipo de ingDep; sin match → "Sin cobro registrado"
+  // Cruzar ventas: EstadoSF="DESEMBOLSADO" determina si desembolsó; tipo desde ingDep o fallback ventas
   const finMap={};
-  const _af=t=>{if(!finMap[t])finMap[t]={total:0,cobradas:0,montoVenta:0,montoCobrado:0};};
+  const _af=t=>{if(!finMap[t])finMap[t]={total:0,desembolsado:0,montoVenta:0,montoCobrado:0};};
   vTodas.forEach(r=>{
     const dni=normDNI(r.NroDocumentoTitular);
     const mVenta=Number(r.PrecioVentaSoles||r.PrecioVenta||0);
-    if(dni&&ingDepTipoByDNI[dni]){
-      const tipo=ingDepTipoByDNI[dni];
-      _af(tipo);
-      finMap[tipo].total++;
-      finMap[tipo].cobradas++;
-      finMap[tipo].montoVenta+=mVenta;
-      finMap[tipo].montoCobrado+=ingDepCobByDNI[dni]||0;
-    } else {
-      _af('Sin cobro registrado');
-      finMap['Sin cobro registrado'].total++;
-      finMap['Sin cobro registrado'].montoVenta+=mVenta;
+    const tipo=(dni&&ingDepTipoByDNI[dni])?ingDepTipoByDNI[dni]:((String(r.TipoFinanciamiento||'').split('/')[0].trim())||'Sin dato');
+    _af(tipo);
+    finMap[tipo].total++;
+    finMap[tipo].montoVenta+=mVenta;
+    if(String(r.EstadoSF||'').trim().toUpperCase()==='DESEMBOLSADO'){
+      finMap[tipo].desembolsado++;
+      finMap[tipo].montoCobrado+=(ingDepCobByDNI[dni]||0);
     }
   });
 
@@ -1976,33 +1975,21 @@ function renderAdmVentas(){
   const FIN_COLORS=['oklch(0.55 0.15 250)','oklch(0.65 0.14 150)','oklch(0.72 0.15 65)','oklch(0.60 0.18 25)','oklch(0.55 0.15 290)','oklch(0.70 0.10 230)','oklch(0.62 0.14 150)'];
 
   const finRows=Object.entries(finMap).sort((a,b)=>b[1].total-a[1].total).map(([tipo,d],i)=>{
-    const pend=d.total-d.cobradas;
+    const pend=d.total-d.desembolsado;
     const montoPend=Math.max(0,d.montoVenta-d.montoCobrado);
     const pctAv=d.montoVenta?Math.min(Math.round(d.montoCobrado/d.montoVenta*100),100):0;
     const prog=`<div class="prog"><div class="t"><i class="ok" style="width:${pctAv}%"></i></div><span class="pctxt">${pctAv}%</span></div>`;
     return`<tr>
       <td><span class="finico"><span class="dot" style="background:${FIN_COLORS[i%FIN_COLORS.length]}"></span>${tipo}</span></td>
-      <td style="text-align:center">${d.total}</td>
-      <td style="text-align:center">${d.cobradas}</td>
-      <td style="text-align:center">${pend}</td>
-      <td class="r">${d.montoCobrado?fFull(d.montoCobrado):'—'}</td>
-      <td class="r">${montoPend?fFull(montoPend):'—'}</td>
-      <td style="text-align:center;min-width:120px">${prog}</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:14px;font-weight:600;color:var(--ink)">${d.total}</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:14px;font-weight:600;color:var(--ink)">${d.desembolsado}</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:14px;font-weight:600;color:var(--ink)">${pend}</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:12px;font-weight:500;color:var(--ink)">${d.montoCobrado?fFull(d.montoCobrado):'—'}</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:12px;font-weight:500;color:var(--ink)">${montoPend?fFull(montoPend):'—'}</td>
+      <td style="text-align:center">${prog}</td>
     </tr>`;
   }).join('')||`<tr><td colspan="7" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de financiamiento</td></tr>`;
 
-  // ── Desembolsos list (latest ventas as proxies)
-  const disRows = v.slice(0,7).map(r=>{
-    const d=parseDate(r.FechaVenta||r.FechaEntrega_Minuta||'');
-    const day=d?`${d.getDate()} ${MN[d.getMonth()+1]}`:'—';
-    const m=Number(r.PrecioVentaSoles||r.PrecioVenta||0);
-    return `<div class="dis-row">
-      <div class="st">✓</div>
-      <div class="body"><b>${r.TipoFinanciamiento||'—'}</b><small>${r.NombresTitular||'Cliente'} · ${r.TipoInmueble||'—'}</small></div>
-      <div class="amt">${fS(m)}</div>
-      <div class="dt">${day}</div>
-    </div>`;
-  }).join('')||'<div style="padding:14px;color:var(--ink-4);font-size:12px">Sin registros</div>';
 
 
   document.getElementById('adm-content').innerHTML = `
@@ -2012,44 +1999,153 @@ function renderAdmVentas(){
     ${kpi('Monto cuota pagado',cobrado?fFull(cobrado):'—',cobrado?`${ingDep.length} registros de cobro`:'Sin datos en ingreso deposito')}
     ${kpi('Pendiente por cobrar',cobrado?fFull(pendiente):'—',cobrado?'Venta − Cobrado':'—')}
   </div>
-  <div class="section-title"><h2>Estado por tipo de financiamiento</h2><div class="hint">Clientes, unidades cobradas y monto recaudado</div></div>
+  <div class="section-title"><h2>Estado por tipo de financiamiento</h2><div class="hint">Clientes · pagos recibidos vs. saldo total del portafolio</div></div>
   <div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>Distribución por financiamiento</h3><p>Cartera vigente · agrupada por modalidad de pago</p></div></div>
-    <table class="tbl">
+    <div class="card-hd"><div><h3>Distribución por financiamiento</h3><p>Cartera vigente · Desembolsado según EstadoSF · Monto cobrado = suma total recibida en ingreso depósito</p></div></div>
+    <table class="tbl" style="table-layout:fixed;width:100%">
       <thead><tr>
-        <th>Financiamiento</th>
-        <th style="text-align:center">Clientes</th>
-        <th style="text-align:center">Unid. Cobradas</th>
-        <th style="text-align:center">Unid. Pend. Cobrar</th>
-        <th class="r">Monto Cobrado</th>
-        <th class="r">Monto Pendiente</th>
-        <th style="text-align:center">% Avance</th>
+        <th style="width:22%">Financiamiento</th>
+        <th style="text-align:center;width:13%">Clientes</th>
+        <th style="text-align:center;width:13%">Desembolsado</th>
+        <th style="text-align:center;width:13%">Pend. Desembolsar</th>
+        <th style="text-align:center;width:13%">Monto Cobrado</th>
+        <th style="text-align:center;width:13%">Saldo pendiente</th>
+        <th style="text-align:center;width:13%">% Avance</th>
       </tr></thead>
       <tbody>${finRows||'<tr><td colspan="7" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de financiamiento en el CRM</td></tr>'}</tbody>
       <tfoot><tr>
         <td><b>Total cartera</b></td>
-        <td style="text-align:center"><b>${vTodas.length}</b></td>
-        <td style="text-align:center"><b>${Object.values(finMap).reduce((a,b)=>a+b.cobradas,0)}</b></td>
-        <td style="text-align:center"><b>${Object.values(finMap).reduce((a,b)=>a+b.total-b.cobradas,0)}</b></td>
-        <td class="r"><b>${cobradoTotal?fFull(cobradoTotal):'—'}</b></td>
-        <td class="r"><b>${pendGlobal?fFull(pendGlobal):'—'}</b></td>
+        <td style="text-align:center;font-family:var(--mono)"><b>${vTodas.length}</b></td>
+        <td style="text-align:center;font-family:var(--mono)"><b>${Object.values(finMap).reduce((a,b)=>a+b.desembolsado,0)}</b></td>
+        <td style="text-align:center;font-family:var(--mono)"><b>${Object.values(finMap).reduce((a,b)=>a+b.total-b.desembolsado,0)}</b></td>
+        <td style="text-align:center;font-family:var(--mono)"><b>${cobradoTotal?fFull(cobradoTotal):'—'}</b></td>
+        <td style="text-align:center;font-family:var(--mono)"><b>${pendGlobal?fFull(pendGlobal):'—'}</b></td>
         <td style="text-align:center"><b>${montoTotal?Math.min(Math.round(cobradoTotal/montoTotal*100),100):0}%</b></td>
       </tr></tfoot>
     </table>
   </div>
-  <div class="section-title" style="margin-top:26px"><h2>Gestión de cobros</h2><div class="hint">Programado del mes · desembolsos registrados</div></div>
-  <div class="grid-2-1">
-    <div class="card">
-      <div class="card-hd"><div><h3>Programado por cobrar</h3><p>Cuotas programadas en el CRM</p></div></div>
-      ${schedHtml(v)}
-    </div>
-    <div class="card">
-      <div class="card-hd"><div><h3>Desembolsos · últimas operaciones</h3><p>Abonos recibidos de bancos y clientes</p></div></div>
-      <div class="dis">${disRows}</div>
-    </div>
-  </div>
+  <div class="section-title" style="margin-top:26px"><h2>Gestión de Cobros</h2><div class="hint">Desembolsos bancarios · Monday.com</div></div>
+  <div id="monday-cobros-wrap"><div style="padding:20px;color:var(--ink-4);font-size:13px">Cargando datos de Monday...</div></div>
   <div class="section-title" style="margin-top:26px"><h2>Seguimiento de liberación de dinero</h2><div class="hint">Etapas del proceso bancario hasta el abono al proyecto</div></div>
   <div class="card"><div class="card-hd"><div><h3>Expedientes en trámite</h3><p>5 etapas · Separación → Minuta → Tasación → Aprobación → Desembolso</p></div></div>${libStepsHtml()}</div>`;
+  renderMondayCobros();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// MONDAY COBROS
+// ══════════════════════════════════════════════════════════════════════════
+function renderMondayCobros(){
+  const wrap = document.getElementById('monday-cobros-wrap');
+  if(!wrap) return;
+  const data = D.monday_cobros;
+  if(!data){ wrap.innerHTML='<div style="padding:20px;color:var(--ink-4);font-size:13px">Cargando datos de Monday...</div>'; return; }
+  if(data.error){ wrap.innerHTML=`<div style="padding:20px;color:var(--bad);font-size:13px">${data.error}</div>`; return; }
+
+  const _año  = document.getElementById('adm-año')?.value||'';
+  const _mes  = document.getElementById('adm-mes')?.value||'';
+  const _proj = (document.getElementById('adm-proj')?.value||'').toUpperCase();
+
+  const _MES_ES={'ENERO':'01','FEBRERO':'02','MARZO':'03','ABRIL':'04','MAYO':'05',
+    'JUNIO':'06','JULIO':'07','AGOSTO':'08','SEPTIEMBRE':'09','SETIEMBRE':'09',
+    'OCTUBRE':'10','NOVIEMBRE':'11','DICIEMBRE':'12'};
+  const _grupoToYYYYMM=g=>{
+    const parts=g.toUpperCase().replace(/[^A-Z0-9 ]/g,'').trim().split(/\s+/);
+    let mo='', yr='';
+    for(const p of parts){
+      if(_MES_ES[p]) mo=_MES_ES[p];
+      if(/^\d{4}$/.test(p)) yr=p;
+      if(/^\d{2}$/.test(p)) yr='20'+p;
+    }
+    return (yr&&mo) ? `${yr}-${mo}` : null;
+  };
+  const _grupoMatch=g=>{
+    const ym=_grupoToYYYYMM(g);
+    if(!ym) return false;
+    if(_año&&_mes) return ym===`${_año}-${_mes}`;
+    if(_año)       return ym.startsWith(_año);
+    return true;
+  };
+
+  const boards = _proj
+    ? data.filter(b=>normStr(b.label).replace(/\s/g,'').includes(normStr(_proj).replace(/\s/g,'')))
+    : data;
+
+  const _ST_COLORS={
+    'desembolsado': '#16a34a',
+    'listo':        '#16a34a',
+    'en proceso':   '#f97316',
+    'riesgos':      '#ef4444',
+    'enviando doc': '#3b82f6',
+    'banco contacta':'#8b5cf6',
+    'proper':       '#0ea5e9',
+    'inm contacta': '#14b8a6',
+    'caida':        '#dc2626',
+    'caída':        '#dc2626',
+    'no ingresado': '#94a3b8',
+  };
+  const _stColor=st=>_ST_COLORS[st.toLowerCase().trim()]||'#94a3b8';
+  const _toOracion=st=>st.charAt(0).toUpperCase()+st.slice(1).toLowerCase();
+  const fMon = v => v==null||v===0?'—':'S/ '+v.toLocaleString('es-PE',{minimumFractionDigits:0,maximumFractionDigits:0});
+  const fDol = v => v==null||v===0?'—':'$ '+v.toLocaleString('es-PE',{minimumFractionDigits:0,maximumFractionDigits:0});
+
+  const cards = boards.map(board=>{
+    const items = board.items.filter(i=>{
+      if(!i.status) return false;
+      if(!_año&&!_mes) return true;
+      return _grupoMatch(i.grupo||'');
+    });
+
+    const byStatus = {};
+    items.forEach(i=>{
+      const st = i.status.trim();
+      if(!byStatus[st]) byStatus[st]={count:0,soles:0,dol:0};
+      byStatus[st].count++;
+      byStatus[st].soles += i.soles||0;
+      byStatus[st].dol   += i.dolares||0;
+    });
+
+    const rows = Object.entries(byStatus)
+      .sort((a,b)=>b[1].count-a[1].count)
+      .map(([st,d])=>{
+        const color=_stColor(st);
+        return `<tr>
+          <td style="padding:10px 14px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="width:10px;height:10px;border-radius:2px;background:${color};flex-shrink:0"></span>
+              <span style="font-size:13px;color:var(--ink);font-weight:500">${_toOracion(st)}</span>
+            </div>
+          </td>
+          <td style="text-align:center;font-family:var(--mono);font-size:14px;font-weight:700;color:var(--ink)">${d.count}</td>
+          <td style="text-align:center;font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink)">${fMon(d.soles)}</td>
+          <td style="text-align:center;font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink)">${board.has_dolares?fDol(d.dol):'—'}</td>
+        </tr>`;
+      }).join('');
+
+    const totSoles = items.reduce((a,i)=>a+(i.soles||0),0);
+    const totDol   = items.reduce((a,i)=>a+(i.dolares||0),0);
+    const totCount = items.length;
+
+    return `<div class="card" style="margin-bottom:16px">
+      <div class="card-hd"><div><h3>${board.label}</h3><p>${totCount} registro${totCount!==1?'s':''} · ${_año&&_mes?['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][+_mes]+' '+_año:_año||'todos los períodos'}</p></div></div>
+      ${rows?`<table class="tbl" style="table-layout:fixed;width:100%">
+        <thead><tr>
+          <th style="width:28%">Estado</th>
+          <th style="text-align:center;width:12%">Ítems</th>
+          <th style="text-align:center;width:30%">Monto S/</th>
+          <th style="text-align:center;width:30%">Monto $</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr>
+          <td><b>Total</b></td>
+          <td style="text-align:center;font-family:var(--mono)"><b>${totCount}</b></td>
+          <td style="text-align:center;font-family:var(--mono)"><b>${totSoles?fMon(totSoles):'—'}</b></td>
+          <td style="text-align:center;font-family:var(--mono)"><b>${board.has_dolares&&totDol?fDol(totDol):'—'}</b></td>
+        </tr></tfoot>
+      </table>`:'<div style="padding:20px;text-align:center;color:var(--ink-4);font-size:13px">Sin desembolsos en este período</div>'}
+    </div>`;
+  }).join('');
+
+  wrap.innerHTML = cards || '<div style="padding:20px;color:var(--ink-4)">Sin datos</div>';
 }
 
 // ══════════════════════════════════════════════════════════════════════════
