@@ -2,11 +2,13 @@ import os, io, re, requests, math, time
 from datetime import datetime
 from flask import Flask, jsonify, render_template, request
 from apscheduler.schedulers.background import BackgroundScheduler
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 import pandas as pd
 import pytz
-
-load_dotenv()
 
 app  = Flask(__name__)
 LIMA = pytz.timezone("America/Lima")

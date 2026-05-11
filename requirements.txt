@@ -5,3 +5,4 @@ requests>=2.31
 apscheduler>=3.10,<4.0
 pytz>=2024.1
 openpyxl>=3.1
+python-dotenv>=1.0
