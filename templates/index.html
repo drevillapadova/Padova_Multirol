@@ -766,17 +766,65 @@ function schedHtml(ventas){
   return `<div class="sched"><div class="sched-sum"><div><small>Total ventas</small><b>${fN(ventas.length)} und.</b></div><div><small>Monto total</small><b>${fM(tot)}</b></div><div><small>Ticket prom.</small><b>${ventas.length?fM(tot/ventas.length):'—'}</b></div></div>${items||'<div style="color:var(--ink-4);font-size:12px;padding:12px">Sin registros</div>'}</div>`;
 }
 
-function libStepsHtml(){
-  const STEPS=['Separación','Minuta','Tasación','Aprobación','Desembolso'];
-  const html=PROJS.map(p=>{
-    const vp=getVentas(p),sp=getSeps(p);
-    if(!vp.length&&!sp.length)return'';
-    const etapa=vp.length>0?4:1;
-    const steps=STEPS.map((s,i)=>`<div class="step ${i<etapa?'done':i===etapa?'curr':''}">${s}<small>${i<etapa?'✓':i===etapa?'▶':'—'}</small></div>`).join('');
-    const mp=vp.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
-    return `<div class="lib-row"><div class="lib-head"><div><b>${PLBL[p]}</b><small>${vp.length} vendidas · ${sp.length} en separación</small></div><div class="amt">${fM(mp)}<small>monto ventas</small></div></div><div class="lib-steps">${steps}</div></div>`;
-  }).filter(Boolean).join('');
-  return html||'<div style="padding:14px 18px;color:var(--ink-4);font-size:12px">Sin datos de ventas o separaciones</div>';
+function libStepsHtml(ventas, ingDep){
+  const STAGES=['Separación','Cuota Inicial','Saldo Financiar','Bono'];
+  const COLORS=['#f97316','#3b82f6','#22c55e','#8b5cf6'];
+
+  // Tipo_Cuota → índice de stage (mayor = más avanzado)
+  const tcIdx=tc=>{
+    const t=String(tc||'').trim().toLowerCase();
+    if(t.includes('bono')) return 3;
+    if(t.includes('saldo')) return 2;
+    if(t.includes('cuota')) return 1;
+    if(t.includes('separac')) return 0;
+    return -1;
+  };
+
+  // DNI → stage más avanzado
+  const dniStage={};
+  ingDep.forEach(r=>{
+    const dni=String(r.Nro_Documento_Identidad||'').trim().toUpperCase();
+    if(!dni) return;
+    const idx=tcIdx(r.Tipo_Cuota);
+    if(idx===-1) return;
+    if(dniStage[dni]===undefined||idx>dniStage[dni]) dniStage[dni]=idx;
+  });
+
+  // Contar DNIs de las ventas filtradas por stage alcanzado (acumulativo: stage >= i)
+  const dniMaxStage={};
+  ventas.forEach(r=>{
+    const dni=String(r.NroDocumentoTitular||'').trim().toUpperCase();
+    if(!dni) return;
+    const idx=dniStage[dni];
+    if(idx!==undefined) dniMaxStage[dni]=idx;
+  });
+  const maxStageValues=Object.values(dniMaxStage);
+  const counts=STAGES.map((_,i)=>maxStageValues.filter(s=>s>=i).length);
+
+  const top=counts[0]||1;
+
+  // Ocultar Bono si tiene 0
+  const rows=STAGES.map((s,i)=>{
+    const n=counts[i];
+    if(!n&&i===3) return '';
+    const pct=Math.round(n/top*100);
+    const conv=i>0&&counts[i-1]?Math.round(n/counts[i-1]*100):100;
+    return `<div style="padding:10px 18px 6px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span style="width:10px;height:10px;border-radius:2px;background:${COLORS[i]};flex-shrink:0;display:inline-block"></span>
+          <span style="font-size:12px;font-weight:600;color:var(--ink)">${s}</span>
+          ${i>0?`<span style="font-size:10px;color:var(--ink-4);margin-left:2px">▾ ${conv}% conv.</span>`:''}
+        </div>
+        <span style="font-family:var(--mono);font-size:15px;font-weight:700;color:var(--ink)">${n}</span>
+      </div>
+      <div style="display:flex;justify-content:center">
+        <div style="height:10px;width:${pct}%;background:${COLORS[i]};border-radius:3px;opacity:0.85;transition:width .3s"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return rows||'<div style="padding:14px 18px;color:var(--ink-4);font-size:12px">Sin pagos registrados en ingreso depósito</div>';
 }
 
 function tRespuestaHtml(ventas){
@@ -1957,7 +2005,7 @@ function renderAdmVentas(){
   // Cruzar ventas: EstadoSF="DESEMBOLSADO" determina si desembolsó; tipo desde ingDep o fallback ventas
   const finMap={};
   const _af=t=>{if(!finMap[t])finMap[t]={total:0,desembolsado:0,montoVenta:0,montoCobrado:0};};
-  vTodas.forEach(r=>{
+  v.forEach(r=>{
     const dni=normDNI(r.NroDocumentoTitular);
     const mVenta=Number(r.PrecioVentaSoles||r.PrecioVenta||0);
     const tipo=(dni&&ingDepTipoByDNI[dni])?ingDepTipoByDNI[dni]:((String(r.TipoFinanciamiento||'').split('/')[0].trim())||'Sin dato');
@@ -2015,7 +2063,7 @@ function renderAdmVentas(){
       <tbody>${finRows||'<tr><td colspan="7" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de financiamiento en el CRM</td></tr>'}</tbody>
       <tfoot><tr>
         <td><b>Total cartera</b></td>
-        <td style="text-align:center;font-family:var(--mono)"><b>${vTodas.length}</b></td>
+        <td style="text-align:center;font-family:var(--mono)"><b>${v.length}</b></td>
         <td style="text-align:center;font-family:var(--mono)"><b>${Object.values(finMap).reduce((a,b)=>a+b.desembolsado,0)}</b></td>
         <td style="text-align:center;font-family:var(--mono)"><b>${Object.values(finMap).reduce((a,b)=>a+b.total-b.desembolsado,0)}</b></td>
         <td style="text-align:center;font-family:var(--mono)"><b>${cobradoTotal?fFull(cobradoTotal):'—'}</b></td>
@@ -2024,10 +2072,16 @@ function renderAdmVentas(){
       </tr></tfoot>
     </table>
   </div>
-  <div class="section-title" style="margin-top:26px"><h2>Gestión de Cobros</h2><div class="hint">Desembolsos bancarios · Monday.com</div></div>
-  <div id="monday-cobros-wrap"><div style="padding:20px;color:var(--ink-4);font-size:13px">Cargando datos de Monday...</div></div>
-  <div class="section-title" style="margin-top:26px"><h2>Seguimiento de liberación de dinero</h2><div class="hint">Etapas del proceso bancario hasta el abono al proyecto</div></div>
-  <div class="card"><div class="card-hd"><div><h3>Expedientes en trámite</h3><p>5 etapas · Separación → Minuta → Tasación → Aprobación → Desembolso</p></div></div>${libStepsHtml()}</div>`;
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:26px;align-items:start">
+    <div>
+      <div class="section-title" style="margin-top:0"><h2>Gestión de Cobros</h2><div class="hint">Desembolsos bancarios · Monday.com</div></div>
+      <div id="monday-cobros-wrap"><div style="padding:20px;color:var(--ink-4);font-size:13px">Cargando datos de Monday...</div></div>
+    </div>
+    <div>
+      <div class="section-title" style="margin-top:0"><h2>Seguimiento de liberación de dinero</h2><div class="hint">Etapas del proceso bancario hasta el abono al proyecto</div></div>
+      <div class="card"><div class="card-hd"><div><h3>Expedientes en trámite</h3><p>Etapa más avanzada por expediente · según Tipo_Cuota en ingreso depósito</p></div></div>${libStepsHtml(v,ingDep)}</div>
+    </div>
+  </div>`;
   renderMondayCobros();
 }
 
