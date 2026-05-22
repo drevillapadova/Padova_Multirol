@@ -270,7 +270,7 @@ COLS_VENTAS = [
 ]
 
 COLS_STOCK = [
-    'Proyecto','Etapa','TipoInmueble','NroInmuebleActual','NroPiso','Vista',
+    'Proyecto','Etapa','Edificio','TipoInmueble','NroInmuebleActual','NroPiso','Vista',
     'Estado','Moneda','PrecioVenta','PrecioLista','PrecioVentaSoles',
     'AreaTechada','AreaLibre','NroDormitorios','FechaSepDefinitiva','PrecioM2',
     'NroDocumento','Nombres','Correo','Distrito','NivelInteres','ComoSeEntero',
