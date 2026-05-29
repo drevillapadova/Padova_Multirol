@@ -1,6 +1,7 @@
 import time
 import os
 import glob
+import json
 import shutil
 import requests
 import pandas as pd
@@ -23,64 +24,86 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 # ============================================================
-# TIPO DE CAMBIO - BCRP
+# TIPO DE CAMBIO - eApi Perú (SBS/SUNAT venta) + BCRP respaldo
 # ============================================================
 
 _TC_CACHE = {}
-_TC_BCRP_CARGADO = False
 
-def precargar_tc_bcrp(fecha_inicio="2024-01-01"):
-    """Carga todos los TCs desde fecha_inicio hasta hoy en UNA sola llamada."""
-    global _TC_BCRP_CARGADO
-    if _TC_BCRP_CARGADO:
-        return
-    TC_RESPALDO = 3.75
-    fecha_fin = datetime.now().strftime("%Y-%m-%d")
+
+def _fetch_tc_eapi(fecha_str):
+    """TC venta via eApi Perú (SBS). Retorna float o None.
+    Respuesta: {"fecha":"...","sunat":3.417,"compra":3.413,"venta":3.421}
+    """
     try:
-        url = f"https://estadisticas.bcrp.gob.pe/estadisticas/series/api/PD04637PD/json/{fecha_inicio}/{fecha_fin}/ing"
-        r = requests.get(url, timeout=15)
-        if not r.text.strip():
-            raise ValueError("Respuesta vacía del BCRP")
+        url = f"https://free.e-api.net.pe/tipo-cambio/{fecha_str}.json"
+        r = requests.get(url, timeout=10)
         data = r.json()
+        if data.get("venta"):
+            return float(data["venta"])
+    except Exception:
+        pass
+    return None
+
+
+def _fetch_tc_bcrp(fecha_str):
+    """TC via BCRP como respaldo. Retorna float o None."""
+    try:
+        url = f"https://estadisticas.bcrp.gob.pe/estadisticas/series/api/PD04637PD/json/{fecha_str}/{fecha_str}/ing"
+        r = requests.get(url, timeout=10)
+        if not r.text.strip():
+            return None
+        data = json.loads(r.content.decode('utf-8-sig'))
         periodos = data.get("periods", [])
-        ultimo_tc = TC_RESPALDO
-        for p in periodos:
-            try:
-                fecha_p = p.get("name", "")
-                tc_val  = float(p["values"][0])
-                # BCRP devuelve fechas como "22-Ene-24", normalizar a YYYY-MM-DD
-                fecha_dt = datetime.strptime(fecha_p, "%d-%b-%y") if "-" in fecha_p else None
-                if fecha_dt:
-                    _TC_CACHE[fecha_dt.strftime("%Y-%m-%d")] = tc_val
-                    ultimo_tc = tc_val
-            except Exception:
-                pass
-        print(f"   -> [TC] BCRP precargado: {len(_TC_CACHE)} fechas, último TC: S/ {ultimo_tc}")
-    except Exception as e:
-        print(f"   -> [TC] BCRP no disponible ({e}), usando respaldo S/ {TC_RESPALDO} para todas las fechas")
-    _TC_BCRP_CARGADO = True
+        if periodos and periodos[0].get("values"):
+            return float(periodos[0]["values"][0])
+    except Exception:
+        pass
+    return None
 
 
 def get_tipo_cambio(fecha=None):
+    """
+    TC USD/PEN venta (SBS = SUNAT). Fuente: eApi Perú → BCRP → S/ 3.75.
+    Cache por fecha, retrocede hasta 8 días por feriados/fines de semana.
+    """
     TC_RESPALDO = 3.75
+
     import pandas as _pd
     if fecha is None or (hasattr(_pd, 'isnull') and _pd.isnull(fecha)):
         fecha_dt = datetime.now()
     elif isinstance(fecha, str):
-        try: fecha_dt = datetime.strptime(fecha[:10], "%Y-%m-%d")
-        except: fecha_dt = datetime.now()
+        try:
+            fecha_dt = datetime.strptime(fecha[:10], "%Y-%m-%d")
+        except:
+            fecha_dt = datetime.now()
     elif hasattr(fecha, 'strftime'):
-        try: fecha_dt = fecha.to_pydatetime() if hasattr(fecha, 'to_pydatetime') else fecha
-        except: fecha_dt = datetime.now()
+        try:
+            fecha_dt = fecha.to_pydatetime() if hasattr(fecha, 'to_pydatetime') else fecha
+        except:
+            fecha_dt = datetime.now()
     else:
         fecha_dt = datetime.now()
 
-    for dias in range(0, 8):
-        key = (fecha_dt - timedelta(days=dias)).strftime("%Y-%m-%d")
-        if key in _TC_CACHE:
-            return _TC_CACHE[key]
+    fecha_str = fecha_dt.strftime("%Y-%m-%d")
 
-    _TC_CACHE[fecha_dt.strftime("%Y-%m-%d")] = TC_RESPALDO
+    if fecha_str in _TC_CACHE:
+        return _TC_CACHE[fecha_str]
+
+    for dias_atras in range(0, 8):
+        f = (fecha_dt - timedelta(days=dias_atras)).strftime("%Y-%m-%d")
+        if f in _TC_CACHE:
+            _TC_CACHE[fecha_str] = _TC_CACHE[f]
+            return _TC_CACHE[f]
+        tc_raw = _fetch_tc_eapi(f) or _fetch_tc_bcrp(f)
+        if tc_raw:
+            tc = round(tc_raw, 2)
+            print(f"   -> [TC] {fecha_str}: S/ {tc} (SBS/SUNAT, {'mismo día' if dias_atras == 0 else f'{dias_atras}d antes'})")
+            _TC_CACHE[fecha_str] = tc
+            _TC_CACHE[f] = tc
+            return tc
+
+    print(f"   -> [TC] Sin datos para {fecha_str}, usando respaldo: S/ {TC_RESPALDO}")
+    _TC_CACHE[fecha_str] = TC_RESPALDO
     return TC_RESPALDO
 
 
@@ -261,7 +284,7 @@ COLS_VENTAS = [
     'ComoSeEntero','NivelInteres','PerfilCrediticio',
     'TipoFinanciamiento','EntidadFinanciamiento',
     'Vendedor','Puesto','Proyecto','Etapa',
-    'TipoInmueble','NroInmueble','NroPiso',
+    'TipoInmueble','Modelo','NroInmueble','NroPiso',
     'PrecioBase','PrecioVenta','TipoMoneda','PrecioVentaSoles',
     'MontoCuotaInicial','MontoPagadoCI','Estado_CI',
     'MontoFinanciamiento','MontoDesembolsado','PorcetanjePagado_SF','EstadoSF',
@@ -270,7 +293,7 @@ COLS_VENTAS = [
 ]
 
 COLS_STOCK = [
-    'Proyecto','Etapa','Edificio','TipoInmueble','NroInmuebleActual','NroPiso','Vista',
+    'Proyecto','Etapa','Edificio','TipoInmueble','Modelo','NroInmuebleActual','NroPiso','Vista',
     'Estado','Moneda','PrecioVenta','PrecioLista','PrecioVentaSoles',
     'AreaTechada','AreaLibre','NroDormitorios','FechaSepDefinitiva','PrecioM2',
     'NroDocumento','Nombres','Correo','Distrito','NivelInteres','ComoSeEntero',
@@ -827,7 +850,6 @@ def normalizar_ventas_unpivot(df):
 
 def process_ventas_data(df_stock=None):
     print("\n>> [TRANSFORM VENTAS] Consolidando...")
-    precargar_tc_bcrp("2023-01-01")
     dataframes = {}
     for año in AÑOS_VENTAS:
         ruta = None

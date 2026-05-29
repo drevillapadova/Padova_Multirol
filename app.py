@@ -653,6 +653,49 @@ def api_refresh():
     return jsonify({"ok": True, "updated_at": _cache["updated_at"]})
 
 
+@app.route("/api/analizar_ia", methods=["POST"])
+def api_analizar_ia():
+    try:
+        import anthropic
+        data = request.get_json(force=True)
+        panel     = data.get("panel","director")
+        periodo_a = data.get("periodo_a","")
+        periodo_b = data.get("periodo_b")
+        ventas_a  = data.get("ventas_a",0)
+        ventas_b  = data.get("ventas_b")
+        monto_a   = data.get("monto_a",0)
+        proyecto  = data.get("proyecto","Todos")
+
+        comp_txt = ""
+        if periodo_b and ventas_b is not None:
+            delta = ventas_a - ventas_b
+            comp_txt = f"\nComparación: Período B ({periodo_b}): {ventas_b} ventas. Δ = {'+' if delta>=0 else ''}{delta} unidades."
+
+        prompt = f"""Eres analista comercial inmobiliario. Analiza los siguientes datos del dashboard y entrega un resumen ejecutivo conciso en español.
+
+Panel: {panel.upper()}
+Proyecto: {proyecto}
+Período A: {periodo_a} → {ventas_a} ventas · S/ {monto_a:,}{comp_txt}
+
+Entrega:
+1. Observación principal (1-2 oraciones)
+2. Punto positivo destacado
+3. Riesgo o alerta (si aplica)
+4. Recomendación concreta
+
+Sé directo y práctico. Máximo 150 palabras."""
+
+        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY",""))
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=400,
+            messages=[{"role":"user","content":prompt}]
+        )
+        return jsonify({"analisis": msg.content[0].text})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ══════════════════════════════════════════════════════════════
 # ARRANQUE
 # ══════════════════════════════════════════════════════════════
