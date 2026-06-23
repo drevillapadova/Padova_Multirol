@@ -306,12 +306,13 @@ COLS_PROSPECTOS = [
     'FechaRegistro','Fecha_PrimeraAccion','Cant_Acciones',
     'Estado','SubEstado','Responsable','Motivo_Cerrado_Actual',
     'TiempoRespuesta_min','LeadUnicoxMesProyecto',
+    'FechaCitado','Descrip_UltimaAccion',
 ]
 
 COLS_VISITAS = [
     'Proyecto','Etapa','TipoInmueble','NombresTitular','NroDocTitular',
     'CorreoElectronico','Distrito_Procedencia','ComoSeEntero','Vendedor',
-    'FechaVisita',
+    'FechaVisita','Descrip_UltimaAccion',
 ]
 
 

@@ -666,12 +666,53 @@ def api_analizar_ia():
         monto_a   = data.get("monto_a",0)
         proyecto  = data.get("proyecto","Todos")
 
-        comp_txt = ""
-        if periodo_b and ventas_b is not None:
-            delta = ventas_a - ventas_b
-            comp_txt = f"\nComparación: Período B ({periodo_b}): {ventas_b} ventas. Δ = {'+' if delta>=0 else ''}{delta} unidades."
+        if panel == "funnel":
+            leads      = data.get("leads_total", 0)
+            leads_dni  = data.get("leads_dni", 0)
+            leads_dig  = data.get("leads_digital", 0)
+            prosp      = data.get("prospectos", 0)
+            visitas    = data.get("visitas", 0)
+            seps       = data.get("separaciones", 0)
+            ventas     = data.get("ventas", 0)
+            med_tr     = data.get("tiempo_respuesta_median")
+            canal_top  = data.get("canal_top", "—")
+            asesor_top = data.get("asesor_top", "—")
+            conv_rate  = round(ventas / leads * 100, 1) if leads else 0
+            comp_txt = ""
+            if periodo_b and data.get("leads_total_b") is not None:
+                lb = data.get("leads_total_b", 0)
+                vb = data.get("ventas_b", 0)
+                comp_txt = f"\nComparación vs {periodo_b}: {lb} leads · {vb} ventas."
+            prompt = f"""Eres analista de marketing inmobiliario. Analiza el funnel de conversión y entrega un resumen ejecutivo conciso en español.
 
-        prompt = f"""Eres analista comercial inmobiliario. Analiza los siguientes datos del dashboard y entrega un resumen ejecutivo conciso en español.
+Proyecto: {proyecto} | Período: {periodo_a}{comp_txt}
+
+MÉTRICAS DEL FUNNEL:
+- Leads únicos totales: {leads}
+- Leads con DNI: {leads_dni} ({round(leads_dni/leads*100) if leads else 0}%)
+- Leads digitales: {leads_dig} ({round(leads_dig/leads*100) if leads else 0}%)
+- Prospectos contactados: {prosp} ({round(prosp/leads*100) if leads else 0}% de leads)
+- Visitas realizadas: {visitas} ({round(visitas/prosp*100) if prosp else 0}% de contactados)
+- Separaciones: {seps} ({round(seps/visitas*100) if visitas else 0}% de visitas)
+- Ventas (dptos): {ventas} ({round(ventas/seps*100) if seps else 0}% de separaciones)
+- Tasa de conversión global: {conv_rate}%
+- Tiempo de respuesta mediana: {f"{med_tr} min" if med_tr else "sin datos"}
+- Canal líder: {canal_top}
+- Asesor destacado: {asesor_top}
+
+Entrega:
+1. Observación principal del funnel (1-2 oraciones)
+2. Mayor cuello de botella identificado y su impacto
+3. Punto positivo destacado
+4. 2 recomendaciones concretas y accionables
+
+Sé directo y práctico. Máximo 200 palabras."""
+        else:
+            comp_txt = ""
+            if periodo_b and ventas_b is not None:
+                delta = ventas_a - ventas_b
+                comp_txt = f"\nComparación: Período B ({periodo_b}): {ventas_b} ventas. Δ = {'+' if delta>=0 else ''}{delta} unidades."
+            prompt = f"""Eres analista comercial inmobiliario. Analiza los siguientes datos del dashboard y entrega un resumen ejecutivo conciso en español.
 
 Panel: {panel.upper()}
 Proyecto: {proyecto}
@@ -688,10 +729,41 @@ Sé directo y práctico. Máximo 150 palabras."""
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY",""))
         msg = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=400,
+            max_tokens=500,
             messages=[{"role":"user","content":prompt}]
         )
         return jsonify({"analisis": msg.content[0].text})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/chat_ia", methods=["POST"])
+def api_chat_ia():
+    try:
+        import anthropic
+        data     = request.get_json(force=True)
+        context  = data.get("context", "")
+        history  = data.get("history", [])
+        question = data.get("question", "")
+
+        system = f"""Eres un analista de marketing inmobiliario experto. El usuario te hace preguntas sobre los datos de su funnel de conversión.
+
+CONTEXTO DE LOS DATOS ACTUALES:
+{context}
+
+Responde en español, de forma concisa y práctica. Cuando des números, sé preciso. Si no tienes suficientes datos para responder algo, dilo claramente."""
+
+        messages = [{"role": h["role"], "content": h["content"]} for h in history[-10:]]
+        messages.append({"role": "user", "content": question})
+
+        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY",""))
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=400,
+            system=system,
+            messages=messages
+        )
+        return jsonify({"reply": msg.content[0].text})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
