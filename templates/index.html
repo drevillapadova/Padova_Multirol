@@ -363,7 +363,7 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 .stmatrix .dotHd{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}
 .cellbg{border-radius:5px;padding:2px 7px;display:inline-block;min-width:34px;text-align:center}
 
-/* ── LIST / CHAN-ROW (Jefe de Marketing) ── */
+/* ── LIST / CHAN-ROW ── */
 .list{padding:6px 0 6px}
 .list-row{display:grid;grid-template-columns:14px 1fr auto auto;gap:10px;align-items:center;padding:10px 18px;border-bottom:1px solid var(--line-2)}
 .list-row:last-child{border-bottom:none}
@@ -585,6 +585,28 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 .delta.up{color:var(--ok)}
 .delta.down{color:var(--bad)}
 .delta.neutral{color:var(--ink-4)}
+/* ── GLOBAL BRAND DESIGN ── */
+body,.app,.main,.panel,.sidebar{font-family:'Plus Jakarta Sans',sans-serif}
+.page-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;color:#0A1628;letter-spacing:-.02em}
+.page-sub{font-family:'Plus Jakarta Sans',sans-serif;color:#6B7280;font-size:12px}
+.crumbs{font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;color:#6B7280}
+.topbar{border-bottom:1px solid #E5E7EB;background:#fff}
+.kpi-row .kpi{border:1px solid #E5E7EB;border-top:3px solid #0D7377;border-radius:10px;background:#fff;padding:10px 14px;box-shadow:0 1px 3px rgba(10,22,40,.04)}
+.kpi-row .kpi .lbl{font-family:'Plus Jakarta Sans',sans-serif;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#6B7280;margin-bottom:4px}
+.kpi-row .kpi .val{font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:800;color:#0A1628;letter-spacing:-.02em;line-height:1}
+.kpi-row .kpi .unit{font-size:11px;font-weight:500;color:#6B7280}
+.kpi-row .kpi .sub{font-family:'Plus Jakarta Sans',sans-serif;font-size:10px;color:#6B7280;margin-top:3px}
+.card{border:1px solid #E5E7EB;border-radius:12px;background:#fff;box-shadow:0 1px 4px rgba(10,22,40,.04)}
+.card-hd{padding:14px 18px;border-bottom:1px solid #F3F4F6}
+.card-hd h3{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;color:#0A1628;font-size:13px;text-transform:uppercase;letter-spacing:.04em;margin:0 0 2px}
+.card-hd p{font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;color:#6B7280;margin:0}
+.section-title{display:flex;align-items:baseline;gap:10px;margin:20px 0 10px;padding:0 20px}
+.section-title h2{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;color:#0A1628;font-size:13px;letter-spacing:.06em;text-transform:uppercase;margin:0}
+.section-title .hint{font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;color:#6B7280;margin:0}
+.tab-bar .tab-btn{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:12px}
+table th{font-family:'Plus Jakarta Sans',sans-serif;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#6B7280;background:#FAFAFA}
+table td{font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;color:#0A1628}
+.chip,.chip-sel{font-family:'Plus Jakarta Sans',sans-serif}
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
@@ -610,12 +632,9 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
     </button>
   </div>
   <div class="nav-group">Roles</div>
-  <div class="nav-item active" onclick="nav('director',this)" title="Director Comercial"><span class="dot"></span><span class="nav-lbl">Director Comercial</span></div>
-  <div class="nav-item" onclick="nav('jventas',this)" title="Jefe de Ventas"><span class="dot"></span><span class="nav-lbl">Jefe de Ventas</span></div>
-  <div class="nav-item" onclick="nav('jmkt',this)" title="Jefe de Marketing"><span class="dot"></span><span class="nav-lbl">Jefe de Marketing</span></div>
+  <div class="nav-item active" onclick="nav('director',this)" title="Comercial"><span class="dot"></span><span class="nav-lbl">Comercial</span></div>
   <div class="nav-item" onclick="nav('admventas',this)" title="Adm. de Ventas"><span class="dot"></span><span class="nav-lbl">Adm. de Ventas</span></div>
-  <div class="nav-item" onclick="nav('mktproy',this)" title="Marketing del Proyecto"><span class="dot"></span><span class="nav-lbl">Marketing del Proyecto</span></div>
-  <div class="nav-item" onclick="nav('funnelmkt',this)" title="Funnel Marketing"><span class="dot"></span><span class="nav-lbl">Funnel Marketing</span></div>
+  <div class="nav-item" onclick="nav('funnelmkt',this)" title="Marketing"><span class="dot"></span><span class="nav-lbl">Marketing</span></div>
   <div class="nav-item" onclick="nav('stockproy',this)" title="Stock Proyecto"><span class="dot"></span><span class="nav-lbl">Stock Proyecto</span></div>
 </aside>
 
@@ -624,7 +643,7 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 <div class="panel active" id="panel-director">
   <div class="topbar">
     <div>
-      <div class="crumbs">Dashboard <span>›</span><b>Director Comercial</b></div>
+      <div class="crumbs">Dashboard <span>›</span><b>Comercial</b></div>
       <h1 class="page-title">Resumen comercial · Todos los proyectos</h1>
       <div class="page-sub" id="dir-sub">Cargando...</div>
     </div>
@@ -654,58 +673,6 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
     <button class="tab-btn tab-ia" id="dir-tab-ia" onclick="setDirTab('ia',this)">✦ Análisis IA</button>
   </div>
   <div id="dir-content"><div class="loading">Cargando...</div></div>
-</div>
-
-<!-- ═══════════ JEFE DE VENTAS ═══════════ -->
-<div class="panel" id="panel-jventas">
-  <div class="topbar">
-    <div>
-      <div class="crumbs">Dashboard <span>›</span><b>Jefe de Ventas</b></div>
-      <h1 class="page-title">Desempeño del equipo de ventas</h1>
-      <div class="page-sub" id="jv-sub">Cargando...</div>
-    </div>
-    <div class="toolbar">
-      <label class="chip-sel accent" style="max-width:160px"><span style="font-family:var(--mono);font-size:11px">◉</span>
-        <select id="jv-vend" onchange="renderJVentas()" style="max-width:130px"><option value="">Asesor: Todos</option></select>
-      </label>
-      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">▭</span>
-        <select id="jv-año" onchange="renderJVentas()"><option value="">Año</option><option selected>2026</option><option>2025</option><option>2024</option><option>2023</option></select>
-      </label>
-      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">▭</span>
-        <select id="jv-mes" onchange="renderJVentas()"><option value="">Mes</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Setiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
-      </label>
-      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
-        <select id="jv-proj" onchange="renderJVentas()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO 4</option><option>LOMAS DE CARABAYLLO 5</option><option>DOMINGO ORUE</option></select>
-      </label>
-      <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
-    </div>
-  </div>
-  <div class="kpi-row kpi-4" id="jv-kpis"><div class="loading">Cargando datos...</div></div>
-  <div id="jv-content"><div class="loading">Cargando...</div></div>
-</div>
-
-<!-- ═══════════ JEFE DE MARKETING ═══════════ -->
-<div class="panel" id="panel-jmkt">
-  <div class="topbar">
-    <div>
-      <div class="crumbs">Dashboard <span>›</span><b>Jefe de Marketing</b></div>
-      <h1 class="page-title">Desempeño de marketing</h1>
-      <div class="page-sub" id="jmkt-sub">Cargando...</div>
-    </div>
-    <div class="toolbar">
-      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">▭</span>
-        <select id="jmkt-año" onchange="renderJMkt()"><option value="">Año</option><option selected>2026</option><option>2025</option><option>2024</option><option>2023</option></select>
-      </label>
-      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">▭</span>
-        <select id="jmkt-mes" onchange="renderJMkt()"><option value="">Mes</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Setiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
-      </label>
-      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
-        <select id="jmkt-proj" onchange="renderJMkt()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO 4</option><option>LOMAS DE CARABAYLLO 5</option><option>DOMINGO ORUE</option></select>
-      </label>
-      <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
-    </div>
-  </div>
-  <div id="jmkt-content"><div class="loading">Cargando...</div></div>
 </div>
 
 <!-- ═══════════ ADM. DE VENTAS ═══════════ -->
@@ -739,35 +706,11 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
   <div id="adm-content"><div class="loading">Cargando...</div></div>
 </div>
 
-<!-- ═══════════ MARKETING DEL PROYECTO ═══════════ -->
-<div class="panel" id="panel-mktproy">
-  <div class="topbar">
-    <div>
-      <div class="crumbs">Dashboard <span>›</span><b>Marketing del Proyecto</b></div>
-      <h1 class="page-title">Performance digital · Campañas</h1>
-      <div class="page-sub" id="mp-sub">Cargando...</div>
-    </div>
-    <div class="toolbar">
-      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">▭</span>
-        <select id="mp-año" onchange="renderMktProy()"><option value="">Año</option><option selected>2026</option><option>2025</option><option>2024</option><option>2023</option></select>
-      </label>
-      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">▭</span>
-        <select id="mp-mes" onchange="renderMktProy()"><option value="">Mes</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Setiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
-      </label>
-      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
-        <select id="mp-proj" onchange="renderMktProy()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO 4</option><option>LOMAS DE CARABAYLLO 5</option><option>DOMINGO ORUE</option></select>
-      </label>
-      <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
-    </div>
-  </div>
-  <div id="mp-content"><div class="loading">Cargando...</div></div>
-</div>
-
-<!-- ═══════════ FUNNEL MARKETING ═══════════ -->
+<!-- ═══════════ MARKETING ═══════════ -->
 <div class="panel" id="panel-funnelmkt">
   <div class="topbar">
     <div>
-      <div class="crumbs">Dashboard <span>›</span><b>Funnel Marketing</b></div>
+      <div class="crumbs">Dashboard <span>›</span><b>Marketing</b></div>
       <h1 class="page-title">Funnel de conversión · Marketing</h1>
       <div class="page-sub" id="fl-sub">Cargando...</div>
     </div>
@@ -1188,10 +1131,7 @@ function _schedNextRefresh(){
 
 function renderAll(){
   renderDirector();
-  renderJVentas();
-  renderJMkt();
   renderAdmVentas();
-  renderMktProy();
   renderFunnelMkt();
   renderStockProy();
   document.querySelectorAll('.page-sub').forEach(el=>{
@@ -1875,884 +1815,12 @@ async function generarAnalisisIA(panel){
   }catch(e){resEl.innerHTML='<span style="color:var(--bad)">Error al conectar con el servidor</span>';}
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// JEFE DE VENTAS
-// ══════════════════════════════════════════════════════════════════════════
-function renderJVentas(){
-  const proj = filtrarProj('jv');
-  const vend = document.getElementById('jv-vend')?.value||'';
-  const _año  = document.getElementById('jv-año')?.value||'';
-  const _mes  = document.getElementById('jv-mes')?.value||'';
-  let v = filtrarVentas('jv');
-  if(vend) v = v.filter(r=>String(r.Vendedor||'').trim()===vend);
-  v = v.filter(r=>normStr(r.TipoInmueble).includes('departamento'));
-  let sep = (D.stock||[]).filter(r=>String(r.FechaSepDefinitiva||'').trim()&&String(r.FechaSepDefinitiva||'')!=='nan');
-  if(proj)  sep=sep.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
-  if(_año)  sep=sep.filter(r=>{const f=String(r.FechaSepDefinitiva||'');return f.startsWith(_año)||f.slice(6,10)===_año;});
-  if(_mes)  sep=sep.filter(r=>{const f=String(r.FechaSepDefinitiva||'');return f.slice(5,7)===_mes||f.slice(3,5)===_mes;});
-  sep=sep.filter(r=>normStr(r.TipoInmueble).includes('departamento'));
-  const monto = v.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
-  const montoSep = sep.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||r.PrecioLista||0),0);
-  document.getElementById('jv-sub').textContent = 'Actualizado: '+D.updatedAt+' · Equipo de ventas';
-
-  const sel=document.getElementById('jv-vend');
-  if(sel){
-    const cur=sel.value;
-    const vends=[...new Set((D.ventas||[]).map(r=>String(r.Vendedor||'').trim()).filter(Boolean))]
-      .filter(vv=>ASESOR_MAP.some(a=>vv.toLowerCase().includes(a.pat)))
-      .sort((a,b)=>toShort(a).localeCompare(toShort(b),'es'));
-    sel.innerHTML='<option value="">Asesor: Todos</option>'+vends.map(vv=>`<option value="${vv}"${cur===vv?' selected':''}>${toShort(vv)}</option>`).join('');
-  }
-
-  document.getElementById('jv-kpis').innerHTML =
-    kpi('N° de ventas',`${fN(v.length)} <span class="unit">und.</span>`,'<span class="delta neutral">acumulado</span>')+
-    kpi('Monto de ventas',fFull(monto),'ventas confirmadas')+
-    kpi('Separaciones',`${fN(sep.length)} <span class="unit">und.</span>`,'en proceso')+
-    kpi('Monto separaciones',fFull(montoSep),'estimado separaciones');
-
-  // Prospectos filtrados por proyecto + año/mes de registro
-  const prosp=(D.prospectos||[]).filter(r=>{
-    if(proj&&!matchProj(r.Proyecto,proj))return false;
-    if(_año||_mes){
-      const fd=String(r.FechaRegistro||r.Fecha_PrimeraAccion||'');
-      if(_año&&!fd.includes(_año))return false;
-      if(_mes&&fd.slice(5,7)!==_mes&&fd.slice(3,5)!==_mes)return false;
-    }
-    return true;
-  });
-
-  // Ventas/seps por vendedor
-  const ventMap={};
-  (D.ventas||[]).filter(r=>(!proj||matchProj(r.Proyecto,proj))&&normStr(r.TipoInmueble).includes('departamento'))
-    .forEach(r=>{
-      const nm=String(r.Vendedor||'Sin asignar').trim();
-      if(!ventMap[nm])ventMap[nm]={ventas:0,seps:0};
-      ventMap[nm].ventas++;
-    });
-  sep.forEach(r=>{
-    const nm=String(r.Vendedor||'Sin asignar').trim();
-    if(!ventMap[nm])ventMap[nm]={ventas:0,seps:0};
-    ventMap[nm].seps++;
-  });
-
-  const getAsesorEntry=(nm,rProj='')=>{
-    const matches=ASESOR_MAP.filter(a=>nm.toLowerCase().includes(a.pat));
-    if(!matches.length)return null;
-    if(matches.length===1)return matches[0];
-    // Multi-proyecto: devuelve la entrada cuyo proj coincide con rProj
-    const rp=normStr(String(rProj||''));
-    return matches.find(e=>rp.includes(normStr(e.proj).split(' ')[0]))||matches[0];
-  };
-  const asesorKey=(nm,entry)=>normKey(nm)+(_multiProjPats.has(entry.pat)?'|'+normStr(entry.proj):'');
-
-  // ── TABLA 1: Conversiones por asesor — cada número desde su propio reporte ──
-  // Solo cuenta registros del proyecto asignado al asesor
-  const projMatchEntry=entry=>String(entry.proj).toUpperCase().includes(proj.toUpperCase().slice(0,6)||entry.proj.toUpperCase());
-  const entryMatchesProj=(entry,rProj)=>{
-    const ep=normStr(entry.proj), rp=normStr(String(rProj||''));
-    // lomas: acepta cualquier lomas
-    if(ep.includes('lomas'))return rp.includes('lomas');
-    return rp.includes(ep.split(' ')[0])||ep.includes(normStr(rProj||'').split(' ')[0]);
-  };
-
-  const convMap={};
-  const addEntry=(nm,rProj)=>{
-    const entry=getAsesorEntry(nm,rProj);
-    if(!entry)return null;
-    if(!entryMatchesProj(entry,rProj))return null;
-    const k=asesorKey(nm,entry);
-    if(!convMap[k])convMap[k]={name:toShort(nm),proj:entry.proj,leads:0,prosp:0,vis:0,seps:0,ventas:0};
-    return k;
-  };
-
-  // Leads + Prospectos: desde prospectos por Responsable
-  prosp.forEach(r=>{
-    const k=addEntry(String(r.Responsable||'').trim(), r.Proyecto);
-    if(!k)return;
-    const esUnico=String(r.LeadUnicoxMesProyecto||'').toUpperCase();
-    if(esUnico==='SI'||esUnico==='')convMap[k].leads++;
-    if(['ALTO','MEDIO'].includes(String(r.NivelInteres||'').toUpperCase()))convMap[k].prosp++;
-  });
-
-  // Visitas: desde reporte de visitas por Vendedor
-  (D.visitas||[])
-    .filter(r=>!proj||matchProj(r.Proyecto,proj))
-    .filter(r=>{
-      const f=String(r.FechaVisita||'');
-      if(_año&&!f.startsWith(_año)&&f.slice(6,10)!==_año)return false;
-      if(_mes&&f.slice(5,7)!==_mes&&f.slice(3,5)!==_mes)return false;
-      return true;
-    })
-    .forEach(r=>{
-      const k=addEntry(String(r.Vendedor||'').trim(), r.Proyecto);
-      if(k)convMap[k].vis++;
-    });
-
-  // Separaciones: desde stock por Vendedor
-  sep.filter(r=>normStr(r.TipoInmueble).includes('departamento')).forEach(r=>{
-    const k=addEntry(String(r.Vendedor||'').trim(), r.Proyecto);
-    if(k)convMap[k].seps++;
-  });
-
-  // Ventas: desde reporte de ventas por Vendedor
-  v.filter(r=>normStr(r.TipoInmueble).includes('departamento')).forEach(r=>{
-    const k=addEntry(String(r.Vendedor||'').trim(), r.Proyecto);
-    if(k)convMap[k].ventas++;
-  });
-
-  // Metas personales Mayo 2026
-  const getMetaV=(nm,proj='')=>{
-    const n=nm.toLowerCase(), p=proj.toLowerCase();
-    if(n.includes('anthony')||n.includes('antony'))return 7;
-    if(n.includes('stephany'))return 2;
-    if(n.includes('stefany'))return p.includes('sunny')?1:2;
-    if(n.includes('jair'))return 4;
-    if(n.includes('roy'))return 3;
-    if(n.includes('nancy'))return 10;
-    return null;
-  };
-  const getMetaS=(nm,proj='')=>{
-    const n=nm.toLowerCase(), p=proj.toLowerCase();
-    if(n.includes('anthony')||n.includes('antony'))return 10;
-    if(n.includes('stephany'))return 3;
-    if(n.includes('stefany'))return p.includes('sunny')?2:3;
-    if(n.includes('jair'))return 5;
-    if(n.includes('roy'))return 4;
-    if(n.includes('nancy'))return 15;
-    return null;
-  };
-
-  // Celdas
-  const leadsCell=n=>`<td style="text-align:center;padding:10px 6px;width:11%;font-family:var(--mono);font-size:15px;font-weight:700;color:var(--ink)">${n}</td>`;
-
-  // Conversión (Lead→Prosp, Prosp→Visita): % logrado vs meta %
-  const convCell=(n,denom,conv,tgt)=>{
-    const cl=conv>=tgt?'g':conv>=tgt*0.5?'w':'b';
-    return`<td style="text-align:center;padding:10px 6px;width:11%">
-      <div style="font-family:var(--mono);font-size:15px;font-weight:700;line-height:1;color:var(--ink)">${n}</div>
-      <div style="margin-top:3px;font-size:10px;color:var(--ink-3);font-family:var(--mono)">${n}/${denom}</div>
-      <div style="margin-top:3px"><span class="pill ${cl}">${Math.round(conv*100)}%</span></div>
-    </td>`;
-  };
-
-  // Logro vs meta numérica (Separaciones, Ventas)
-  const achCell=(n,meta)=>{
-    if(meta===null)return`<td style="text-align:center;padding:10px 6px;width:11%;font-family:var(--mono);font-size:15px;font-weight:700;color:var(--ink)">${n}</td>`;
-    const ef=Math.min(n/meta,1);
-    const cl=ef>=1?'g':ef>=0.5?'w':'b';
-    const efPct=Math.round(ef*100);
-    return`<td style="text-align:center;padding:10px 6px;width:11%">
-      <div style="font-family:var(--mono);font-size:15px;font-weight:700;line-height:1;color:var(--ink)">${n}</div>
-      <div style="margin-top:3px;font-size:10px;color:var(--ink-3);font-family:var(--mono)">${n}/${meta}</div>
-      <div style="margin-top:3px"><span class="pill ${cl}">${efPct}%</span></div>
-    </td>`;
-  };
-
-  const scoreCell=score=>{
-    const sc=score>=80?'var(--ok)':score>=50?'var(--warn)':'var(--bad)';
-    const bg=score>=80?'var(--ok-soft)':score>=50?'var(--warn-soft)':'var(--bad-soft)';
-    return`<td style="text-align:center;padding:10px 6px;width:11%">
-      <div style="background:${bg};color:${sc};font-family:var(--mono);font-size:15px;font-weight:700;border-radius:8px;padding:6px 8px;line-height:1;display:inline-block">${score}</div>
-    </td>`;
-  };
-
-  const convEntries=Object.entries(convMap).sort((a,b)=>a[1].name.localeCompare(b[1].name,'es'));
-  const convRows=convEntries.map(([,d])=>{
-    const lp=d.leads?d.prosp/d.leads:0;       // Lead→Prosp, meta 50%
-    const pv=d.prosp?d.vis/d.prosp:0;          // Prosp→Visita, meta 30%
-    const metaV=getMetaV(d.name,d.proj);
-    const metaS=getMetaS(d.name,d.proj);
-    const efV =metaV?Math.min(d.ventas/metaV,1):0;   // 30%
-    const efS =metaS?Math.min(d.seps/metaS,1):0;     // 30%
-    const efPV=d.prosp?Math.min(pv/0.30,1):0;         // 20%
-    const efLP=d.leads?Math.min(lp/0.50,1):0;         // 20%
-    const score=Math.round((efV*0.30+efS*0.30+efPV*0.20+efLP*0.20)*100);
-    return`<tr>
-      <td style="padding:10px 14px">
-        <div style="display:flex;align-items:center;gap:9px">
-          <div class="avv">${d.name[0].toUpperCase()}</div>
-          <div>
-            <div style="font-weight:600;font-size:13px;color:var(--ink)">${d.name}</div>
-            <div style="font-size:11px;color:var(--ink-3);margin-top:1px">${d.proj}</div>
-          </div>
-        </div>
-      </td>
-      ${leadsCell(d.leads)}
-      ${convCell(d.prosp,d.leads,lp,0.50)}
-      ${convCell(d.vis,d.prosp,pv,0.30)}
-      ${achCell(d.seps,metaS)}
-      ${achCell(d.ventas,metaV)}
-      ${scoreCell(score)}
-    </tr>`;
-  }).join('');
-
-  const tot=convEntries.reduce((acc,[,d])=>({
-    leads:acc.leads+d.leads,prosp:acc.prosp+d.prosp,
-    vis:acc.vis+d.vis,seps:acc.seps+d.seps,ventas:acc.ventas+d.ventas
-  }),{leads:0,prosp:0,vis:0,seps:0,ventas:0});
-  const convFoot=`<tfoot><tr>
-    <td style="padding:10px 14px;font-weight:700;color:var(--ink)">Total</td>
-    <td style="text-align:center;font-family:var(--mono);font-weight:700;font-size:15px">${tot.leads}</td>
-    <td style="text-align:center;font-family:var(--mono);font-weight:700;font-size:15px">${tot.prosp}</td>
-    <td style="text-align:center;font-family:var(--mono);font-weight:700;font-size:15px">${tot.vis}</td>
-    <td style="text-align:center;font-family:var(--mono);font-weight:700;font-size:15px">${tot.seps}</td>
-    <td style="text-align:center;font-family:var(--mono);font-weight:700;font-size:15px">${tot.ventas}</td>
-    <td></td>
-  </tr></tfoot>`;
-
-  // ── TABLA 2: Tiempo de respuesta — solo asesores asignados ──
-  const _median=arr=>{if(!arr.length)return null;const s=[...arr].sort((a,b)=>a-b);const m=Math.floor(s.length/2);return s.length%2?s[m]:Math.round((s[m-1]+s[m])/2);};
-  const _mean=arr=>{if(!arr.length)return null;return Math.round(arr.reduce((a,b)=>a+b,0)/arr.length);};
-  const _fmt=v=>v===null?'—':v<60?v+' min':`${Math.floor(v/60)}h ${String(v%60).padStart(2,'0')}m`;
-  const _excSubEst=r=>{const s=String(r.SubEstado||'').toUpperCase().trim();return s!=='DUPLICADO'&&s!=='RECONTACTO';};
-  // Tiempo de respuesta: proyecto+asesor siempre; si hay filtro de mes → ese mes + anterior
-  let _tRespMeses=null;
-  if(_mes){
-    const _tm=parseInt(_mes), _ty=parseInt(_año||new Date().getFullYear());
-    const _pm=_tm===1?{m:'12',y:_ty-1}:{m:String(_tm-1).padStart(2,'0'),y:_ty};
-    _tRespMeses=[`${_ty}-${_mes}`,`${_pm.y}-${_pm.m}`];
-  }
-  const prospTResp=(D.prospectos||[]).filter(r=>{
-    if(proj&&!matchProj(r.Proyecto,proj))return false;
-    if(_tRespMeses){
-      const _fd=String(r.Fecha_Registro_Sistema||r.FechaRegistro||'');
-      const _iso=_fd.match(/^(\d{4})-(\d{2})/);
-      if(_iso&&!_tRespMeses.includes(`${_iso[1]}-${_iso[2]}`))return false;
-    }
-    return true;
-  });
-  const tMesMap={};
-  prospTResp.filter(r=>getAsesorEntry(String(r.Responsable||'').trim(),r.Proyecto)&&_excSubEst(r)).forEach(r=>{
-    const nm=String(r.Responsable||'').trim();
-    if(vend&&nm!==vend)return;
-    const entry=getAsesorEntry(nm,r.Proyecto);
-    const k=asesorKey(nm,entry);
-    let mes='';
-    const fd=String(r.Fecha_Registro_Sistema||r.FechaRegistro||r.FechaProspecto||r.Fecha_PrimeraAccion||'');
-    if(fd){
-      if(fd.includes('/')){
-        const parts=fd.split('/');
-        if(parts.length>=3)mes=parts[2].slice(0,4)+'-'+parts[1].padStart(2,'0');
-      } else {
-        const iso=fd.match(/^(\d{4})-(\d{2})/);
-        if(iso)mes=iso[1]+'-'+iso[2];
-      }
-    }
-    const _tmr=r.TiempoRespuesta_min;
-    let t=null;
-    if(_tmr!==undefined&&_tmr!==null&&_tmr!==''&&_tmr!=='nan'&&_tmr!=='None'){
-      const tv=Math.round(parseFloat(String(_tmr).replace(',',''))||0);
-      if(tv>0)t=tv;
-    }
-    if(t===null){
-      const isSunny=normStr(r.Proyecto||'').includes('sunny');
-      t=calcBizMinutes(r.FechaRegistro||'', r.Fecha_PrimeraAccion||'', isSunny);
-    }
-    if(t===0)t=1; // respuesta antes de apertura → contar como 1 min
-    if(!tMesMap[k])tMesMap[k]={asesor:toShort(nm),proj:entry.proj,meses:{}};
-    if(mes&&t!==null&&t>0){
-      if(!tMesMap[k].meses[mes])tMesMap[k].meses[mes]=[];
-      tMesMap[k].meses[mes].push(t);
-    }
-  });
-  const meses=[...new Set(Object.values(tMesMap).flatMap(d=>Object.keys(d.meses)))].sort().slice(_mes?-2:-4);
-  const mesHeadersTop=meses.map(m=>{const[,mo]=m.split('-');return`<th colspan="3" style="text-align:center;border-bottom:1px solid var(--line)">${MN[+mo]}</th>`;}).join('');
-  const mesHeadersSub=meses.map(()=>`<th style="text-align:center;font-size:11px;color:var(--ink-3);padding:4px 2px">Med</th><th style="text-align:center;font-size:11px;color:var(--ink-3);padding:4px 2px">Prom</th><th style="text-align:center;font-size:11px;color:var(--ink-3);padding:4px 2px">N</th>`).join('');
-  const _tcl=v=>v===null?'var(--ink-4)':v<240?'var(--ok)':v<=480?'var(--warn)':'var(--bad)';
-
-  const _totalMesData={};
-  let _totalAllT=[];
-  const tRespRows2=Object.entries(tMesMap).sort((a,b)=>a[1].asesor.localeCompare(b[1].asesor,'es')||a[1].proj.localeCompare(b[1].proj,'es')).map(([,d])=>{
-    const allT=Object.values(d.meses).flat();
-    _totalAllT=[..._totalAllT,...allT];
-    const med=_median(allT), prom=_mean(allT);
-    const mesCells=meses.map(mes=>{
-      const arr=d.meses[mes]||[];
-      (_totalMesData[mes]||(_totalMesData[mes]=[])).push(...arr);
-      const m2=_median(arr), p2=_mean(arr), n2=arr.length;
-      return`<td style="text-align:center;font-family:var(--mono);font-size:12px;font-weight:600;color:${_tcl(m2)}">${_fmt(m2)}</td><td style="text-align:center;font-family:var(--mono);font-size:12px;color:${_tcl(p2)}">${_fmt(p2)}</td><td style="text-align:center;font-family:var(--mono);font-size:11px;color:var(--ink-4)">${n2||'—'}</td>`;
-    }).join('');
-    return`<tr>
-      <td style="padding:10px 14px">
-        <div style="display:flex;align-items:center;gap:9px">
-          <div class="avv">${d.asesor[0].toUpperCase()}</div>
-          <div>
-            <div style="font-weight:600;font-size:13px;color:var(--ink)">${d.asesor}</div>
-            <div style="font-size:11px;color:var(--ink-3);margin-top:1px">${d.proj}</div>
-          </div>
-        </div>
-      </td>
-      ${mesCells}
-      <td style="text-align:center;font-family:var(--mono);font-size:13px;font-weight:700;color:${_tcl(med)}">${_fmt(med)}</td>
-      <td style="text-align:center;font-family:var(--mono);font-size:13px;color:${_tcl(prom)}">${_fmt(prom)}</td>
-    </tr>`;
-  }).join('');
-  const _totMesCells=meses.map(mes=>{const arr=_totalMesData[mes]||[];const m2=_median(arr),p2=_mean(arr),n2=arr.length;return`<td style="text-align:center;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--ink)">${_fmt(m2)}</td><td style="text-align:center;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--ink)">${_fmt(p2)}</td><td style="text-align:center;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--ink-3)">${n2||'—'}</td>`;}).join('');
-  const tRespTotal=`<tr style="border-top:2px solid var(--line);background:var(--surface)"><td style="padding:10px 14px;font-weight:700;font-size:13px;color:var(--ink)">Total general</td>${_totMesCells}<td style="text-align:center;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink)">${_fmt(_median(_totalAllT))}</td><td style="text-align:center;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink)">${_fmt(_mean(_totalAllT))}</td></tr>`;
-
-  // ── TABLA 3: Toques por lead — solo asesores asignados ──
-  const tqMap={};
-  prosp.filter(r=>getAsesorEntry(String(r.Responsable||'').trim(),r.Proyecto)&&_excSubEst(r)).forEach(r=>{
-    const nm=String(r.Responsable||'').trim();
-    const entry=getAsesorEntry(nm,r.Proyecto);
-    const k=asesorKey(nm,entry);
-    const n=parseInt(r.Cant_Acciones||'0',10)||0;
-    if(!tqMap[k])tqMap[k]={name:toShort(nm),proj:entry.proj,b12:0,b34:0,b5:0,b6:0,total:0,sum:0};
-    tqMap[k].total++;tqMap[k].sum+=n;
-    if(n<=2)tqMap[k].b12++;
-    else if(n<=4)tqMap[k].b34++;
-    else if(n===5)tqMap[k].b5++;
-    else if(n>=6)tqMap[k].b6++;
-  });
-  const tqRows=Object.entries(tqMap).sort((a,b)=>a[1].name.localeCompare(b[1].name,'es')).map(([,d])=>{
-    const prom=d.total?(d.sum/d.total).toFixed(1):'—';
-    const bar=`<div style="display:flex;height:8px;border-radius:4px;overflow:hidden">
-      <div style="flex:${d.b12};background:#dc2626" title="1-2: ${d.b12}"></div>
-      <div style="flex:${d.b34};background:#f59e0b" title="3-4: ${d.b34}"></div>
-      <div style="flex:${d.b5};background:#22c55e" title="5: ${d.b5}"></div>
-      <div style="flex:${d.b6};background:#3b82f6" title="6+: ${d.b6}"></div>
-    </div>`;
-    const numCell=(n,t)=>`<td style="text-align:center;width:11%;font-family:var(--mono);font-size:14px;font-weight:700;color:var(--ink)">
-      ${n}<div style="font-size:10px;font-weight:400;color:var(--ink-3);margin-top:2px">${pct(n,t)}</div>
-    </td>`;
-    return`<tr>
-      <td style="padding:10px 14px">
-        <div style="display:flex;align-items:center;gap:9px">
-          <div class="avv">${d.name[0].toUpperCase()}</div>
-          <div>
-            <div style="font-weight:600;font-size:13px;color:var(--ink)">${d.name}</div>
-            <div style="font-size:11px;color:var(--ink-3);margin-top:1px">${d.proj}</div>
-          </div>
-        </div>
-      </td>
-      <td style="text-align:center;width:11%;font-family:var(--mono);font-size:16px;font-weight:700;color:var(--ink)">${prom}</td>
-      ${numCell(d.b12,d.total)}
-      ${numCell(d.b34,d.total)}
-      ${numCell(d.b5,d.total)}
-      ${numCell(d.b6,d.total)}
-      <td style="padding:10px 14px">${bar}</td>
-    </tr>`;
-  }).join('');
-
-  // ── Sub-estado por asesor ──
-  const _subExcl=new Set(['SEPARACION','SEPARACIÓN','VENTA']);
-  const subByAsesor={};
-  prosp.forEach(r=>{
-    const nm=String(r.Responsable||'').trim();
-    if(!nm) return;
-    const entry=getAsesorEntry(nm,r.Proyecto);
-    if(!entry||!entryMatchesProj(entry,r.Proyecto)) return;
-    if(vend&&nm!==vend) return;
-    const k=asesorKey(nm,entry);
-    const sub=String(r.SubEstado||'').trim();
-    if(!sub||sub==='nan'||sub==='None') return;
-    if(_subExcl.has(sub.toUpperCase())) return;
-    if(!subByAsesor[k])subByAsesor[k]={name:toShort(nm),proj:entry.proj,subs:{},total:0};
-    subByAsesor[k].subs[sub]=(subByAsesor[k].subs[sub]||0)+1;
-    subByAsesor[k].total++;
-  });
-  const allSubs=[...new Set(Object.values(subByAsesor).flatMap(a=>Object.keys(a.subs)))]
-    .filter(s=>!_subExcl.has(s.toUpperCase()))
-    .map(s=>({s,n:Object.values(subByAsesor).reduce((t,a)=>t+(a.subs[s]||0),0)}))
-    .sort((a,b)=>b.n-a.n).map(x=>x.s);
-  const subAsesorHeaders=allSubs.map(s=>`<th style="text-align:center;min-width:80px">${s}</th>`).join('');
-  const subAsesorRows=Object.entries(subByAsesor).sort((a,b)=>a[1].name.localeCompare(b[1].name,'es')).map(([,d])=>{
-    const cells=allSubs.map(s=>{const n=d.subs[s]||0;return`<td style="text-align:center;padding:10px 8px;font-family:var(--mono);font-size:14px;font-weight:700;color:var(--ink)">${n?n:'<span style="font-weight:400;color:var(--ink-4)">—</span>'}</td>`;}).join('');
-    return`<tr>
-      <td style="padding:10px 14px">
-        <div style="display:flex;align-items:center;gap:9px">
-          <div class="avv">${d.name[0].toUpperCase()}</div>
-          <div>
-            <div style="font-weight:600;font-size:13px;color:var(--ink)">${d.name}</div>
-            <div style="font-size:11px;color:var(--ink-3);margin-top:1px">${d.proj}</div>
-          </div>
-        </div>
-      </td>
-      ${cells}
-      <td style="text-align:center;padding:10px 8px;font-family:var(--mono);font-size:14px;font-weight:700;color:var(--ink)">${d.total}</td>
-    </tr>`;
-  }).join('');
-
-  document.getElementById('jv-content').innerHTML=`
-  <div class="section-title"><h2>Conversiones y score por asesor</h2><div class="hint">Meta: Lead→Visita 25% · Visita→Sep 30% · Sep→Venta 70%</div></div>
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>Tabla de conversiones</h3><p>Número real y tasa de conversión por etapa · Score ponderado 0–100</p></div></div>
-    <div style="overflow-x:auto"><table class="mtable" style="table-layout:fixed">
-      <thead><tr>
-        <th style="text-align:left">Asesor</th>
-        <th style="text-align:center;width:11%">Leads</th>
-        <th style="text-align:center;width:11%">Prospectos<br><small style="opacity:.6">meta 50%</small></th>
-        <th style="text-align:center;width:11%">Visitas<br><small style="opacity:.6">meta 30%</small></th>
-        <th style="text-align:center;width:11%">Separaciones<br><small style="opacity:.6">meta mensual</small></th>
-        <th style="text-align:center;width:11%">Ventas<br><small style="opacity:.6">meta mensual</small></th>
-        <th style="text-align:center;width:11%">Score<br><small style="opacity:.6">30/30/20/20</small></th>
-      </tr></thead>
-      <tbody>${convRows||'<tr><td colspan="7" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de prospectos</td></tr>'}</tbody>
-      ${convRows?convFoot:''}
-    </table></div>
-  </div>
-  <div class="section-title"><h2>Tiempo de primera respuesta</h2><div class="hint">Primera acción al lead · horario 10am–7:30pm · SLA óptimo ≤30 min</div></div>
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>Tiempo de primera respuesta</h3><p>Minutos entre registro del lead y primera acción registrada · horario 10am–7:30pm</p></div></div>
-    <div style="overflow-x:auto"><table class="mtable">
-      <thead>
-        <tr>
-          <th style="text-align:left" rowspan="2">Asesor</th>
-          ${mesHeadersTop}
-          <th colspan="2" style="text-align:center;border-bottom:1px solid var(--line)">General</th>
-        </tr>
-        <tr>
-          ${mesHeadersSub}
-          <th style="text-align:center;font-size:11px;color:var(--ink-3);padding:4px 2px">Med</th>
-          <th style="text-align:center;font-size:11px;color:var(--ink-3);padding:4px 2px">Prom</th>
-        </tr>
-      </thead>
-      <tbody>${tRespRows2||`<tr><td colspan="${3+meses.length*3}" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de TiempoRespuesta_min</td></tr>`}${tRespTotal}</tbody>
-    </table></div>
-  </div>
-  <div class="section-title"><h2>Toques por lead</h2><div class="hint">NroAcciones registradas por prospecto · distribución por asesor</div></div>
-  <div class="card">
-    <div class="card-hd"><div><h3>Intensidad de contacto</h3><p>Promedio y distribución de acciones por lead</p></div>
-      <div style="display:flex;gap:10px;font-size:11px;color:var(--ink-3);align-items:center">
-        <span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#dc2626;margin-right:4px"></i>1-2</span>
-        <span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#f59e0b;margin-right:4px"></i>3-4</span>
-        <span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#22c55e;margin-right:4px"></i>5</span>
-        <span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#3b82f6;margin-right:4px"></i>6+</span>
-      </div>
-    </div>
-    <div style="overflow-x:auto"><table class="mtable" style="table-layout:fixed">
-      <thead><tr>
-        <th style="text-align:left">Asesor</th>
-        <th style="text-align:center;width:11%">Promedio</th>
-        <th style="text-align:center;width:11%">1-2 toques</th>
-        <th style="text-align:center;width:11%">3-4 toques</th>
-        <th style="text-align:center;width:11%">5 toques</th>
-        <th style="text-align:center;width:11%">6+ toques</th>
-        <th style="text-align:left;width:11%">Distribución</th>
-      </tr></thead>
-      <tbody>${tqRows||'<tr><td colspan="7" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de NroAcciones</td></tr>'}</tbody>
-    </table></div>
-  </div>
-  <div class="section-title" style="margin-top:26px"><h2>Sub-estado por asesor</h2><div class="hint">Distribución de sub-estados de prospectos por cada asesor</div></div>
-  <div class="card">
-    <div class="card-hd"><div><h3>Sub-estado de leads</h3><p>Conteo de prospectos según estado actual · por asesor</p></div></div>
-    <div style="overflow-x:auto"><table class="mtable">
-      <thead><tr>
-        <th style="text-align:left">Asesor</th>
-        ${subAsesorHeaders||''}
-        <th style="text-align:center;min-width:60px">Total</th>
-      </tr></thead>
-      <tbody>${subAsesorRows||'<tr><td colspan="2" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de sub-estado</td></tr>'}</tbody>
-    </table></div>
-  </div>`;
-}
-
-function canalBar(ventas){
-  const m={};
-  ventas.forEach(r=>{const c=String(r.ComoSeEntero||'Sin dato').trim();m[c]=(m[c]||0)+1;});
-  const sorted=Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,8);
-  const max=sorted[0]?.[1]||1;
-  return sorted.map(([c,n])=>barRow(c,Math.round(n/max*100),n,pct(n,ventas.length))).join('');
-}
 
 // ══════════════════════════════════════════════════════════════════════════
-// JEFE DE MARKETING
+// ADM. DE VENTAS
 // ══════════════════════════════════════════════════════════════════════════
-let _funnelChart=null;
-const _funnelVis={leads:true,prosp:true,vis:true,sep:true,vtas:true};
-function toggleFunnelLine(key,btn){
-  _funnelVis[key]=!_funnelVis[key];
-  btn.style.opacity=_funnelVis[key]?'1':'0.35';
-  if(_funnelChart){
-    const idx=['leads','prosp','vis','sep','vtas'].indexOf(key);
-    _funnelChart.data.datasets[idx].hidden=!_funnelVis[key];
-    _funnelChart.update();
-  }
-}
-function renderFunnelEvol(proj, año){
-  const ctx=document.getElementById('funnel-evo-chart');
-  if(!ctx)return;
-  if(_funnelChart){_funnelChart.destroy();_funnelChart=null;}
-  const months={};
-  const addM=(dateStr,key)=>{
-    const s=String(dateStr||'').trim();
-    if(!s||s==='nan'||s==='None')return;
-    let m='';
-    const pts=s.includes('/')?s.split('/'):null;
-    if(pts&&pts.length===3) m=pts[2].padStart(4,'20')+'-'+pts[1].padStart(2,'0');
-    else try{m=new Date(s).toISOString().slice(0,7);}catch{}
-    if(!m||m.startsWith('NaN'))return;
-    if(año&&!m.startsWith(año))return;
-    if(!months[m])months[m]={leads:0,prosp:0,vis:0,sep:0,vtas:0};
-    months[m][key]++;
-  };
-  const byProj=r=>matchProj(r.Proyecto, proj);
-  // Leads: prospectos LeadUnico=SI
-  (D.prospectos||[]).filter(byProj).filter(r=>String(r.LeadUnicoxMesProyecto||'').toUpperCase()==='SI')
-    .forEach(r=>addM(r.FechaRegistro,'leads'));
-  // Prospectos: NivelInteres=ALTO o MEDIO
-  (D.prospectos||[]).filter(byProj).filter(r=>['ALTO','MEDIO'].includes(String(r.NivelInteres||'').toUpperCase()))
-    .forEach(r=>addM(r.FechaRegistro,'prosp'));
-  // Visitas: desde D.visitas
-  (D.visitas||[]).filter(byProj).forEach(r=>addM(r.FechaVisita,'vis'));
-  // Separaciones: desde stock con FechaSepDefinitiva
-  (D.stock||[]).filter(byProj).filter(r=>String(r.FechaSepDefinitiva||'').trim()&&String(r.FechaSepDefinitiva||'')!=='nan')
-    .forEach(r=>addM(r.FechaSepDefinitiva,'sep'));
-  // Ventas: desde D.ventas
-  (D.ventas||[]).filter(byProj).forEach(r=>addM(r.FechaVenta||r.FechaEntrega_Minuta,'vtas'));
-  const lbls=Object.keys(months).sort();
-  const get=k=>lbls.map(m=>months[m][k]||0);
-  const colors={leads:'#3b82f6',prosp:'#8b5cf6',vis:'#f59e0b',sep:'#ec4899',vtas:'#22c55e'};
-  const names={leads:'Leads',prosp:'Prospectos',vis:'Visitas',sep:'Separaciones',vtas:'Ventas'};
-  _funnelChart=new Chart(ctx,{
-    type:'line',
-    data:{
-      labels:lbls.map(m=>{const[,mo]=m.split('-');return MN[+mo]+' '+m.slice(0,4);}),
-      datasets:['leads','prosp','vis','sep','vtas'].map(k=>({
-        label:names[k], data:get(k),
-        borderColor:colors[k], backgroundColor:colors[k]+'18',
-        tension:0.3, pointRadius:3, pointHoverRadius:5,
-        hidden:!_funnelVis[k], fill:false
-      }))
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},
-      scales:{
-        x:{grid:{color:'#f3f4f6'},ticks:{font:{size:10},maxRotation:45,maxTicksLimit:18}},
-        y:{grid:{color:'#f3f4f6'},beginAtZero:true,ticks:{font:{size:10}}}
-      }
-    }
-  });
-}
-function jmktSetMetrica(m,btn){
-  _jmktMetrica=m;
-  document.querySelectorAll('#jmkt-metrica-btns .chip').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  renderEvolucion(filtrarProj('jmkt'),m);
-}
 
-function renderEvolucion(proj,metrica){
-  const ctx=document.getElementById('jmkt-evo-chart');
-  if(!ctx)return;
-  const camp=D.campanas||{};
-  const detalle=(camp.detalle||[]).filter(r=>!proj||String(r.proyecto||'').toUpperCase()===proj.toUpperCase());
-  const canales=[...new Set(detalle.map(r=>r.canal))].filter(Boolean);
-  const allMeses=[...new Set(detalle.map(r=>String(r.fecha||'').slice(0,7)).filter(m=>/^\d{4}-\d{2}$/.test(m)))].sort();
-  const COLORS={'Meta Ads':'#4f46e5','Google Ads':'#16a34a','TikTok Ads':'#db2777'};
-  const datasets=canales.map(canal=>{
-    const col=COLORS[canal]||'#64748b';
-    return{
-      label:canal,
-      data:allMeses.map(mes=>{
-        const rows=detalle.filter(r=>r.canal===canal&&String(r.fecha||'').startsWith(mes));
-        if(metrica==='leads')return rows.reduce((a,r)=>a+Number(r.leads||0),0);
-        if(metrica==='inversion')return Math.round(rows.reduce((a,r)=>a+Number(r.inversion||0),0));
-        if(metrica==='cpl'){const tot=rows.reduce((a,r)=>a+Number(r.leads||0),0);const inv=rows.reduce((a,r)=>a+Number(r.inversion||0),0);return tot?Math.round(inv/tot):0;}
-        return 0;
-      }),
-      borderColor:col,backgroundColor:col+'30',tension:0.35,fill:false,pointRadius:4,pointHoverRadius:6,
-    };
-  });
-  if(jmktChart)jmktChart.destroy();
-  jmktChart=new Chart(ctx,{
-    type:'line',
-    data:{labels:allMeses.map(m=>{const[,mo]=m.split('-');return MN[+mo]||m;}),datasets},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{position:'top',labels:{boxWidth:12,padding:14,font:{size:12}}}},
-      scales:{
-        x:{grid:{color:'#f1f5f9'},ticks:{font:{size:11}}},
-        y:{grid:{color:'#f1f5f9'},beginAtZero:true,ticks:{font:{size:11}}}
-      }
-    }
-  });
-}
-
-function renderJMkt(){
-  const proj   = filtrarProj('jmkt');
-  const año    = document.getElementById('jmkt-año')?.value||'';
-  const mes    = document.getElementById('jmkt-mes')?.value||'';
-  const camp   = D.campanas||{};
-  const res    = camp.resumen||{};
-  const presup = camp.presupuesto||[];
-  document.getElementById('jmkt-sub').textContent = 'Actualizado: '+D.updatedAt+' · Marketing';
-
-  // ── Funnel — misma lógica que Jefe de Ventas (todos los canales) ─────────
-  let prosp = D.prospectos||[];
-  if(proj) prosp = prosp.filter(r=>matchProj(r.Proyecto, proj));
-  if(año)  prosp = prosp.filter(r=>{const f=String(r.FechaRegistro||'');return f.startsWith(año)||f.slice(6,10)===año;});
-  if(mes)  prosp = prosp.filter(r=>{const f=String(r.FechaRegistro||'');return f.slice(5,7)===mes||f.slice(3,5)===mes;});
-  const leadsN = prosp.filter(r=>String(r.LeadUnicoxMesProyecto||'').toUpperCase()==='SI').length;
-  const prospN = prosp.filter(r=>['ALTO','MEDIO'].includes(String(r.NivelInteres||'').toUpperCase())).length;
-
-  let visF = D.visitas||[];
-  if(proj) visF=visF.filter(r=>matchProj(r.Proyecto, proj));
-  if(año)  visF=visF.filter(r=>{const f=String(r.FechaVisita||'');return f.startsWith(año)||f.slice(6,10)===año;});
-  if(mes)  visF=visF.filter(r=>{const f=String(r.FechaVisita||'');return f.slice(5,7)===mes||f.slice(3,5)===mes;});
-  const visitN = visF.length;
-
-  let sepF = (D.stock||[]).filter(r=>String(r.FechaSepDefinitiva||'').trim()&&String(r.FechaSepDefinitiva||'')!=='nan');
-  if(proj) sepF=sepF.filter(r=>matchProj(r.Proyecto, proj));
-  if(año)  sepF=sepF.filter(r=>{const f=String(r.FechaSepDefinitiva||'');return f.startsWith(año)||f.slice(6,10)===año;});
-  if(mes)  sepF=sepF.filter(r=>{const f=String(r.FechaSepDefinitiva||'');return f.slice(5,7)===mes||f.slice(3,5)===mes;});
-  const sepN = sepF.length;
-
-  let ventF = filtrarVentas('jmkt');
-  const ventN = ventF.length;
-
-  // ── Inversión desde tab inversion ────────────────────────────────────────
-  const mesNombre = mes ? MES_ES[mes] : null;
-  let invData = D.inversion||[];
-  if(proj){const pp=normStr(proj);invData=invData.filter(r=>{const rp=normStr(r.proyecto||'');return pp.includes(rp.split(' ')[0])||rp.includes(pp.split(' ')[0]);});}
-  if(mesNombre) invData=invData.filter(r=>String(r.mes||'').toLowerCase()===mesNombre.toLowerCase());
-  const totInv  = invData.reduce((a,r)=>a+Number(r.monto||0),0);
-
-  const cplMix  = leadsN ? totInv/leadsN : 0;
-  const CAC     = ventF.length ? totInv/ventF.length : 0;
-  const totPres = presup.reduce((a,p)=>a+Number(p.presupuesto||0),0);
-  const topN    = leadsN||1;
-
-  // Formatos específicos
-  const fInv = n => 'S/ '+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const fCPL = n => 'S/ '+Number(n||0).toFixed(2);
-  const fCAC = n => 'S/ '+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-
-  function fmStep(lbl,n,convTxt){
-    const barW = topN ? Math.min(Math.round(Math.sqrt(n/topN)*100), 100) : 0;
-    return `<div class="fstep">
-      <div class="lbl"><b>${lbl}</b></div>
-      <div class="track"><div class="fill" style="width:${Math.max(barW,3)}%"></div></div>
-      <div class="right"><span class="pct-n">${fN(n)}</span><span class="pct">${convTxt}</span></div>
-    </div>`;
-  }
-
-  // Calidad del lead — real desde NivelInteres
-  const NIVEL_ORDER=['INMEDIATO','ALTO','MEDIO','BAJO','NULO'];
-  const NIVEL_COL={'INMEDIATO':'oklch(0.50 0.20 25)','ALTO':'oklch(0.60 0.18 45)','MEDIO':'oklch(0.65 0.15 65)','BAJO':'oklch(0.70 0.10 230)','NULO':'oklch(0.75 0.05 250)'};
-  const nivelMap={};
-  const _excSub=r=>{const s=String(r.SubEstado||'').toUpperCase().trim();return s!=='DUPLICADO'&&s!=='RECONTACTO';};
-  prosp.filter(_excSub).forEach(r=>{const nv=String(r.NivelInteres||'Sin clasificar').toUpperCase().trim();nivelMap[nv]=(nivelMap[nv]||0)+1;});
-  const nivelEntries=[...NIVEL_ORDER.filter(k=>nivelMap[k]),...Object.keys(nivelMap).filter(k=>!NIVEL_ORDER.includes(k)&&nivelMap[k])].map(k=>({n:k,count:nivelMap[k]||0,color:NIVEL_COL[k]||'oklch(0.75 0.05 250)'})).sort((a,b)=>b.count-a.count);
-  const totNivel=nivelEntries.reduce((a,c)=>a+c.count,0)||1;
-  const califRows=nivelEntries.map(c=>`
-    <div class="list-row">
-      <span class="sw" style="background:${c.color}"></span>
-      <span class="name">${c.n}</span>
-      <span class="n">${c.count}</span>
-      <span class="pct-c">${pct(c.count,totNivel)}</span>
-    </div>`).join('')||'<div style="padding:16px 18px;color:var(--ink-4);font-size:12px">Sin datos</div>';
-
-  // Cerrados sin venta — desde Motivo_Cerrado_Actual en prospectos
-  const cerradosMap={};
-  prosp.filter(r=>String(r.Motivo_Cerrado_Actual||'').trim()).forEach(r=>{
-    const m=String(r.Motivo_Cerrado_Actual||'').trim();
-    cerradosMap[m]=(cerradosMap[m]||0)+1;
-  });
-  const desistTotal=Object.values(cerradosMap).reduce((a,b)=>a+b,0);
-  const DC=['oklch(0.60 0.18 25)','oklch(0.72 0.15 65)','oklch(0.65 0.14 150)','oklch(0.70 0.10 230)','oklch(0.55 0.15 290)','oklch(0.75 0.05 250)'];
-  const cerradosRows=Object.entries(cerradosMap).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([m,n],i)=>`
-    <div class="list-row">
-      <span class="sw" style="background:${DC[i%DC.length]}"></span>
-      <span class="name">${m}</span>
-      <span class="n">${n}</span>
-      <span class="pct-c">${pct(n,desistTotal)}</span>
-    </div>`).join('')||'<div style="padding:16px 18px;color:var(--ink-4);font-size:12px">Sin datos de cierres</div>';
-
-  // Leads por canal — desde ComoSeEntero en prospectos (solo LeadUnico=SI)
-  const CC=['oklch(0.55 0.15 250)','oklch(0.65 0.14 150)','oklch(0.72 0.15 65)','oklch(0.60 0.18 25)','oklch(0.55 0.15 290)','oklch(0.70 0.10 230)','oklch(0.55 0.10 180)','oklch(0.75 0.05 250)'];
-  const canalMap={};
-  prosp.forEach(r=>{
-    const c=String(r.ComoSeEntero||'Sin especificar').trim()||'Sin especificar';
-    canalMap[c]=(canalMap[c]||0)+1;
-  });
-  const totLeads=Object.values(canalMap).reduce((a,b)=>a+b,0)||leadsN||1;
-  const maxCL=Math.max(...Object.values(canalMap),1);
-  const chanRows=Object.entries(canalMap).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([c,n],i)=>`
-    <div class="chan-row">
-      <div class="nm"><span class="sw" style="background:${CC[i%CC.length]}"></span>${c}</div>
-      <div class="chan-tr"><i style="width:${Math.round(n/maxCL*100)}%;background:${CC[i%CC.length]}"></i></div>
-      <div class="v">${fN(n)}</div>
-      <div class="p">${pct(n,totLeads)}</div>
-    </div>`).join('')||'<div style="padding:16px 18px;color:var(--ink-4);font-size:12px">Sin datos de canales</div>';
-
-  // Presupuesto rows — tabla por proyecto con semáforo vs PPTO PERFIL
-  const ppProyectos = camp.presupuesto_proyectos||[];
-  const pctVal = v => Number(v||0);  // ya viene como % directo (ej. 1.60, 0.99)
-  let budRows = '<div style="padding:12px;color:var(--ink-4);font-size:12px">Sin datos · pestaña PRESUPUESTO en Google Sheets</div>';
-  if(ppProyectos.length){
-    let tbodyHtml = '';
-    ppProyectos.forEach(function(p){
-      const asignado   = Number(p.asignado||0);
-      const ejecutado  = Number(p.ejecutado||0);
-      const perfilPct  = pctVal(p.perfil_pct||0);
-      const costoVtaPct= pctVal(p.costo_venta_pct||0);
-      const overRatio  = perfilPct ? costoVtaPct/perfilPct : 0;
-      const pillCls    = overRatio>1.3 ? 'b' : overRatio>1 ? 'w' : 'g';
-      tbodyHtml += '<tr>'
-        +'<td style="padding:9px 14px;font-weight:500">'+p.proyecto+'</td>'
-        +'<td style="text-align:center;font-family:var(--mono);font-size:13px">'+fS(asignado)+'</td>'
-        +'<td style="text-align:center;font-family:var(--mono);font-size:13px">'+fS(ejecutado)+'</td>'
-        +'<td style="text-align:center"><span class="pill '+pillCls+'">'+costoVtaPct.toFixed(2)+'%</span></td>'
-        +'<td style="text-align:center;font-family:var(--mono);font-size:12px;color:var(--ink-3)">'+perfilPct.toFixed(2)+'%</td>'
-        +'</tr>';
-    });
-    budRows = '<table class="tbl" style="font-size:12px"><thead><tr>'
-      +'<th>Proyecto</th>'
-      +'<th style="text-align:center">Pres. Asignado</th>'
-      +'<th style="text-align:center">Pres. Ejecutado</th>'
-      +'<th style="text-align:center">Costo Venta Prom.</th>'
-      +'<th style="text-align:center">PPTO Perfil</th>'
-      +'</tr></thead><tbody>'+tbodyHtml+'</tbody></table>';
-  }
-
-  // SubEstado rows
-  const subMap={};
-  prosp.forEach(r=>{
-    const s=String(r.SubEstado||'').trim();
-    if(s&&s!=='nan'&&s!=='None') subMap[s]=(subMap[s]||0)+1;
-  });
-  const totSub=Object.values(subMap).reduce((a,b)=>a+b,0)||1;
-  const maxSub=Math.max(...Object.values(subMap),1);
-  const subRows=Object.entries(subMap).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([s,n],i)=>`
-    <div class="chan-row">
-      <div class="nm"><span class="sw" style="background:${CC[i%CC.length]}"></span>${s}</div>
-      <div class="chan-tr"><i style="width:${Math.round(n/maxSub*100)}%;background:${CC[i%CC.length]}"></i></div>
-      <div class="v">${fN(n)}</div>
-      <div class="p">${pct(n,totSub)}</div>
-    </div>`).join('')||'<div style="padding:16px 18px;color:var(--ink-4);font-size:12px">Sin datos de sub-estado</div>';
-
-  // Presupuesto por canal (desde invData ya filtrada)
-  const canalInvMap={};
-  invData.forEach(r=>{const c=String(r.canal||'Sin canal').trim();canalInvMap[c]=(canalInvMap[c]||0)+Number(r.monto||0);});
-  const totCanalInv=Object.values(canalInvMap).reduce((a,b)=>a+b,0)||1;
-  const canalInvRows=Object.entries(canalInvMap).sort((a,b)=>b[1]-a[1]).map(([c,m],i)=>`
-    <div class="list-row">
-      <span class="sw" style="background:${CC[i%CC.length]}"></span>
-      <span class="name">${c}</span>
-      <span class="n">${fInv(m)}</span>
-      <span class="pct-c">${pct(m,totCanalInv)}</span>
-    </div>`).join('')||'<div style="padding:16px 18px;color:var(--ink-4);font-size:12px">Sin datos de inversión</div>';
-
-  document.getElementById('jmkt-content').innerHTML = `
-  <div class="kpi-row kpi-4">
-    ${kpi('Leads generados',`${fN(leadsN)} <span class="unit">leads</span>`,'todos los canales')}
-    ${kpi('Inversón marketing',fInv(totInv),'Presupuestado')}
-    ${kpi('CPL Mix',fCPL(cplMix),'costo por lead · todos los canales')}
-    ${kpi('Costo adquisición (CAC)',fCAC(CAC),'inversión por venta efectiva')}
-  </div>
-  <div class="section-title"><h2>Funnel mensual</h2><div class="hint">Conversión por etapa · % meta por cada paso</div></div>
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>Embudo de conversión</h3></div></div>
-    <div class="funnel">
-      ${fmStep('Leads',leadsN,'—')}
-      ${fmStep('Prospectos',prospN,leadsN?Math.round(prospN/leadsN*100)+'% conv.':'—')}
-      ${fmStep('Visitas',visitN,prospN?Math.round(visitN/prospN*100)+'% conv.':'—')}
-      ${fmStep('Separaciones',sepN,visitN?Math.round(sepN/visitN*100)+'% conv.':'—')}
-      ${fmStep('Ventas',ventN,sepN?Math.round(ventN/sepN*100)+'% conv.':'—')}
-    </div>
-  </div>
-  <div class="section-title" style="margin-top:26px"><h2>Calidad del lead</h2><div class="hint">Distribución de prospectos activos y razones de cierre negativo</div></div>
-  <div class="grid-2" style="margin-bottom:16px">
-    <div class="card">
-      <div class="card-hd"><div><h3>Detalle de prospectos</h3><p>${fN(totNivel)} prospectos · nivel de interés</p></div></div>
-      <div class="list">${califRows}</div>
-      <div class="list-ft"><span style="font-family:inherit;font-weight:600">Total prospectos</span><span>${fN(totNivel)}</span></div>
-    </div>
-    <div class="card">
-      <div class="card-hd"><div><h3>Cerrados sin venta · razones</h3><p>${fN(desistTotal)} prospectos descartados · motivo principal</p></div></div>
-      <div class="list">${cerradosRows}</div>
-      ${desistTotal?`<div class="list-ft"><span style="font-family:inherit;font-weight:600">Total cerrados sin venta</span><span>${fN(desistTotal)}</span></div>`:''}
-    </div>
-  </div>
-  <div class="section-title" style="margin-top:26px"><h2>Canales y sub-estados</h2><div class="hint">Distribución de leads por origen y estado actual</div></div>
-  <div class="grid-2" style="margin-bottom:16px">
-    <div class="card">
-      <div class="card-hd"><div><h3>Sub-estado de leads</h3><p>${fN(totSub)} prospectos · estado actual</p></div></div>
-      <div style="padding:10px 0 4px;max-height:280px;overflow-y:auto">${subRows}</div>
-      <div class="list-ft"><span style="font-family:inherit;font-weight:600">Total prospectos</span><span>${fN(totSub)}</span></div>
-    </div>
-    <div class="card">
-      <div class="card-hd"><div><h3>Leads por canal</h3><p>${fN(totLeads)} leads · distribución por origen de captación</p></div></div>
-      <div style="padding:10px 0 4px;max-height:280px;overflow-y:auto">${chanRows}</div>
-      <div class="list-ft"><span style="font-family:inherit;font-weight:600">Total leads</span><span>${fN(totLeads)}</span></div>
-    </div>
-  </div>
-  <div class="section-title" style="margin-top:26px"><h2>Inversión y presupuesto</h2><div class="hint">Ejecución de presupuesto por proyecto y canal</div></div>
-  <div class="grid-2" style="margin-bottom:16px">
-    <div class="card">
-      <div class="card-hd"><div><h3>Presupuesto de marketing</h3><p>Costo de venta vs. perfil máximo · semáforo por proyecto</p></div></div>
-      <div style="padding:0 0 4px">${budRows}</div>
-    </div>
-    <div class="card">
-      <div class="card-hd"><div><h3>Presupuesto por canal</h3><p>${fInv(totInv)} invertido · desglose por canal</p></div></div>
-      <div class="list">${canalInvRows}</div>
-      <div class="list-ft"><span style="font-family:inherit;font-weight:600">Total inversión</span><span>${fInv(totInv)}</span></div>
-    </div>
-  </div>
-  <div class="section-title" style="margin-top:26px"><h2>Evolución de leads</h2><div class="hint">Tendencia mensual · clic en las métricas para mostrar/ocultar</div></div>
-  <div class="card" style="margin-bottom:8px">
-    <div class="card-hd">
-      <div><h3>${proj?(PLBL[proj]||proj):'Todos los proyectos'} — Evolución</h3><p>Leads, Prospectos, Visitas, Separaciones y Ventas por mes</p></div>
-    </div>
-    <div style="display:flex;gap:6px;padding:0 16px 12px;flex-wrap:wrap">
-      <button class="chip" onclick="toggleFunnelLine('leads',this)"><span style="color:#3b82f6">●</span> Leads</button>
-      <button class="chip" onclick="toggleFunnelLine('prosp',this)"><span style="color:#8b5cf6">●</span> Prospectos</button>
-      <button class="chip" onclick="toggleFunnelLine('vis',this)"><span style="color:#f59e0b">●</span> Visitas</button>
-      <button class="chip" onclick="toggleFunnelLine('sep',this)"><span style="color:#ec4899">●</span> Separaciones</button>
-      <button class="chip" onclick="toggleFunnelLine('vtas',this)"><span style="color:#22c55e">●</span> Ventas</button>
-    </div>
-    <div style="height:300px;padding:0 16px 16px"><canvas id="funnel-evo-chart"></canvas></div>
-  </div>`;
-  renderFunnelEvol(proj, año);
-}
-
-// ══════════════════════════════════════════════════════════════════════════
-// FUNNEL MARKETING
-// ══════════════════════════════════════════════════════════════════════════
-// Canales offline conocidos — todo lo demás se considera digital
-const FL_OFFLINE_CH = ['referid','cartel','volante','afiche','periódico','periodico','feria','radio','televisi','diario','valla','recomend','conocid','familiar','amigo','caminando'];
-function _isDigital(canal){
-  const c=normStr(canal||'');
-  if(!c||c==='sin especificar'||c==='sin canal'||c==='sin información'||c==='sin informacion') return false;
-  return !FL_OFFLINE_CH.some(k=>c.includes(k));
-}
-
-const FL_DIM_OPTS = [
-  {val:'subestado', lbl:'Sub-Estado',       stages:['leads','contactados','visita'],
-    fn: r=>String(r.SubEstado||'Sin estado').trim()},
-  {val:'canal',     lbl:'Canal',            stages:null,
-    fn: r=>String(r.ComoSeEntero||'Sin canal').trim()},
-  {val:'asesor',    lbl:'Asesor',           stages:null,
-    fn: r=>toShort(String(r.Responsable||r.Asesor||r.Vendedor||'Sin asesor').trim())},
-  {val:'proyecto',  lbl:'Proyecto',         stages:null,
-    fn: r=>String(r.Proyecto||'Sin proyecto').trim()},
-  {val:'nivel',     lbl:'Nivel de Interés', stages:null,
-    fn: r=>String(r.NivelInteres||'Sin nivel').trim()},
-  {val:'tipo',      lbl:'Tipo Inmueble',    stages:null,
-    fn: r=>String(r.TipoInmueble||'Sin tipo').trim()},
-  {val:'modelo',    lbl:'Modelo/Tipología', stages:null,
-    fn: r=>{const d=String(r.NroDormitorios||'').trim();const m=String(r.Modelo||'').trim();return d&&/^\d+$/.test(d)?d+'D':(m||'Sin modelo');}},
-  {val:'mes',       lbl:'Mes',              stages:null,
-    fn: r=>{const f=String(r.FechaRegistro||r.FechaSepDefinitiva||r.FechaVenta||'');let mo=f.match(/^(\d{4})-(\d{2})/)?.[2]||f.match(/^\d{1,2}\/(\d{1,2})\//)?.[1]?.padStart(2,'0');return mo?MES_ES[mo]||mo:'Sin mes';}},
-  {val:'financ',    lbl:'Financiamiento',   stages:['separacion','venta'],
-    fn: r=>String(r.TipoFinanciamiento||'Sin dato').trim()},
-  {val:'motivo',    lbl:'Motivo Cerrado',   stages:['leads','contactados'],
-    fn: r=>String(r.Motivo_Cerrado_Actual||r.MotivoCierre||'Sin motivo').trim()},
-];
-
-let _flCrossRows = 'subestado';
-let _flCrossCols = 'canal';
-let _flCrossStage = 'leads';
-let _flCrossSort = null;
-let _flCrossSortDir = 'desc';
-let _flComp = false;
-let _flTab = 'funnel';
-let _flDateFrom = '';
-let _flDateTo = '';
-let _flDateFrom2 = '';
-let _flDateTo2 = '';
-
+// MARKETING (FUNNEL)
 function setFlTab(tab, el){
   _flTab = tab;
   document.querySelectorAll('#fl-tab-bar .tab-btn').forEach(b=>b.classList.remove('active'));
@@ -2864,7 +1932,7 @@ function renderFunnelMkt(){
     _flDateFrom2 = document.getElementById('fl-desde2')?.value||'';
     _flDateTo2   = document.getElementById('fl-hasta2')?.value||'';
   }
-  document.getElementById('fl-sub').textContent = 'Actualizado: '+D.updatedAt+' · Funnel Marketing';
+  document.getElementById('fl-sub').textContent = 'Actualizado: '+D.updatedAt+' · Marketing';
 
   function _toISO(f){
     f=String(f||'').trim();
@@ -3209,6 +2277,7 @@ async function enviarChatFunnel(){
 // ══════════════════════════════════════════════════════════════════════════
 // ADM. DE VENTAS
 // ══════════════════════════════════════════════════════════════════════════
+
 function renderAdmVentas(){
   const proj  = filtrarProj('adm');
   const _tipo = document.getElementById('adm-tipo')?.value||'';
@@ -3518,131 +2587,6 @@ function renderMondayCobros(){
   wrap.innerHTML = cards || '<div style="padding:20px;color:var(--ink-4)">Sin datos</div>';
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// MARKETING DEL PROYECTO
-// ══════════════════════════════════════════════════════════════════════════
-function renderMktProy(){
-  const proj = filtrarProj('mp');
-  const mes  = document.getElementById('mp-mes')?.value||'';
-  const año  = document.getElementById('mp-año')?.value||'';
-
-  const camp = D.campanas||{};
-  let det = (camp.detalle||[]).filter(r=>{
-    if(proj && String(r.proyecto||'').toUpperCase() !== proj.toUpperCase()) return false;
-    if(mes && String(r.fecha||'').slice(5,7) !== mes && String(r.fecha||'').slice(3,5) !== mes) return false;
-    if(año && String(r.fecha||'').slice(0,4) !== año) return false;
-    return true;
-  });
-
-  document.getElementById('mp-sub').textContent = 'Actualizado: '+D.updatedAt+' · Campañas digitales';
-
-  // KPI aggregations by canal from filtered detail
-  const resFil = {};
-  det.forEach(r=>{
-    const c=r.canal;
-    if(!resFil[c]) resFil[c]={inversion:0,leads:0,impresiones:0};
-    resFil[c].inversion  +=Number(r.inversion||0);
-    resFil[c].leads      +=Number(r.leads||0);
-    resFil[c].impresiones+=Number(r.impresiones||0);
-  });
-  const cMeta=resFil['Meta Ads']||{inversion:0,leads:0};
-  const cGoo =resFil['Google Ads']||{inversion:0,leads:0};
-  const cTik =resFil['TikTok Ads']||{inversion:0,leads:0};
-  const totInv  = (cMeta.inversion+cGoo.inversion+cTik.inversion);
-  const totLeads= (cMeta.leads+cGoo.leads+cTik.leads);
-  const cplMeta = cMeta.leads ? Math.round(cMeta.inversion/cMeta.leads) : 0;
-  const cplGoo  = cGoo.leads  ? Math.round(cGoo.inversion/cGoo.leads)   : 0;
-  const cplTik  = cTik.leads  ? Math.round(cTik.inversion/cTik.leads)   : 0;
-
-  function swKpi(color){ return `<span class="sw" style="background:${color};display:inline-block;width:8px;height:8px;border-radius:2px;vertical-align:middle;margin-right:4px"></span>`; }
-
-  const kpis =
-    kpi('Inversi\u00f3n Mensual', fS(totInv), 'meta+google+tiktok') +
-    kpi(swKpi('var(--meta)')+'CPL Meta Ads',     cplMeta ? 'S/ '+fN(cplMeta) : '—', cplMeta && cplMeta<=150 ? '<span class="delta up">Bajo meta</span>' : cplMeta ? '<span class="delta down">Revisar</span>' : 'sin datos') +
-    kpi(swKpi('var(--google)')+'CPL Google Ads', cplGoo  ? 'S/ '+fN(cplGoo)  : '—', cplGoo  && cplGoo<=150  ? '<span class="delta up">Bajo meta</span>' : cplGoo  ? '<span class="delta down">Revisar</span>' : 'sin datos') +
-    kpi(swKpi('var(--tiktok)')+'CPL TikTok Ads', cplTik  ? 'S/ '+fN(cplTik)  : '—', cplTik  && cplTik<=150  ? '<span class="delta up">Bajo meta</span>' : cplTik  ? '<span class="delta down">Revisar</span>' : 'sin datos') +
-    kpi('Leads Generados', fN(totLeads)+' <span class="unit">leads</span>', 'canales pagados');
-
-  // Campaigns table
-  function canalColor(c){ return c==='Meta Ads'?'var(--meta)':c==='Google Ads'?'var(--google)':'var(--tiktok)'; }
-  function canalSlug(c){  return c==='Meta Ads'?'Meta':c==='Google Ads'?'Google':'TikTok'; }
-  const byCamp={};
-  det.forEach(r=>{
-    const k=`${r.canal}||${r.campa\u00f1a||r.campaña}`;
-    if(!byCamp[k]) byCamp[k]={canal:r.canal,camp:r.campa\u00f1a||r.campaña||'',inv:0,leads:0,imp:0,ctr:0,ctrN:0};
-    byCamp[k].inv  +=Number(r.inversion||0);
-    byCamp[k].leads+=Number(r.leads||0);
-    byCamp[k].imp  +=Number(r.impresiones||0);
-    if(r.ctr){ byCamp[k].ctr+=Number(r.ctr||0); byCamp[k].ctrN++; }
-  });
-  const campRows=Object.values(byCamp).sort((a,b)=>b.leads-a.leads).map((d,i)=>{
-    const cpl=d.leads?Math.round(d.inv/d.leads):0;
-    const col=canalColor(d.canal);
-    return `<tr>
-      <td><div class="campname"><div class="thumb" style="background:${col};color:#fff">${canalSlug(d.canal).slice(0,1)}</div>
-        <div>${d.camp||d.canal||'—'}<small>${d.canal}</small></div></div></td>
-      <td class="r">${fS(d.inv)}</td>
-      <td class="r">${fN(d.imp)}</td>
-      <td class="r">${fN(d.leads)}</td>
-      <td class="r">${cpl?'S/ '+fN(cpl):'—'}</td>
-      <td class="r"><span class="pill ${d.leads&&cpl&&cpl<=150?'on':'rev'}">${d.leads&&cpl&&cpl<=150?'OK':'Revisar'}</span></td>
-    </tr>`;
-  }).join('');
-
-  let vf = filtrarVentas('mp');
-
-  function segRow(nm, n, tot, color='var(--brand)'){
-    const w = tot ? Math.round(n/tot*100) : 0;
-    return `<div class="seg-row"><span class="nm">${nm}</span>
-      <div class="tr"><i style="width:${w}%;background:${color}"></i></div>
-      <span class="n">${fN(n)}</span><span class="p">${w}%</span></div>`;
-  }
-
-  // Edad (from ventas)
-  const edadMap={};
-  vf.forEach(r=>{const e=String(r.RangoEdad||'Sin dato').trim();edadMap[e]=(edadMap[e]||0)+1;});
-  const edadRows=Object.entries(edadMap).sort((a,b)=>b[1]-a[1]).slice(0,6)
-    .map(([e,n])=>segRow(e,n,vf.length)).join('');
-
-  // Distritos
-  const distMap={};
-  vf.forEach(r=>{const d=String(r.Distrito_Procedencia||'Sin dato').trim();distMap[d]=(distMap[d]||0)+1;});
-  const distRows=Object.entries(distMap).sort((a,b)=>b[1]-a[1]).slice(0,8)
-    .map(([d,n])=>segRow(d,n,vf.length,'oklch(0.60 0.14 150)')).join('');
-
-  document.getElementById('mp-content').innerHTML = `
-  <div class="kpi-row kpi-5">${kpis}</div>
-  <div class="section-title"><h2>Campa\u00f1as activas</h2><div class="hint">Meta Ads \u00b7 Google Ads \u00b7 TikTok Ads</div></div>
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>Detalle de campa\u00f1as</h3><p>Ordenado por leads generados</p></div></div>
-    <table class="tbl"><thead><tr><th>Campa\u00f1a</th><th class="r">Inversi\u00f3n</th><th class="r">Impresiones</th><th class="r">Leads</th><th class="r">CPL</th><th class="r">Estado</th></tr></thead>
-    <tbody>${campRows||'<tr><td colspan="6" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de campa\u00f1as</td></tr>'}</tbody></table>
-  </div>
-  <div class="section-title"><h2>Perfil del lead</h2><div class="hint">Datos del CRM \u00b7 compradores confirmados</div></div>
-  <div class="grid-3">
-    <div class="card"><div class="card-hd"><div><h3>Edad</h3><p>Distribuci\u00f3n por rango etario</p></div></div>
-      <div class="seg-list">${edadRows||'<div class="loading" style="padding:16px">Sin campo RangoEdad en CRM</div>'}</div></div>
-    <div class="card"><div class="card-hd"><div><h3>G\u00e9nero</h3><p>Compradores confirmados</p></div></div>
-      ${generoCard(vf)}</div>
-    <div class="card"><div class="card-hd"><div><h3>Distritos</h3><p>Procedencia del lead</p></div></div>
-      <div class="seg-list">${distRows||'<div class="loading" style="padding:16px">Sin dato de distrito en CRM</div>'}</div></div>
-  </div>`;
-}
-
-function generoCard(v){
-  const m=v.filter(r=>String(r.Genero||'').toUpperCase().includes('M')).length;
-  const f2=v.filter(r=>String(r.Genero||'').toUpperCase().includes('F')).length;
-  const tot=v.length||1;
-  const pm=Math.round(m/tot*100);
-  return `<div class="gender">
-    <div class="donut"><div class="ctr"><b>${pm}%</b><small>Masculino</small></div></div>
-    <div class="gender-legend">
-      <div class="gl-row"><span class="sw" style="background:var(--brand)"></span><span class="n">Masculino</span><span class="v">${m}</span><span class="p">${pm}%</span></div>
-      <div class="gl-row"><span class="sw" style="background:oklch(0.72 0.13 340)"></span><span class="n">Femenino</span><span class="v">${f2}</span><span class="p">${Math.round(f2/tot*100)}%</span></div>
-      <div class="gl-row"><span class="sw" style="background:#e5e7eb"></span><span class="n">Sin dato</span><span class="v">${tot-m-f2}</span><span class="p">${Math.round((tot-m-f2)/tot*100)}%</span></div>
-    </div>
-  </div>`;
-}
 
 // ─── SIDEBAR TOGGLE ────────────────────────────────────────────────────────
 function toggleSidebar(){
@@ -3911,7 +2855,7 @@ function nav(id, el){
 })();
 
 // ─── INIT ──────────────────────────────────────────────────────────────────
-['dir-año','jv-año','jmkt-año','adm-año','mp-año'].forEach(id=>{
+['dir-año','adm-año'].forEach(id=>{
   const el=document.getElementById(id);
   if(el&&!el.value) el.value='2026';
 });
