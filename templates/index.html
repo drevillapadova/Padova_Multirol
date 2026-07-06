@@ -747,6 +747,7 @@ table td{font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;color:#0A1628
   </div>
   <div class="tab-bar" id="fl-tab-bar">
     <button class="tab-btn active" onclick="setFlTab('funnel',this)">Funnel</button>
+    <button class="tab-btn" onclick="setFlTab('evolucion',this)">Evolución</button>
     <button class="tab-btn" onclick="setFlTab('calidad',this)">Calidad &amp; Canales</button>
     <button class="tab-btn" onclick="setFlTab('cruce',this)">Tabla Cruce</button>
     <button class="tab-btn tab-ia" onclick="setFlTab('ia',this)">✦ Análisis IA</button>
@@ -2012,7 +2013,7 @@ function renderFunnelMkt(){
     if(proj) pr=pr.filter(r=>matchProj(r.Proyecto, proj));
     if(from||to) pr=pr.filter(r=>_matchRange(r.FechaRegistro, from, to));
     const lb=pr.filter(r=>String(r.LeadUnicoxMesProyecto||'').toUpperCase()==='SI');
-    let vi=D.visitas||[];
+    let vi=(D.visitas||[]).filter(r=>String(r.VisitaUnicaxMesProyecto||'').toUpperCase()==='SI');
     if(proj) vi=vi.filter(r=>matchProj(r.Proyecto, proj));
     if(from||to) vi=vi.filter(r=>_matchRange(r.FechaVisita, from, to));
     let sp=(D.stock||[]).filter(r=>String(r.FechaSepDefinitiva||'').trim()&&String(r.FechaSepDefinitiva||'')!=='nan');
@@ -2200,6 +2201,144 @@ function renderFunnelMkt(){
       ${stageSel}
       <div style="padding:14px 18px 18px">${_renderFlCrossTable(stageData)}</div>
     </div>`;
+    return;
+  }
+
+  // ══ TAB: EVOLUCIÓN DE LEADS ═══════════════════════════════════════════════
+  if(_flTab==='evolucion'){
+    // Construir serie diaria desde prospBase (todos los prospectos, no solo únicos)
+    const PROYECTOS_COLOR={'HELIO - SANTA BEATRIZ':'#0D7377','SUNNY':'#14AFBE','LITORAL 900':'#F4A228','LOMAS DE CARABAYLLO 4':'#10B981','LOMAS DE CARABAYLLO 5':'#7C3AED','DOMINGO ORUE':'#F97316'};
+    const BRAND_COLORS=['#0D7377','#14AFBE','#F4A228','#10B981','#7C3AED','#F97316','#F59E0B','#EF4444'];
+    const evoBase = proj ? leadBase : leadBase;
+
+    // Agrupar por fecha y proyecto
+    const dayMap = {};
+    evoBase.forEach(r=>{
+      const iso = _toISO(r.FechaRegistro);
+      if(!iso) return;
+      const p = String(r.Proyecto||'Sin proyecto').trim();
+      if(!dayMap[iso]) dayMap[iso]={};
+      dayMap[iso][p] = (dayMap[iso][p]||0)+1;
+    });
+
+    const allDates = Object.keys(dayMap).sort();
+    const allProyectos = proj ? [proj] : [...new Set(evoBase.map(r=>String(r.Proyecto||'Sin proyecto').trim()))].filter(Boolean).sort();
+
+    // Si no hay datos suficientes mostrar mensaje
+    if(allDates.length===0){
+      document.getElementById('fl-content').innerHTML=`
+      <div class="section-title"><h2>EVOLUCIÓN DE LEADS</h2><div class="hint">Tendencia diaria por proyecto · ${lblA}</div></div>
+      <div class="card" style="margin-bottom:16px;padding:40px;text-align:center;color:var(--ink-4);font-size:13px">Sin datos para el período seleccionado</div>`;
+      return;
+    }
+
+    // Construir datasets Chart.js — una línea por proyecto
+    const datasets = allProyectos.map((p,i)=>({
+      label: p,
+      data: allDates.map(d=>dayMap[d]?.[p]||0),
+      borderColor: PROYECTOS_COLOR[p]||BRAND_COLORS[i%BRAND_COLORS.length],
+      backgroundColor: (PROYECTOS_COLOR[p]||BRAND_COLORS[i%BRAND_COLORS.length])+'22',
+      borderWidth: 2,
+      pointRadius: allDates.length>60?0:3,
+      pointHoverRadius: 5,
+      tension: 0.35,
+      fill: false,
+    }));
+
+    // Totales diarios (línea gris de referencia)
+    if(!proj && allProyectos.length>1){
+      datasets.unshift({
+        label:'Total leads',
+        data: allDates.map(d=>Object.values(dayMap[d]||{}).reduce((a,b)=>a+b,0)),
+        borderColor:'#0A1628',
+        backgroundColor:'#0A162810',
+        borderWidth:2.5,
+        pointRadius: allDates.length>60?0:3,
+        pointHoverRadius:5,
+        tension:0.35,
+        fill:false,
+        borderDash:[],
+      });
+    }
+
+    // Formatear etiquetas del eje X — abreviar si hay muchos días
+    const xLabels = allDates.map(d=>{
+      const[y,m,dd]=d.split('-');
+      const MM=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
+      return allDates.length>90?`${dd}/${m}`:dd+' '+MM[+m];
+    });
+
+    // Resumen: pico diario, promedio, tendencia
+    const totDiarios = allDates.map(d=>Object.values(dayMap[d]).reduce((a,b)=>a+b,0));
+    const maxDia = Math.max(...totDiarios);
+    const maxDiaFecha = allDates[totDiarios.indexOf(maxDia)];
+    const avgDia = totDiarios.length ? Math.round(totDiarios.reduce((a,b)=>a+b,0)/totDiarios.length*10)/10 : 0;
+    const mitad = Math.floor(totDiarios.length/2);
+    const tendencia = mitad>0 ? (totDiarios.slice(mitad).reduce((a,b)=>a+b,0)/totDiarios.slice(mitad).length) - (totDiarios.slice(0,mitad).reduce((a,b)=>a+b,0)/totDiarios.slice(0,mitad).length) : 0;
+    const tendIcon = tendencia>0.5?'↑':tendencia<-0.5?'↓':'→';
+    const tendColor = tendencia>0.5?'#10B981':tendencia<-0.5?'#EF4444':'#6B7280';
+
+    const chartId='fl-evo-chart-'+Date.now();
+    document.getElementById('fl-content').innerHTML=`
+    <div class="section-title"><h2>EVOLUCIÓN DE LEADS</h2><div class="hint">TENDENCIA DIARIA POR PROYECTO · ${lblA}</div></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;padding:0 20px 14px">
+      <div class="kpi" style="border:1px solid #E5E7EB;border-top:3px solid #0D7377;border-radius:10px;background:#fff;padding:10px 16px;min-width:130px">
+        <div class="lbl" style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#6B7280;margin-bottom:4px">Leads totales</div>
+        <div class="val" style="font-size:20px;font-weight:800;color:#0A1628;line-height:1">${fN(leadsTotal)}</div>
+      </div>
+      <div class="kpi" style="border:1px solid #E5E7EB;border-top:3px solid #14AFBE;border-radius:10px;background:#fff;padding:10px 16px;min-width:130px">
+        <div class="lbl" style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#6B7280;margin-bottom:4px">Promedio diario</div>
+        <div class="val" style="font-size:20px;font-weight:800;color:#0A1628;line-height:1">${avgDia}</div>
+      </div>
+      <div class="kpi" style="border:1px solid #E5E7EB;border-top:3px solid #F4A228;border-radius:10px;background:#fff;padding:10px 16px;min-width:160px">
+        <div class="lbl" style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#6B7280;margin-bottom:4px">Pico diario</div>
+        <div class="val" style="font-size:20px;font-weight:800;color:#0A1628;line-height:1">${fN(maxDia)} <span style="font-size:11px;color:#6B7280;font-weight:500">${maxDiaFecha?maxDiaFecha.slice(5).replace('-','/'):'—'}</span></div>
+      </div>
+      <div class="kpi" style="border:1px solid #E5E7EB;border-top:3px solid ${tendColor};border-radius:10px;background:#fff;padding:10px 16px;min-width:130px">
+        <div class="lbl" style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#6B7280;margin-bottom:4px">Tendencia</div>
+        <div class="val" style="font-size:20px;font-weight:800;color:${tendColor};line-height:1">${tendIcon} ${Math.abs(Math.round(tendencia*10)/10)}</div>
+      </div>
+    </div>
+    <div class="card" style="margin:0 20px 16px;padding:20px">
+      <div style="height:320px"><canvas id="${chartId}"></canvas></div>
+    </div>`;
+
+    // Renderizar con Chart.js
+    requestAnimationFrame(()=>{
+      const ctx=document.getElementById(chartId);
+      if(!ctx) return;
+      if(window._flEvoChart) window._flEvoChart.destroy();
+      window._flEvoChart=new Chart(ctx,{
+        type:'line',
+        data:{labels:xLabels, datasets},
+        options:{
+          responsive:true,maintainAspectRatio:false,
+          interaction:{mode:'index',intersect:false},
+          plugins:{
+            legend:{
+              position:'bottom',
+              labels:{font:{family:"'Plus Jakarta Sans',sans-serif",size:11},usePointStyle:true,boxWidth:8,padding:16,color:'#374151'}
+            },
+            tooltip:{
+              backgroundColor:'#0A1628',titleFont:{family:"'Plus Jakarta Sans',sans-serif",size:11},
+              bodyFont:{family:"'Plus Jakarta Sans',sans-serif",size:11},
+              callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fN(ctx.parsed.y)+' leads'}
+            }
+          },
+          scales:{
+            x:{
+              grid:{color:'#F3F4F6'},
+              ticks:{font:{family:"'Plus Jakarta Sans',sans-serif",size:10},color:'#6B7280',maxTicksLimit:allDates.length>60?12:allDates.length>30?8:allDates.length,maxRotation:0}
+            },
+            y:{
+              beginAtZero:true,
+              grid:{color:'#F3F4F6'},
+              ticks:{font:{family:"'Plus Jakarta Sans',sans-serif",size:10},color:'#6B7280',stepSize:1}
+            }
+          }
+        }
+      });
+    });
     return;
   }
 

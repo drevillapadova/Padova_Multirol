@@ -306,7 +306,7 @@ COLS_PROSPECTOS = [
     'FechaRegistro','Fecha_PrimeraAccion','Cant_Acciones',
     'Estado','SubEstado','Responsable','Motivo_Cerrado_Actual',
     'TiempoRespuesta_min','LeadUnicoxMesProyecto',
-    'FechaCitado','Descrip_UltimaAccion',
+    'FechaCitado','Descrip_UltimaAccion','EstadoSentinel',
 ]
 
 COLS_VISITAS = [
