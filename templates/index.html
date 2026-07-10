@@ -617,6 +617,7 @@ table td{font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;color:#0A1628
 </button>
 <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
 <div class="app">
+
 <!-- ═══════════ SIDEBAR ═══════════ -->
 <aside class="sidebar">
   <div class="brand">
@@ -746,6 +747,7 @@ table td{font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;color:#0A1628
   </div>
   <div class="tab-bar" id="fl-tab-bar">
     <button class="tab-btn active" onclick="setFlTab('funnel',this)">Funnel</button>
+    <button class="tab-btn" onclick="setFlTab('evolucion',this)">Evolución</button>
     <button class="tab-btn" onclick="setFlTab('calidad',this)">Calidad &amp; Canales</button>
     <button class="tab-btn" onclick="setFlTab('cruce',this)">Tabla Cruce</button>
     <button class="tab-btn tab-ia" onclick="setFlTab('ia',this)">✦ Análisis IA</button>
@@ -779,7 +781,6 @@ table td{font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;color:#0A1628
 <script>
 const API = '';
 let D = {funnel:{}, ventas:[], stock:[], campanas:{}, desist:[], prospectos:[], visitas:[], inversion:[], ingresoDeposito:[], updatedAt:'—'};
-let jmktChart = null;
 let _jmktMetrica = 'leads';
 
 const MES_ES = {'01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Setiembre','10':'Octubre','11':'Noviembre','12':'Diciembre'};
@@ -789,6 +790,7 @@ const fFull = n => 'S/ '+Number(n||0).toLocaleString('en-US',{minimumFractionDig
 const fN  = n => Number(n||0).toLocaleString('es-PE');
 const pct = (a,b) => b ? Math.round(a/b*100)+'%' : '0%';
 const fM  = n => { const v=Number(n||0); return v>=1000000?'S/ '+(v/1000000).toFixed(1)+'M':v>=1000?'S/ '+(v/1000).toFixed(0)+'k':fS(v); };
+const fMFull = n => 'S/ '+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const normStr = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 const _matchTipo=(r,tipo)=>{
   if(!tipo) return true;
@@ -1425,33 +1427,38 @@ function renderDirector(){
     const totRow={p:'TOTAL',n:projRows.reduce((a,r)=>a+r.n,0),meta:projRows.reduce((a,r)=>a+(r.meta||0),0),monto:projRows.reduce((a,r)=>a+r.monto,0),seps:projRows.reduce((a,r)=>a+r.seps,0)};
     totRow.cumplPct=totRow.meta?Math.round(totRow.n/totRow.meta*100):null;
 
+    const _tdC='padding:9px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12px;border-bottom:1px solid #F3F4F6;white-space:nowrap';
+    const _tdL='padding:9px 14px;text-align:left;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12px;border-bottom:1px solid #F3F4F6';
     const _projRowHTML=r=>{
       const barW=r.cumplPct!==null?Math.min(r.cumplPct,100):0;
-      const barCol=r.cumplPct===null?'#e2e8f0':r.cumplPct>=80?'#22c55e':r.cumplPct>=50?'#f59e0b':'#ef4444';
+      const barCol=r.cumplPct===null?'#e2e8f0':r.cumplPct>=80?'#10B981':r.cumplPct>=50?'#F4A228':'#EF4444';
       const name=r.p.replace('LOMAS DE CARABAYLLO','LOMAS').replace('HELIO - SANTA BEATRIZ','HELIO');
       const isTotal=r.p==='TOTAL';
-      return '<tr style="'+(isTotal?'font-weight:700;border-top:2px solid var(--line);background:var(--panel)':'')+'">'
-        +'<td style="font-size:12px;color:'+(isTotal?'var(--ink)':'var(--ink-2)')+'">'+toTitle(name.toLowerCase())+'</td>'
-        +'<td style="text-align:right;font-family:var(--mono);font-weight:700">'+r.n+'</td>'
-        +'<td style="text-align:right;font-family:var(--mono);color:var(--ink-3)">'+( r.meta||'—')+'</td>'
-        +'<td style="min-width:90px"><div style="display:flex;align-items:center;gap:6px">'
-          +'<div style="flex:1;height:8px;border-radius:4px;background:#f1f5f9"><div style="height:100%;width:'+barW+'%;border-radius:4px;background:'+barCol+'"></div></div>'
-          +'<span style="font-size:11px;font-family:var(--mono);color:var(--ink-3);min-width:32px">'+( r.cumplPct!==null?r.cumplPct+'%':'—')+'</span>'
+      const rowStyle=isTotal?'font-weight:700;border-top:2px solid #E5E7EB;background:#FAFAFA':'';
+      return '<tr style="'+rowStyle+'">'
+        +'<td style="'+_tdL+';color:'+(isTotal?'#0A1628':'#374151')+';font-weight:'+(isTotal?'700':'500')+'">'+toTitle(name.toLowerCase())+'</td>'
+        +'<td style="'+_tdC+';font-weight:700;color:#0A1628">'+r.n+'</td>'
+        +'<td style="'+_tdC+';color:#6B7280">'+( r.meta||'—')+'</td>'
+        +'<td style="'+_tdC+'"><div style="display:flex;align-items:center;gap:6px;justify-content:center">'
+          +'<div style="width:70px;height:7px;border-radius:4px;background:#F1F5F9;flex-shrink:0"><div style="height:100%;width:'+barW+'%;border-radius:4px;background:'+barCol+'"></div></div>'
+          +'<span style="font-size:11px;font-weight:700;color:'+barCol+';min-width:36px;text-align:left">'+( r.cumplPct!==null?r.cumplPct+'%':'—')+'</span>'
         +'</div></td>'
-        +'<td style="text-align:right;font-family:var(--mono);font-size:11px">'+( r.monto?fM(r.monto):'—')+'</td>'
-        +'<td style="text-align:right;font-family:var(--mono)">'+r.seps+'</td>'
+        +'<td style="'+_tdC+';font-weight:600;color:#0A1628">'+( r.monto?fMFull(r.monto):'—')+'</td>'
+        +'<td style="'+_tdC+';font-weight:600;color:#0D7377">'+r.seps+'</td>'
         +'</tr>';
     };
 
     // ── Ventas por mes table ──
+    const _thM='padding:10px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B7280;border-bottom:2px solid #E5E7EB;background:#FAFAFA';
+    const _tdM='padding:9px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12px;border-bottom:1px solid #F3F4F6;white-space:nowrap';
     const mesTableRows=mesEntries.map(([k,d])=>{
       const m2sArr=d.m2s||[];
       const pm2=m2sArr.length?Math.round(m2sArr.reduce((a,x)=>a+x,0)/m2sArr.length):null;
       return '<tr>'
-        +'<td>'+d.mes+'</td>'
-        +'<td style="text-align:right;font-family:var(--mono);font-weight:700">'+d.n+'</td>'
-        +'<td style="text-align:right;font-family:var(--mono)">'+fM(d.monto)+'</td>'
-        +'<td style="text-align:right;font-family:var(--mono);color:var(--ink-3)">'+( pm2?'S/'+fN(pm2):'—')+'</td>'
+        +'<td style="'+_tdM+';text-align:left;font-weight:600;color:#374151">'+d.mes+'</td>'
+        +'<td style="'+_tdM+';font-weight:700;color:#0A1628">'+d.n+'</td>'
+        +'<td style="'+_tdM+';font-weight:600;color:#0A1628">'+fMFull(d.monto)+'</td>'
+        +'<td style="'+_tdM+';color:#6B7280">'+( pm2?'S/ '+fN(pm2):'—')+'</td>'
         +'</tr>';
     }).join('');
 
@@ -1460,10 +1467,18 @@ function renderDirector(){
       '<div class="card" style="margin-bottom:16px">'+
         '<div class="card-hd"><div><h3>Resumen por proyecto</h3><p>'+lblA+(lblB?' vs. '+lblB:'')+' · unidades, meta y monto</p></div></div>'+
         '<div style="overflow-x:auto">'+
-          '<table class="tbl" style="width:100%">'+
-            '<thead><tr>'+
-              '<th>Proyecto</th><th style="text-align:right">Und. Vendidas</th><th style="text-align:right">Meta</th>'+
-              '<th>Avance %</th><th style="text-align:right">Monto</th><th style="text-align:right">Separaciones</th>'+
+          '<table class="tbl" style="width:100%;table-layout:fixed;border-collapse:collapse">'+
+            '<colgroup>'+
+              '<col style="width:26%"><col style="width:13%"><col style="width:10%">'+
+              '<col style="width:18%"><col style="width:20%"><col style="width:13%">'+
+            '</colgroup>'+
+            '<thead><tr style="background:#FAFAFA">'+
+              '<th style="padding:10px 14px;text-align:left;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B7280;border-bottom:2px solid #E5E7EB">PROYECTO</th>'+
+              '<th style="padding:10px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B7280;border-bottom:2px solid #E5E7EB">VENDIDAS</th>'+
+              '<th style="padding:10px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B7280;border-bottom:2px solid #E5E7EB">META</th>'+
+              '<th style="padding:10px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B7280;border-bottom:2px solid #E5E7EB">AVANCE</th>'+
+              '<th style="padding:10px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B7280;border-bottom:2px solid #E5E7EB">MONTO</th>'+
+              '<th style="padding:10px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B7280;border-bottom:2px solid #E5E7EB">SEPARACIONES</th>'+
             '</tr></thead>'+
             '<tbody>'+
               projRows.map(_projRowHTML).join('')+
@@ -1477,7 +1492,12 @@ function renderDirector(){
           '<div class="card-hd"><div><h3>Ventas por mes</h3><p>'+lblA+' · '+totales.n+' unidades · '+fM(totales.monto)+'</p></div></div>'+
           '<div style="overflow-x:auto">'+
             '<table class="tbl" style="width:100%">'+
-              '<thead><tr><th>Mes</th><th style="text-align:right">Unid.</th><th style="text-align:right">Monto</th><th style="text-align:right">Precio/m²</th></tr></thead>'+
+              '<thead><tr>'+
+                '<th style="'+_thM+';text-align:left">MES</th>'+
+                '<th style="'+_thM+'">UNID.</th>'+
+                '<th style="'+_thM+'">MONTO</th>'+
+                '<th style="'+_thM+'">PRECIO/m²</th>'+
+              '</tr></thead>'+
               '<tbody>'+mesTableRows+'</tbody>'+
             '</table>'+
           '</div>'+
@@ -2013,7 +2033,7 @@ function renderFunnelMkt(){
     if(proj) pr=pr.filter(r=>matchProj(r.Proyecto, proj));
     if(from||to) pr=pr.filter(r=>_matchRange(r.FechaRegistro, from, to));
     const lb=pr.filter(r=>String(r.LeadUnicoxMesProyecto||'').toUpperCase()==='SI');
-    let vi=D.visitas||[];
+    let vi=(D.visitas||[]).filter(r=>String(r.VisitaUnicaxMesProyecto||'').toUpperCase()==='SI');
     if(proj) vi=vi.filter(r=>matchProj(r.Proyecto, proj));
     if(from||to) vi=vi.filter(r=>_matchRange(r.FechaVisita, from, to));
     let sp=(D.stock||[]).filter(r=>String(r.FechaSepDefinitiva||'').trim()&&String(r.FechaSepDefinitiva||'')!=='nan');
@@ -2201,6 +2221,144 @@ function renderFunnelMkt(){
       ${stageSel}
       <div style="padding:14px 18px 18px">${_renderFlCrossTable(stageData)}</div>
     </div>`;
+    return;
+  }
+
+  // ══ TAB: EVOLUCIÓN DE LEADS ═══════════════════════════════════════════════
+  if(_flTab==='evolucion'){
+    // Construir serie diaria desde prospBase (todos los prospectos, no solo únicos)
+    const PROYECTOS_COLOR={'HELIO - SANTA BEATRIZ':'#0D7377','SUNNY':'#14AFBE','LITORAL 900':'#F4A228','LOMAS DE CARABAYLLO 4':'#10B981','LOMAS DE CARABAYLLO 5':'#7C3AED','DOMINGO ORUE':'#F97316'};
+    const BRAND_COLORS=['#0D7377','#14AFBE','#F4A228','#10B981','#7C3AED','#F97316','#F59E0B','#EF4444'];
+    const evoBase = proj ? leadBase : leadBase;
+
+    // Agrupar por fecha y proyecto
+    const dayMap = {};
+    evoBase.forEach(r=>{
+      const iso = _toISO(r.FechaRegistro);
+      if(!iso) return;
+      const p = String(r.Proyecto||'Sin proyecto').trim();
+      if(!dayMap[iso]) dayMap[iso]={};
+      dayMap[iso][p] = (dayMap[iso][p]||0)+1;
+    });
+
+    const allDates = Object.keys(dayMap).sort();
+    const allProyectos = proj ? [proj] : [...new Set(evoBase.map(r=>String(r.Proyecto||'Sin proyecto').trim()))].filter(Boolean).sort();
+
+    // Si no hay datos suficientes mostrar mensaje
+    if(allDates.length===0){
+      document.getElementById('fl-content').innerHTML=`
+      <div class="section-title"><h2>EVOLUCIÓN DE LEADS</h2><div class="hint">Tendencia diaria por proyecto · ${lblA}</div></div>
+      <div class="card" style="margin-bottom:16px;padding:40px;text-align:center;color:var(--ink-4);font-size:13px">Sin datos para el período seleccionado</div>`;
+      return;
+    }
+
+    // Construir datasets Chart.js — una línea por proyecto
+    const datasets = allProyectos.map((p,i)=>({
+      label: p,
+      data: allDates.map(d=>dayMap[d]?.[p]||0),
+      borderColor: PROYECTOS_COLOR[p]||BRAND_COLORS[i%BRAND_COLORS.length],
+      backgroundColor: (PROYECTOS_COLOR[p]||BRAND_COLORS[i%BRAND_COLORS.length])+'22',
+      borderWidth: 2,
+      pointRadius: allDates.length>60?0:3,
+      pointHoverRadius: 5,
+      tension: 0.35,
+      fill: false,
+    }));
+
+    // Totales diarios (línea gris de referencia)
+    if(!proj && allProyectos.length>1){
+      datasets.unshift({
+        label:'Total leads',
+        data: allDates.map(d=>Object.values(dayMap[d]||{}).reduce((a,b)=>a+b,0)),
+        borderColor:'#0A1628',
+        backgroundColor:'#0A162810',
+        borderWidth:2.5,
+        pointRadius: allDates.length>60?0:3,
+        pointHoverRadius:5,
+        tension:0.35,
+        fill:false,
+        borderDash:[],
+      });
+    }
+
+    // Formatear etiquetas del eje X — abreviar si hay muchos días
+    const xLabels = allDates.map(d=>{
+      const[y,m,dd]=d.split('-');
+      const MM=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
+      return allDates.length>90?`${dd}/${m}`:dd+' '+MM[+m];
+    });
+
+    // Resumen: pico diario, promedio, tendencia
+    const totDiarios = allDates.map(d=>Object.values(dayMap[d]).reduce((a,b)=>a+b,0));
+    const maxDia = Math.max(...totDiarios);
+    const maxDiaFecha = allDates[totDiarios.indexOf(maxDia)];
+    const avgDia = totDiarios.length ? Math.round(totDiarios.reduce((a,b)=>a+b,0)/totDiarios.length*10)/10 : 0;
+    const mitad = Math.floor(totDiarios.length/2);
+    const tendencia = mitad>0 ? (totDiarios.slice(mitad).reduce((a,b)=>a+b,0)/totDiarios.slice(mitad).length) - (totDiarios.slice(0,mitad).reduce((a,b)=>a+b,0)/totDiarios.slice(0,mitad).length) : 0;
+    const tendIcon = tendencia>0.5?'↑':tendencia<-0.5?'↓':'→';
+    const tendColor = tendencia>0.5?'#10B981':tendencia<-0.5?'#EF4444':'#6B7280';
+
+    const chartId='fl-evo-chart-'+Date.now();
+    document.getElementById('fl-content').innerHTML=`
+    <div class="section-title"><h2>EVOLUCIÓN DE LEADS</h2><div class="hint">TENDENCIA DIARIA POR PROYECTO · ${lblA}</div></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;padding:0 20px 14px">
+      <div class="kpi" style="border:1px solid #E5E7EB;border-top:3px solid #0D7377;border-radius:10px;background:#fff;padding:10px 16px;min-width:130px">
+        <div class="lbl" style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#6B7280;margin-bottom:4px">Leads totales</div>
+        <div class="val" style="font-size:20px;font-weight:800;color:#0A1628;line-height:1">${fN(leadsTotal)}</div>
+      </div>
+      <div class="kpi" style="border:1px solid #E5E7EB;border-top:3px solid #14AFBE;border-radius:10px;background:#fff;padding:10px 16px;min-width:130px">
+        <div class="lbl" style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#6B7280;margin-bottom:4px">Promedio diario</div>
+        <div class="val" style="font-size:20px;font-weight:800;color:#0A1628;line-height:1">${avgDia}</div>
+      </div>
+      <div class="kpi" style="border:1px solid #E5E7EB;border-top:3px solid #F4A228;border-radius:10px;background:#fff;padding:10px 16px;min-width:160px">
+        <div class="lbl" style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#6B7280;margin-bottom:4px">Pico diario</div>
+        <div class="val" style="font-size:20px;font-weight:800;color:#0A1628;line-height:1">${fN(maxDia)} <span style="font-size:11px;color:#6B7280;font-weight:500">${maxDiaFecha?maxDiaFecha.slice(5).replace('-','/'):'—'}</span></div>
+      </div>
+      <div class="kpi" style="border:1px solid #E5E7EB;border-top:3px solid ${tendColor};border-radius:10px;background:#fff;padding:10px 16px;min-width:130px">
+        <div class="lbl" style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#6B7280;margin-bottom:4px">Tendencia</div>
+        <div class="val" style="font-size:20px;font-weight:800;color:${tendColor};line-height:1">${tendIcon} ${Math.abs(Math.round(tendencia*10)/10)}</div>
+      </div>
+    </div>
+    <div class="card" style="margin:0 20px 16px;padding:20px">
+      <div style="height:320px"><canvas id="${chartId}"></canvas></div>
+    </div>`;
+
+    // Renderizar con Chart.js
+    requestAnimationFrame(()=>{
+      const ctx=document.getElementById(chartId);
+      if(!ctx) return;
+      if(window._flEvoChart) window._flEvoChart.destroy();
+      window._flEvoChart=new Chart(ctx,{
+        type:'line',
+        data:{labels:xLabels, datasets},
+        options:{
+          responsive:true,maintainAspectRatio:false,
+          interaction:{mode:'index',intersect:false},
+          plugins:{
+            legend:{
+              position:'bottom',
+              labels:{font:{family:"'Plus Jakarta Sans',sans-serif",size:11},usePointStyle:true,boxWidth:8,padding:16,color:'#374151'}
+            },
+            tooltip:{
+              backgroundColor:'#0A1628',titleFont:{family:"'Plus Jakarta Sans',sans-serif",size:11},
+              bodyFont:{family:"'Plus Jakarta Sans',sans-serif",size:11},
+              callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fN(ctx.parsed.y)+' leads'}
+            }
+          },
+          scales:{
+            x:{
+              grid:{color:'#F3F4F6'},
+              ticks:{font:{family:"'Plus Jakarta Sans',sans-serif",size:10},color:'#6B7280',maxTicksLimit:allDates.length>60?12:allDates.length>30?8:allDates.length,maxRotation:0}
+            },
+            y:{
+              beginAtZero:true,
+              grid:{color:'#F3F4F6'},
+              ticks:{font:{family:"'Plus Jakarta Sans',sans-serif",size:10},color:'#6B7280',stepSize:1}
+            }
+          }
+        }
+      });
+    });
     return;
   }
 
