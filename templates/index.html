@@ -654,18 +654,20 @@ table td{font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;color:#0A1628
       <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◈</span>
         <select id="dir-tipo" onchange="renderDirector()"><option value="">Tipo: Todos</option><option value="departamento">Departamento</option><option value="azotea">Azotea</option><option value="estacionamiento">Estacionamiento</option><option value="deposito">Depósito</option><option value="comercio">Comercio</option></select>
       </label>
-      <div style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:3px 10px">
-        <span style="font-size:10px;color:var(--ink-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Desde</span>
-        <input type="date" id="dir-date-desde" onchange="renderDirector()" style="border:none;background:transparent;font-size:12.5px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;outline:none;padding:2px 0">
-        <span style="color:var(--ink-4);font-size:13px">→</span>
-        <span style="font-size:10px;color:var(--ink-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Hasta</span>
-        <input type="date" id="dir-date-hasta" onchange="renderDirector()" style="border:none;background:transparent;font-size:12.5px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;outline:none;padding:2px 0">
-      </div>
-      <button onclick="document.getElementById('dir-date-desde').value='';document.getElementById('dir-date-hasta').value='';renderDirector()" title="Limpiar fechas" style="background:transparent;border:none;color:var(--ink-4);font-size:14px;cursor:pointer;padding:0 4px;line-height:1">✕</button>
       <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
     </div>
   </div>
   <div class="kpi-row kpi-3" id="dir-kpis"><div class="loading">Cargando datos...</div></div>
+  <div style="display:flex;align-items:center;gap:8px;padding:10px 24px 0">
+    <div style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:3px 10px">
+      <span style="font-size:10px;color:var(--ink-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Desde</span>
+      <input type="date" id="dir-date-desde" onchange="renderDirector()" style="border:none;background:transparent;font-size:12.5px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;outline:none;padding:2px 0">
+      <span style="color:var(--ink-4);font-size:13px">→</span>
+      <span style="font-size:10px;color:var(--ink-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Hasta</span>
+      <input type="date" id="dir-date-hasta" onchange="renderDirector()" style="border:none;background:transparent;font-size:12.5px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;outline:none;padding:2px 0">
+    </div>
+    <button onclick="document.getElementById('dir-date-desde').value='';document.getElementById('dir-date-hasta').value='';renderDirector()" title="Limpiar fechas" style="background:transparent;border:none;color:var(--ink-4);font-size:14px;cursor:pointer;padding:0 4px;line-height:1">✕</button>
+  </div>
   <div class="tab-bar">
     <button class="tab-btn active" id="dir-tab-resumen" onclick="setDirTab('resumen',this)">Resumen</button>
     <button class="tab-btn" id="dir-tab-tendencias" onclick="setDirTab('tendencias',this)">Tendencias</button>
