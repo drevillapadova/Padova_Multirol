@@ -654,15 +654,14 @@ table td{font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;color:#0A1628
       <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◈</span>
         <select id="dir-tipo" onchange="renderDirector()"><option value="">Tipo: Todos</option><option value="departamento">Departamento</option><option value="azotea">Azotea</option><option value="estacionamiento">Estacionamiento</option><option value="deposito">Depósito</option><option value="comercio">Comercio</option></select>
       </label>
-      <!-- date selects hidden but kept for filtrarVentasRango compatibility -->
-      <select id="dir-mes-desde" onchange="renderDirector()" style="display:none"><option value="">Ene.</option><option value="02">Feb.</option><option value="03">Mar.</option><option value="04">Abr.</option><option value="05">May.</option><option value="06">Jun.</option><option value="07">Jul.</option><option value="08">Ago.</option><option value="09">Set.</option><option value="10">Oct.</option><option value="11">Nov.</option><option value="12">Dic.</option></select>
-      <select id="dir-año-desde" onchange="renderDirector()" style="display:none"><option>2026</option><option>2025</option><option>2024</option><option>2023</option></select>
-      <select id="dir-mes-hasta" onchange="renderDirector()" style="display:none"><option value="">Dic.</option><option value="01">Ene.</option><option value="02">Feb.</option><option value="03">Mar.</option><option value="04">Abr.</option><option value="05">May.</option><option value="06">Jun.</option><option value="07">Jul.</option><option value="08">Ago.</option><option value="09">Set.</option><option value="10">Oct.</option><option value="11">Nov.</option></select>
-      <select id="dir-año-hasta" onchange="renderDirector()" style="display:none"><option>2026</option><option>2025</option><option>2024</option><option>2023</option></select>
-      <select id="dir-mes-desde-b" onchange="renderDirector()" style="display:none"><option value="">Ene.</option><option value="02">Feb.</option><option value="03">Mar.</option><option value="04">Abr.</option><option value="05">May.</option><option value="06">Jun.</option><option value="07">Jul.</option><option value="08">Ago.</option><option value="09">Set.</option><option value="10">Oct.</option><option value="11">Nov.</option><option value="12">Dic.</option></select>
-      <select id="dir-año-desde-b" onchange="renderDirector()" style="display:none"><option>2025</option><option>2026</option><option>2024</option><option>2023</option></select>
-      <select id="dir-mes-hasta-b" onchange="renderDirector()" style="display:none"><option value="">Dic.</option><option value="01">Ene.</option><option value="02">Feb.</option><option value="03">Mar.</option><option value="04">Abr.</option><option value="05">May.</option><option value="06">Jun.</option><option value="07">Jul.</option><option value="08">Ago.</option><option value="09">Set.</option><option value="10">Oct.</option><option value="11">Nov.</option></select>
-      <select id="dir-año-hasta-b" onchange="renderDirector()" style="display:none"><option>2025</option><option>2026</option><option>2024</option><option>2023</option></select>
+      <div style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:3px 10px">
+        <span style="font-size:10px;color:var(--ink-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Desde</span>
+        <input type="date" id="dir-date-desde" onchange="renderDirector()" style="border:none;background:transparent;font-size:12.5px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;outline:none;padding:2px 0">
+        <span style="color:var(--ink-4);font-size:13px">→</span>
+        <span style="font-size:10px;color:var(--ink-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Hasta</span>
+        <input type="date" id="dir-date-hasta" onchange="renderDirector()" style="border:none;background:transparent;font-size:12.5px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;outline:none;padding:2px 0">
+      </div>
+      <button onclick="document.getElementById('dir-date-desde').value='';document.getElementById('dir-date-hasta').value='';renderDirector()" title="Limpiar fechas" style="background:transparent;border:none;color:var(--ink-4);font-size:14px;cursor:pointer;padding:0 4px;line-height:1">✕</button>
       <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
     </div>
   </div>
@@ -1147,16 +1146,14 @@ const _fechaYM=f=>{const s=String(f||'').trim();if(!s||s==='nan')return null;if(
 function filtrarVentasRango(prefix,sfx=''){
   const proj=document.getElementById(prefix+'-proj')?.value||'';
   const _tipo=document.getElementById(prefix+'-tipo')?.value||'';
-  const mesD=document.getElementById(prefix+'-mes-desde'+sfx)?.value||'';
-  const añoD=document.getElementById(prefix+'-año-desde'+sfx)?.value||'';
-  const mesH=document.getElementById(prefix+'-mes-hasta'+sfx)?.value||'';
-  const añoH=document.getElementById(prefix+'-año-hasta'+sfx)?.value||'';
+  const dateD=document.getElementById(prefix+'-date-desde')?.value||'';
+  const dateH=document.getElementById(prefix+'-date-hasta')?.value||'';
   let v=D.ventas||[];
   if(proj) v=v.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
   if(_tipo) v=v.filter(r=>_matchTipo(r,_tipo));
-  if(añoD||mesD||añoH||mesH){
-    const desde=(añoD||'2000')+'-'+(mesD||'01');
-    const hasta=(añoH||'2099')+'-'+(mesH||'12');
+  if(dateD||dateH){
+    const desde=dateD?dateD.slice(0,7):'2000-01';
+    const hasta=dateH?dateH.slice(0,7):'2099-12';
     v=v.filter(r=>{const ym=_fechaYM(r.FechaVenta||r.FechaEntrega_Minuta||'');return ym&&ym>=desde&&ym<=hasta;});
   }
   return v;
@@ -1190,13 +1187,11 @@ function toggleDirComp(){
 }
 
 function _rangeLabel(prefix,sfx=''){
-  const mD=document.getElementById(prefix+'-mes-desde'+sfx);
-  const aD=document.getElementById(prefix+'-año-desde'+sfx);
-  const mH=document.getElementById(prefix+'-mes-hasta'+sfx);
-  const aH=document.getElementById(prefix+'-año-hasta'+sfx);
-  const mDt=mD?.options[mD.selectedIndex]?.text||'Ene.';
-  const mHt=mH?.options[mH.selectedIndex]?.text||'Dic.';
-  return `${mDt} ${aD?.value||''} → ${mHt} ${aH?.value||''}`;
+  const dD=document.getElementById(prefix+'-date-desde'+sfx)?.value||'';
+  const dH=document.getElementById(prefix+'-date-hasta'+sfx)?.value||'';
+  if(!dD&&!dH) return 'Todo el período';
+  const fmt=s=>s?s.slice(0,7):'';
+  return `${fmt(dD)||'inicio'} → ${fmt(dH)||'hoy'}`;
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -1352,40 +1347,9 @@ function renderDirector(){
 
   // ── Helper: build inline date bar HTML ──
   const _buildDateBar=()=>{
-    const _MDE=[['','Ene.'],['02','Feb.'],['03','Mar.'],['04','Abr.'],['05','May.'],['06','Jun.'],['07','Jul.'],['08','Ago.'],['09','Set.'],['10','Oct.'],['11','Nov.'],['12','Dic.']];
-    const _MHA=[['','Dic.'],['01','Ene.'],['02','Feb.'],['03','Mar.'],['04','Abr.'],['05','May.'],['06','Jun.'],['07','Jul.'],['08','Ago.'],['09','Set.'],['10','Oct.'],['11','Nov.']];
-    const curYear=new Date().getFullYear();
-    const years=['2026','2025','2024','2023'];
-    const _selMes=(opts,cur)=>opts.map(([v,t])=>'<option value="'+v+'"'+(v===cur?' selected':'')+'>'+t+'</option>').join('');
-    const _selAnio=(cur)=>years.map(y=>'<option value="'+y+'"'+(y===cur?' selected':'')+'>'+y+'</option>').join('');
-    const md=document.getElementById('dir-mes-desde')?.value||'';
-    const ad=document.getElementById('dir-año-desde')?.value||curYear;
-    const mh=document.getElementById('dir-mes-hasta')?.value||'';
-    const ah=document.getElementById('dir-año-hasta')?.value||curYear;
-    const md2=document.getElementById('dir-mes-desde-b')?.value||'';
-    const ad2=document.getElementById('dir-año-desde-b')?.value||curYear;
-    const mh2=document.getElementById('dir-mes-hasta-b')?.value||'';
-    const ah2=document.getElementById('dir-año-hasta-b')?.value||curYear;
-    const onChange="(function(){['dir-mes-desde','dir-año-desde','dir-mes-hasta','dir-año-hasta','dir-mes-desde-b','dir-año-desde-b','dir-mes-hasta-b','dir-año-hasta-b'].forEach(function(id){var src=document.getElementById('idb-'+id);var tgt=document.getElementById(id);if(src&&tgt)tgt.value=src.value;});renderDirector();})()";
-    const toggleComp="(function(){_dirComp=!_dirComp;['dir-mes-desde-b','dir-año-desde-b','dir-mes-hasta-b','dir-año-hasta-b'].forEach(function(id){var src=document.getElementById('idb-'+id);var tgt=document.getElementById(id);if(src&&tgt)tgt.value=src.value;});renderDirector();})()";
+    const toggleComp='(function(){_dirComp=!_dirComp;renderDirector();})()';
     let html='<div class="dir-date-bar">';
-    html+='<span style="font-size:11px;color:var(--ink-3);font-weight:600">Período:</span>';
-    html+='<select id="idb-dir-mes-desde" onchange="'+onChange+'">'+_selMes(_MDE,md)+'</select>';
-    html+='<select id="idb-dir-año-desde" onchange="'+onChange+'">'+_selAnio(String(ad))+'</select>';
-    html+='<span class="range-lbl">→</span>';
-    html+='<select id="idb-dir-mes-hasta" onchange="'+onChange+'">'+_selMes(_MHA,mh)+'</select>';
-    html+='<select id="idb-dir-año-hasta" onchange="'+onChange+'">'+_selAnio(String(ah))+'</select>';
-    html+='<button title="Limpiar período" onclick="(function(){[\'dir-mes-desde\',\'dir-mes-hasta\',\'dir-mes-desde-b\',\'dir-mes-hasta-b\'].forEach(function(id){var el=document.getElementById(\'idb-\'+id);if(el)el.value=\'\';var h=document.getElementById(id);if(h)h.value=\'\';});renderDirector();})()" style="background:transparent;border:none;color:var(--ink-4);font-size:14px;cursor:pointer;padding:0 4px;line-height:1;margin-left:2px">✕</button>';
-    html+='<div class="ddb-sep"></div>';
-    html+='<button class="chip" style="font-size:11px;padding:3px 10px;'+(  _dirComp?'background:var(--brand);color:#fff;border-color:var(--brand)':'')+'" onclick="'+toggleComp+'">'+(  _dirComp?'✕ Comparar':'⊕ Comparar')+'</button>';
-    if(_dirComp){
-      html+='<span class="range-lbl" style="margin-left:6px">vs.</span>';
-      html+='<select id="idb-dir-mes-desde-b" onchange="'+onChange+'">'+_selMes(_MDE,md2)+'</select>';
-      html+='<select id="idb-dir-año-desde-b" onchange="'+onChange+'">'+_selAnio(String(ad2))+'</select>';
-      html+='<span class="range-lbl">→</span>';
-      html+='<select id="idb-dir-mes-hasta-b" onchange="'+onChange+'">'+_selMes(_MHA,mh2)+'</select>';
-      html+='<select id="idb-dir-año-hasta-b" onchange="'+onChange+'">'+_selAnio(String(ah2))+'</select>';
-    }
+    html+='<button class="chip" style="font-size:11px;padding:3px 10px;'+(_dirComp?'background:var(--brand);color:#fff;border-color:var(--brand)':'')+'" onclick="'+toggleComp+'">'+(_dirComp?'✕ Comparar':'⊕ Comparar')+'</button>';
     html+='</div>';
     return html;
   };
@@ -1399,17 +1363,12 @@ function renderDirector(){
 
     // ── Resumen por proyecto table ──
     // Determine period date range for seps
-    const _dirMesD=parseInt(document.getElementById('dir-mes-desde')?.value||0)||0;
-    const _dirAnioD=parseInt(document.getElementById('dir-año-desde')?.value||0)||0;
-    const _dirMesH=parseInt(document.getElementById('dir-mes-hasta')?.value||0)||0;
-    const _dirAnioH=parseInt(document.getElementById('dir-año-hasta')?.value||0)||0;
+    const _dateDesde=document.getElementById('dir-date-desde')?.value||'';
+    const _dateHasta=document.getElementById('dir-date-hasta')?.value||'';
     const _inPeriod=d=>{
-      if(!d)return true; // no date filter configured => include all
-      const dd=parseDate(d);if(!dd)return false;
-      const ym=dd.getFullYear()*100+dd.getMonth()+1;
-      const lo=_dirAnioD&&_dirMesD?_dirAnioD*100+_dirMesD:0;
-      const hi=_dirAnioH&&_dirMesH?_dirAnioH*100+_dirMesH:99999999;
-      return(!lo||ym>=lo)&&(!hi||ym<=hi);
+      if(!d)return true;
+      const ym=_fechaYM(d);if(!ym)return false;
+      return(!_dateDesde||ym>=_dateDesde.slice(0,7))&&(!_dateHasta||ym<=_dateHasta.slice(0,7));
     };
 
     // Number of months in the period (for velocity)
