@@ -790,6 +790,7 @@ const fFull = n => 'S/ '+Number(n||0).toLocaleString('en-US',{minimumFractionDig
 const fN  = n => Number(n||0).toLocaleString('es-PE');
 const pct = (a,b) => b ? Math.round(a/b*100)+'%' : '0%';
 const fM  = n => { const v=Number(n||0); return v>=1000000?'S/ '+(v/1000000).toFixed(1)+'M':v>=1000?'S/ '+(v/1000).toFixed(0)+'k':fS(v); };
+const fMFull = n => 'S/ '+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const normStr = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 const _matchTipo=(r,tipo)=>{
   if(!tipo) return true;
@@ -1425,33 +1426,38 @@ function renderDirector(){
     const totRow={p:'TOTAL',n:projRows.reduce((a,r)=>a+r.n,0),meta:projRows.reduce((a,r)=>a+(r.meta||0),0),monto:projRows.reduce((a,r)=>a+r.monto,0),seps:projRows.reduce((a,r)=>a+r.seps,0)};
     totRow.cumplPct=totRow.meta?Math.round(totRow.n/totRow.meta*100):null;
 
+    const _tdC='padding:9px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12px;border-bottom:1px solid #F3F4F6;white-space:nowrap';
+    const _tdL='padding:9px 14px;text-align:left;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12px;border-bottom:1px solid #F3F4F6';
     const _projRowHTML=r=>{
       const barW=r.cumplPct!==null?Math.min(r.cumplPct,100):0;
-      const barCol=r.cumplPct===null?'#e2e8f0':r.cumplPct>=80?'#22c55e':r.cumplPct>=50?'#f59e0b':'#ef4444';
+      const barCol=r.cumplPct===null?'#e2e8f0':r.cumplPct>=80?'#10B981':r.cumplPct>=50?'#F4A228':'#EF4444';
       const name=r.p.replace('LOMAS DE CARABAYLLO','LOMAS').replace('HELIO - SANTA BEATRIZ','HELIO');
       const isTotal=r.p==='TOTAL';
-      return '<tr style="'+(isTotal?'font-weight:700;border-top:2px solid var(--line);background:var(--panel)':'')+'">'
-        +'<td style="font-size:12px;color:'+(isTotal?'var(--ink)':'var(--ink-2)')+'">'+toTitle(name.toLowerCase())+'</td>'
-        +'<td style="text-align:right;font-family:var(--mono);font-weight:700">'+r.n+'</td>'
-        +'<td style="text-align:right;font-family:var(--mono);color:var(--ink-3)">'+( r.meta||'—')+'</td>'
-        +'<td style="min-width:90px"><div style="display:flex;align-items:center;gap:6px">'
-          +'<div style="flex:1;height:8px;border-radius:4px;background:#f1f5f9"><div style="height:100%;width:'+barW+'%;border-radius:4px;background:'+barCol+'"></div></div>'
-          +'<span style="font-size:11px;font-family:var(--mono);color:var(--ink-3);min-width:32px">'+( r.cumplPct!==null?r.cumplPct+'%':'—')+'</span>'
+      const rowStyle=isTotal?'font-weight:700;border-top:2px solid #E5E7EB;background:#FAFAFA':'';
+      return '<tr style="'+rowStyle+'">'
+        +'<td style="'+_tdL+';color:'+(isTotal?'#0A1628':'#374151')+';font-weight:'+(isTotal?'700':'500')+'">'+toTitle(name.toLowerCase())+'</td>'
+        +'<td style="'+_tdC+';font-weight:700;color:#0A1628">'+r.n+'</td>'
+        +'<td style="'+_tdC+';color:#6B7280">'+( r.meta||'—')+'</td>'
+        +'<td style="'+_tdC+'"><div style="display:flex;align-items:center;gap:6px;justify-content:center">'
+          +'<div style="width:70px;height:7px;border-radius:4px;background:#F1F5F9;flex-shrink:0"><div style="height:100%;width:'+barW+'%;border-radius:4px;background:'+barCol+'"></div></div>'
+          +'<span style="font-size:11px;font-weight:700;color:'+barCol+';min-width:36px;text-align:left">'+( r.cumplPct!==null?r.cumplPct+'%':'—')+'</span>'
         +'</div></td>'
-        +'<td style="text-align:right;font-family:var(--mono);font-size:11px">'+( r.monto?fM(r.monto):'—')+'</td>'
-        +'<td style="text-align:right;font-family:var(--mono)">'+r.seps+'</td>'
+        +'<td style="'+_tdC+';font-weight:600;color:#0A1628">'+( r.monto?fMFull(r.monto):'—')+'</td>'
+        +'<td style="'+_tdC+';font-weight:600;color:#0D7377">'+r.seps+'</td>'
         +'</tr>';
     };
 
     // ── Ventas por mes table ──
+    const _thM='padding:10px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B7280;border-bottom:2px solid #E5E7EB;background:#FAFAFA';
+    const _tdM='padding:9px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12px;border-bottom:1px solid #F3F4F6;white-space:nowrap';
     const mesTableRows=mesEntries.map(([k,d])=>{
       const m2sArr=d.m2s||[];
       const pm2=m2sArr.length?Math.round(m2sArr.reduce((a,x)=>a+x,0)/m2sArr.length):null;
       return '<tr>'
-        +'<td>'+d.mes+'</td>'
-        +'<td style="text-align:right;font-family:var(--mono);font-weight:700">'+d.n+'</td>'
-        +'<td style="text-align:right;font-family:var(--mono)">'+fM(d.monto)+'</td>'
-        +'<td style="text-align:right;font-family:var(--mono);color:var(--ink-3)">'+( pm2?'S/'+fN(pm2):'—')+'</td>'
+        +'<td style="'+_tdM+';text-align:left;font-weight:600;color:#374151">'+d.mes+'</td>'
+        +'<td style="'+_tdM+';font-weight:700;color:#0A1628">'+d.n+'</td>'
+        +'<td style="'+_tdM+';font-weight:600;color:#0A1628">'+fMFull(d.monto)+'</td>'
+        +'<td style="'+_tdM+';color:#6B7280">'+( pm2?'S/ '+fN(pm2):'—')+'</td>'
         +'</tr>';
     }).join('');
 
@@ -1460,10 +1466,18 @@ function renderDirector(){
       '<div class="card" style="margin-bottom:16px">'+
         '<div class="card-hd"><div><h3>Resumen por proyecto</h3><p>'+lblA+(lblB?' vs. '+lblB:'')+' · unidades, meta y monto</p></div></div>'+
         '<div style="overflow-x:auto">'+
-          '<table class="tbl" style="width:100%">'+
-            '<thead><tr>'+
-              '<th>Proyecto</th><th style="text-align:right">Und. Vendidas</th><th style="text-align:right">Meta</th>'+
-              '<th>Avance %</th><th style="text-align:right">Monto</th><th style="text-align:right">Separaciones</th>'+
+          '<table class="tbl" style="width:100%;table-layout:fixed;border-collapse:collapse">'+
+            '<colgroup>'+
+              '<col style="width:26%"><col style="width:13%"><col style="width:10%">'+
+              '<col style="width:18%"><col style="width:20%"><col style="width:13%">'+
+            '</colgroup>'+
+            '<thead><tr style="background:#FAFAFA">'+
+              '<th style="padding:10px 14px;text-align:left;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B7280;border-bottom:2px solid #E5E7EB">PROYECTO</th>'+
+              '<th style="padding:10px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B7280;border-bottom:2px solid #E5E7EB">VENDIDAS</th>'+
+              '<th style="padding:10px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B7280;border-bottom:2px solid #E5E7EB">META</th>'+
+              '<th style="padding:10px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B7280;border-bottom:2px solid #E5E7EB">AVANCE</th>'+
+              '<th style="padding:10px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B7280;border-bottom:2px solid #E5E7EB">MONTO</th>'+
+              '<th style="padding:10px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B7280;border-bottom:2px solid #E5E7EB">SEPARACIONES</th>'+
             '</tr></thead>'+
             '<tbody>'+
               projRows.map(_projRowHTML).join('')+
@@ -1477,7 +1491,12 @@ function renderDirector(){
           '<div class="card-hd"><div><h3>Ventas por mes</h3><p>'+lblA+' · '+totales.n+' unidades · '+fM(totales.monto)+'</p></div></div>'+
           '<div style="overflow-x:auto">'+
             '<table class="tbl" style="width:100%">'+
-              '<thead><tr><th>Mes</th><th style="text-align:right">Unid.</th><th style="text-align:right">Monto</th><th style="text-align:right">Precio/m²</th></tr></thead>'+
+              '<thead><tr>'+
+                '<th style="'+_thM+';text-align:left">MES</th>'+
+                '<th style="'+_thM+'">UNID.</th>'+
+                '<th style="'+_thM+'">MONTO</th>'+
+                '<th style="'+_thM+'">PRECIO/m²</th>'+
+              '</tr></thead>'+
               '<tbody>'+mesTableRows+'</tbody>'+
             '</table>'+
           '</div>'+
