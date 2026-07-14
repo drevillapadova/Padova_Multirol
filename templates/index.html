@@ -1663,10 +1663,15 @@ function renderDirector(){
     const _dk=document.documentElement.classList.contains('dark');
     const _hmColor=pct=>{
       if(pct===null)return'var(--panel)';
-      if(pct===0)return _dk?'rgba(148,163,184,0.08)':'#f8fafc';
+      if(pct===0)return _dk?'rgba(148,163,184,0.08)':'#f0f4ff';
+      if(_dk){
+        const t=Math.min(pct/100,1);
+        const r=Math.round(18+t*22),g=Math.round(38+t*62),b=Math.round(75+t*105);
+        return'rgb('+r+','+g+','+b+')';
+      }
       const t=Math.min(pct/50,1);
-      if(_dk){const r=Math.round(20),g=Math.round(58+t*112),b=Math.round(24);return'rgb('+r+','+g+','+b+')';}
-      const r=Math.round(220-t*130),g=Math.round(252-t*120),b=Math.round(231-t*130);return'rgb('+r+','+g+','+b+')';
+      const r=Math.round(219-t*100),g=Math.round(234-t*80),b=Math.round(254-t*30);
+      return'rgb('+r+','+g+','+b+')';
     };
     const _hmText=pct=>pct===null?'<span style="color:var(--ink-4)">—</span>':pct+'%';
 
