@@ -1952,27 +1952,40 @@ function _renderFlCrossTable(prosp){
   const colDim = availDims.find(d=>d.val===_flCrossCols)||availDims[1];
   const _MES_ORDER=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Setiembre','Octubre','Noviembre','Diciembre'];
   const _mesIdx=v=>_MES_ORDER.findIndex(m=>m.toLowerCase()===String(v).toLowerCase());
-  const data = {};
-  const rowKeys = new Set(), colKeys = new Set();
+  // Acumular sobre TODAS las categorías primero (sin recortar), para no perder
+  // registros del total al agrupar filas/columnas de baja frecuencia en "Otros".
+  const rawData = {};
+  const rowTotals = {}, colTotals = {};
   prosp.forEach(r=>{
     const rk = rowDim.fn(r)||'—';
     const ck = colDim.fn(r)||'—';
-    rowKeys.add(rk); colKeys.add(ck);
-    if(!data[rk]) data[rk]={};
-    data[rk][ck] = (data[rk][ck]||0)+1;
+    if(!rawData[rk]) rawData[rk]={};
+    rawData[rk][ck] = (rawData[rk][ck]||0)+1;
+    rowTotals[rk] = (rowTotals[rk]||0)+1;
+    colTotals[ck] = (colTotals[ck]||0)+1;
   });
-  const rows = [...rowKeys].sort((a,b)=>{
-    if(rowDim.val==='mes'){const ia=_mesIdx(a),ib=_mesIdx(b);return(ia<0?99:ia)-(ib<0?99:ib);}
-    const ta = Object.values(data[a]||{}).reduce((s,v)=>s+v,0);
-    const tb = Object.values(data[b]||{}).reduce((s,v)=>s+v,0);
-    return tb-ta;
-  }).slice(0,15);
-  const cols = [...colKeys].sort((a,b)=>{
-    if(colDim.val==='mes'){const ia=_mesIdx(a),ib=_mesIdx(b);return(ia<0?99:ia)-(ib<0?99:ib);}
-    const ta = rows.reduce((s,r)=>s+(data[r]?.[a]||0),0);
-    const tb = rows.reduce((s,r)=>s+(data[r]?.[b]||0),0);
-    return tb-ta;
-  }).slice(0,8);
+  const _sortByTotal=(keys, totals, dim)=>[...keys].sort((a,b)=>{
+    if(dim.val==='mes'){const ia=_mesIdx(a),ib=_mesIdx(b);return(ia<0?99:ia)-(ib<0?99:ib);}
+    return (totals[b]||0)-(totals[a]||0);
+  });
+  const ROW_CAP=15, COL_CAP=8;
+  const allRowKeys = _sortByTotal(Object.keys(rowTotals), rowTotals, rowDim);
+  const allColKeys = _sortByTotal(Object.keys(colTotals), colTotals, colDim);
+  const rowKeepList = allRowKeys.length>ROW_CAP ? allRowKeys.slice(0,ROW_CAP-1) : allRowKeys;
+  const colKeepList = allColKeys.length>COL_CAP ? allColKeys.slice(0,COL_CAP-1) : allColKeys;
+  const rows = allRowKeys.length>ROW_CAP ? [...rowKeepList,'Otros'] : rowKeepList;
+  const cols = allColKeys.length>COL_CAP ? [...colKeepList,'Otros'] : colKeepList;
+  const rowKeep = new Set(rowKeepList), colKeep = new Set(colKeepList);
+  // Re-mapear: lo que no entra en el top se suma dentro de "Otros" en vez de descartarse.
+  const data = {};
+  Object.entries(rawData).forEach(([rk,cobj])=>{
+    const rkF = rowKeep.has(rk) ? rk : 'Otros';
+    if(!data[rkF]) data[rkF]={};
+    Object.entries(cobj).forEach(([ck,v])=>{
+      const ckF = colKeep.has(ck) ? ck : 'Otros';
+      data[rkF][ckF] = (data[rkF][ckF]||0)+v;
+    });
+  });
   const maxVal = Math.max(...rows.flatMap(r=>cols.map(c=>data[r]?.[c]||0)),1);
   const _thBase='font-size:10.5px;font-weight:700;padding:9px 14px;text-align:center;white-space:nowrap;background:var(--bg);border-bottom:1px solid var(--line);letter-spacing:.04em;text-transform:uppercase;cursor:pointer;user-select:none';
   const _thF='font-size:11px;font-weight:700;color:var(--ink-2);padding:9px 18px;text-align:left;background:var(--bg);border-bottom:1px solid var(--line);text-transform:uppercase;letter-spacing:.04em;cursor:pointer;user-select:none';
@@ -2131,15 +2144,10 @@ function renderFunnelMkt(){
     if(proj) ve=ve.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
     if(from||to) ve=ve.filter(r=>_matchRange(r.FechaVenta||r.FechaEntrega_Minuta||'', from, to));
     if(_flExcludeExt) ve=ve.filter(r=>!_isDigital(r.ComoSeEntero));
-    // veAll = ventas sin filtro de tipo (para tabla cruce)
-    let veAll=(D.ventas||[]);
-    if(proj) veAll=veAll.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
-    if(from||to) veAll=veAll.filter(r=>_matchRange(r.FechaVenta||r.FechaEntrega_Minuta||'', from, to));
-    if(_flExcludeExt) veAll=veAll.filter(r=>!_isDigital(r.ComoSeEntero));
     const trV=lb.map(r=>parseFloat(r.TiempoRespuesta_min||'')).filter(v=>!isNaN(v)&&v>=0).sort((a,b)=>a-b);
     const _validDate=v=>{const s=String(v||'').trim();return s&&s!=='nan'&&s!=='None'&&s!=='-'&&s!=='';};
     return {
-      lb, pr, visF:vi, sp, veAll,
+      lb, pr, visF:vi, sp, ve,
       leadsTotal:lb.length,
       leadsDNI:lb.filter(r=>{const d=String(r.NroDocumento||'').trim();return d&&d!=='nan'&&d!=='None'&&d!=='0';}).length,
       leadsDigital:lb.filter(r=>_isDigital(r.ComoSeEntero)).length,
@@ -2152,7 +2160,7 @@ function renderFunnelMkt(){
 
   const A = _calcPeriodo(_flDateFrom, _flDateTo);
   const B = _flComp ? _calcPeriodo(_flDateFrom2, _flDateTo2) : null;
-  const {lb:leadBase, pr:prospBase, visF, sp:sepBase, veAll:ventaBase, leadsTotal, leadsDNI, leadsDigital, prospectos, citasN, visitasN, separacionesN, ventasN, medTR} = A;
+  const {lb:leadBase, pr:prospBase, visF, sp:sepBase, ve:ventaBase, leadsTotal, leadsDNI, leadsDigital, prospectos, citasN, visitasN, separacionesN, ventasN, medTR} = A;
   const trFmt = v => v!=null?(v<60?Math.round(v)+'min':Math.round(v/60)+'h '+Math.round(v%60)+'min'):'—';
   const COLORS=['#60a5fa','#34d399','#a78bfa','#fbbf24','#fb923c','#f472b6','#f87171'];
   const CC=['#60a5fa','#a78bfa','#34d399','#fbbf24','#f472b6','#fb923c','#38bdf8','#94a3b8'];
@@ -2359,28 +2367,63 @@ function renderFunnelMkt(){
       return;
     }
 
+    // Granularidad: diaria si el rango cae en un solo mes calendario, mensual si abarca más de uno
+    const MM=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
+    const _isMonthly = allDates[0].slice(0,7) !== allDates[allDates.length-1].slice(0,7);
+    let periodMap, periods;
+    if(_isMonthly){
+      periodMap = {};
+      allDates.forEach(iso=>{
+        const mk = iso.slice(0,7);
+        if(!periodMap[mk]) periodMap[mk]={};
+        Object.entries(dayMap[iso]).forEach(([p,n])=>{ periodMap[mk][p]=(periodMap[mk][p]||0)+n; });
+      });
+      // Rellenar meses vacíos para que no haya saltos
+      const _mks=Object.keys(periodMap).sort();
+      if(_mks.length>1){
+        const [fy,fm]=_mks[0].split('-').map(Number);
+        const [ly,lm]=_mks[_mks.length-1].split('-').map(Number);
+        const _full=[];let cy=fy,cm=fm;
+        while(cy<ly||(cy===ly&&cm<=lm)){
+          const mk=cy+'-'+String(cm).padStart(2,'0');
+          if(!periodMap[mk])periodMap[mk]={};
+          _full.push(mk);
+          cm++;if(cm>12){cm=1;cy++;}
+        }
+        periods=_full;
+      } else { periods=_mks; }
+    } else {
+      periodMap = dayMap;
+      periods = allDates;
+    }
+    const _lblGran = _isMonthly ? 'mensual' : 'diario';
+    const _fmtPeriodo = d => {
+      if(_isMonthly){ const[y,m]=d.split('-'); return MM[+m]+' '+y; }
+      const[y,m,dd]=d.split('-'); return dd+' '+MM[+m];
+    };
+
     // Construir datasets Chart.js — una línea por proyecto
     const datasets = allProyectos.map((p,i)=>({
       label: p,
-      data: allDates.map(d=>dayMap[d]?.[p]||0),
+      data: periods.map(d=>periodMap[d]?.[p]||0),
       borderColor: PROYECTOS_COLOR[p]||BRAND_COLORS[i%BRAND_COLORS.length],
       backgroundColor: (PROYECTOS_COLOR[p]||BRAND_COLORS[i%BRAND_COLORS.length])+'22',
       borderWidth: 2,
-      pointRadius: allDates.length>60?0:3,
+      pointRadius: periods.length>60?0:3,
       pointHoverRadius: 5,
       tension: 0.35,
       fill: false,
     }));
 
-    // Totales diarios (línea gris de referencia)
+    // Totales por período (línea gris de referencia)
     if(!proj && allProyectos.length>1){
       datasets.unshift({
         label:'Total leads',
-        data: allDates.map(d=>Object.values(dayMap[d]||{}).reduce((a,b)=>a+b,0)),
+        data: periods.map(d=>Object.values(periodMap[d]||{}).reduce((a,b)=>a+b,0)),
         borderColor:'#94a3b8',
         backgroundColor:'rgba(148,163,184,0.08)',
         borderWidth:2,
-        pointRadius: allDates.length>60?0:3,
+        pointRadius: periods.length>60?0:3,
         pointHoverRadius:5,
         tension:0.35,
         fill:false,
@@ -2388,20 +2431,16 @@ function renderFunnelMkt(){
       });
     }
 
-    // Formatear etiquetas del eje X — abreviar si hay muchos días
-    const xLabels = allDates.map(d=>{
-      const[y,m,dd]=d.split('-');
-      const MM=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
-      return allDates.length>90?`${dd}/${m}`:dd+' '+MM[+m];
-    });
+    // Formatear etiquetas del eje X — abreviar días si hay muchos, "Mes Año" si es mensual
+    const xLabels = periods.map(d=>_isMonthly?_fmtPeriodo(d):(periods.length>90?d.slice(5).replace('-','/'):_fmtPeriodo(d)));
 
-    // Resumen: pico diario, promedio, tendencia
-    const totDiarios = allDates.map(d=>Object.values(dayMap[d]).reduce((a,b)=>a+b,0));
-    const maxDia = Math.max(...totDiarios);
-    const maxDiaFecha = allDates[totDiarios.indexOf(maxDia)];
-    const avgDia = totDiarios.length ? Math.round(totDiarios.reduce((a,b)=>a+b,0)/totDiarios.length*10)/10 : 0;
-    const mitad = Math.floor(totDiarios.length/2);
-    const tendencia = mitad>0 ? (totDiarios.slice(mitad).reduce((a,b)=>a+b,0)/totDiarios.slice(mitad).length) - (totDiarios.slice(0,mitad).reduce((a,b)=>a+b,0)/totDiarios.slice(0,mitad).length) : 0;
+    // Resumen: pico, promedio, tendencia (por período)
+    const totPeriodo = periods.map(d=>Object.values(periodMap[d]).reduce((a,b)=>a+b,0));
+    const maxPer = Math.max(...totPeriodo);
+    const maxPerFecha = periods[totPeriodo.indexOf(maxPer)];
+    const avgPer = totPeriodo.length ? Math.round(totPeriodo.reduce((a,b)=>a+b,0)/totPeriodo.length*10)/10 : 0;
+    const mitad = Math.floor(totPeriodo.length/2);
+    const tendencia = mitad>0 ? (totPeriodo.slice(mitad).reduce((a,b)=>a+b,0)/totPeriodo.slice(mitad).length) - (totPeriodo.slice(0,mitad).reduce((a,b)=>a+b,0)/totPeriodo.slice(0,mitad).length) : 0;
     const tendIcon = tendencia>0.5?'↑':tendencia<-0.5?'↓':'→';
     const tendColor = tendencia>0.5?'#34d399':tendencia<-0.5?'#f87171':'#94a3b8';
 
@@ -2409,7 +2448,7 @@ function renderFunnelMkt(){
     const legendHtml = allProyectos.map((p,i)=>{
       const col = PROYECTOS_COLOR[p]||BRAND_COLORS[i%BRAND_COLORS.length];
       const short = p.replace('LOMAS DE CARABAYLLO','LOMAS').replace('HELIO - SANTA BEATRIZ','HELIO');
-      const tot = allDates.reduce((a,d)=>a+(dayMap[d]?.[p]||0),0);
+      const tot = periods.reduce((a,d)=>a+(periodMap[d]?.[p]||0),0);
       return `<div style="display:flex;align-items:center;gap:5px;font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;color:var(--ink-2)">
         <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${col};flex-shrink:0"></span>
         <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink-2)">${toTitle(short.toLowerCase())}</span>
@@ -2423,13 +2462,13 @@ function renderFunnelMkt(){
       '<div class="card" style="margin-bottom:12px;padding-bottom:10px">'+evoStageSel+'</div>'
       +'<div class="kpi-row kpi-4" style="margin-bottom:16px">'
         +_evoKpi(evoStageOpt.lbl,fN(evoBase.length),'período seleccionado','#3b82f6')
-        +_evoKpi('Promedio diario',avgDia,'registros / día','#14AFBE')
-        +_evoKpi('Pico diario',`${fN(maxDia)} <span style="font-size:11px;color:var(--ink-3);font-weight:500">${maxDiaFecha?maxDiaFecha.slice(5).replace('-','/'):'—'}</span>`,'máximo en un día','#F4A228')
+        +_evoKpi('Promedio '+_lblGran,avgPer,'registros / '+(_isMonthly?'mes':'día'),'#14AFBE')
+        +_evoKpi('Pico '+_lblGran,`${fN(maxPer)} <span style="font-size:11px;color:var(--ink-3);font-weight:500">${maxPerFecha?_fmtPeriodo(maxPerFecha):'—'}</span>`,'máximo en un '+(_isMonthly?'mes':'día'),'#F4A228')
         +_evoKpi('Tendencia',`<span style="color:${tendColor}">${tendIcon} ${Math.abs(Math.round(tendencia*10)/10)}</span>`,'vs primera mitad',tendColor)
       +'</div>'
       +'<div class="card" style="margin-bottom:16px">'
         +'<div class="card-hd">'
-          +'<div><h3>Evolución diaria · '+evoStageOpt.lbl+'</h3><p>'+(lblA||'Todo el período')+' · por proyecto</p></div>'
+          +'<div><h3>Evolución '+_lblGran+' · '+evoStageOpt.lbl+'</h3><p>'+(lblA||'Todo el período')+' · por proyecto</p></div>'
           +'<div style="display:flex;flex-direction:column;gap:5px;min-width:180px">'+legendHtml+'</div>'
         +'</div>'
         +'<div style="height:340px;padding:8px 16px 16px"><canvas id="fl-evo-chart"></canvas></div>'
