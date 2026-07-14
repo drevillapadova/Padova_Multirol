@@ -628,6 +628,13 @@ html.dark .chip.refresh{background:#253347;color:#94a3b8;border-color:#334155}
 html.dark .dir-date-bar,.dark #fl-date-bar{background:transparent}
 html.dark #dir-comp-btn,html.dark #fl-comp-btn,html.dark #fl-ext-btn{border-color:#334155;color:#94a3b8}
 html.dark .sp-unit.disp{background:#253347;border-color:#334155;color:#94a3b8}
+html.dark .sp-unit.vend{color:var(--ok)}
+html.dark .sp-unit.sep{background:rgba(251,191,36,.12);border-color:#d97706;color:#fbbf24}
+html.dark .sp-unit.bloq{color:var(--bad)}
+html.dark .sp-est-btn.sp-act-disp{background:#253347;border-color:#94a3b8;color:#cbd5e1}
+html.dark .sp-est-btn.sp-act-sep{background:rgba(251,191,36,.12);border-color:#d97706;color:#fbbf24}
+html.dark .sp-est-btn.sp-act-vend{color:var(--ok);border-color:var(--ok)}
+html.dark .sp-est-btn.sp-act-bloq{color:var(--bad);border-color:var(--bad)}
 html.dark .sp-floor-lbl{color:#64748b}
 html.dark .hm-cell{border:1px solid #334155}
 html.dark .hm-lbl{color:#94a3b8}
@@ -639,8 +646,8 @@ html.dark .range-lbl,.dark .range-sel select{color:#94a3b8}
 html.dark .typ-stat{background:#253347;border-color:#334155}
 html.dark .typ-stat .sl{color:#94a3b8}
 html.dark .typ-stat .sv{color:#f1f5f9}
-html.dark #dark-toggle{background:#253347;border-color:#334155;color:#94a3b8}
-html.dark #dark-toggle:hover{background:#334155;color:#f1f5f9}
+html.dark .dark-toggle-btn{background:#253347;border-color:#334155;color:#94a3b8}
+html.dark .dark-toggle-btn:hover{background:#334155;color:#f1f5f9}
 /* Missing element overrides */
 html.dark .donut::before{background:#1e293b}
 html.dark .typ{background:#1e293b;border-color:#334155}
@@ -719,7 +726,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
         <select id="dir-tipo" onchange="renderDirector()"><option value="">Tipo: Todos</option><option value="departamento">Departamento</option><option value="azotea">Azotea</option><option value="estacionamiento">Estacionamiento</option><option value="deposito">Depósito</option><option value="comercio">Comercio</option></select>
       </label>
       <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
-      <button id="dark-toggle" onclick="toggleDark()" title="Modo oscuro" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s">◑</button>
+      <button class="dark-toggle-btn" onclick="toggleDark()" title="Modo oscuro" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all .2s">◑</button>
     </div>
   </div>
   <div class="kpi-row kpi-4" id="dir-kpis"><div class="loading">Cargando datos...</div></div>
@@ -776,6 +783,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
         <select id="adm-tipo" onchange="renderAdmVentas()"><option value="">Tipo: Todos</option><option value="departamento">Departamento</option><option value="azotea">Azotea</option><option value="estacionamiento">Estacionamiento</option><option value="deposito">Depósito</option><option value="comercio">Comercio</option></select>
       </label>
       <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
+      <button class="dark-toggle-btn" onclick="toggleDark()" title="Modo oscuro" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all .2s">◑</button>
     </div>
   </div>
   <div class="tab-bar" id="adm-tab-bar">
@@ -798,6 +806,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
         <select id="fl-proj" onchange="renderFunnelMkt()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO 4</option><option>LOMAS DE CARABAYLLO 5</option><option>DOMINGO ORUE</option></select>
       </label>
       <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
+      <button class="dark-toggle-btn" onclick="toggleDark()" title="Modo oscuro" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all .2s">◑</button>
     </div>
   </div>
   <div class="kpi-row kpi-4" id="fl-kpis" style="padding:16px 20px 4px;margin-bottom:0"></div>
@@ -851,6 +860,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
         <select id="sp-tipo" onchange="renderStockProy()"><option value="">Tipo: Todos</option><option value="departamento">Departamento</option><option value="azotea">Azotea</option><option value="estacionamiento">Estacionamiento</option><option value="deposito">Depósito</option></select>
       </label>
       <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
+      <button class="dark-toggle-btn" onclick="toggleDark()" title="Modo oscuro" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all .2s">◑</button>
     </div>
   </div>
   <div id="sp-content"><div class="loading">Cargando...</div></div>
@@ -1650,7 +1660,14 @@ function renderDirector(){
       if(cells.every(c=>c.vis===0&&c.sep===0))return null;
       return{p:p.replace('LOMAS DE CARABAYLLO','LOMAS').replace('HELIO - SANTA BEATRIZ','HELIO'),cells};
     }).filter(Boolean);
-    const _hmColor=pct=>{if(pct===null)return'var(--panel)';if(pct===0)return'#f8fafc';const t=Math.min(pct/50,1);const r=Math.round(220-t*130),g=Math.round(252-t*120),b=Math.round(231-t*130);return'rgb('+r+','+g+','+b+')';};
+    const _dk=document.documentElement.classList.contains('dark');
+    const _hmColor=pct=>{
+      if(pct===null)return'var(--panel)';
+      if(pct===0)return _dk?'rgba(148,163,184,0.08)':'#f8fafc';
+      const t=Math.min(pct/50,1);
+      if(_dk){const r=Math.round(20),g=Math.round(58+t*112),b=Math.round(24);return'rgb('+r+','+g+','+b+')';}
+      const r=Math.round(220-t*130),g=Math.round(252-t*120),b=Math.round(231-t*130);return'rgb('+r+','+g+','+b+')';
+    };
     const _hmText=pct=>pct===null?'<span style="color:var(--ink-4)">—</span>':pct+'%';
 
     // ── Donut: ventas por proyecto ──
@@ -1710,7 +1727,7 @@ function renderDirector(){
               // data rows
               hmRows.map(row=>
                 '<div class="hm-lbl" style="font-size:11px;color:var(--ink-2);white-space:nowrap;padding-right:6px;display:flex;align-items:center">'+row.p+'</div>'+
-                row.cells.map(c=>'<div class="hm-cell" style="background:'+_hmColor(c.pct)+';text-align:center;font-size:11px;font-family:var(--mono);border-radius:4px;padding:5px 2px;color:var(--ink-2)" title="'+c.vis+' vis · '+c.sep+' sep">'+_hmText(c.pct)+'</div>').join('')
+                row.cells.map(c=>'<div class="hm-cell" style="background:'+_hmColor(c.pct)+';text-align:center;font-size:11px;font-family:var(--mono);border-radius:4px;padding:5px 2px;color:'+(c.pct===null||c.pct===0?'var(--ink-4)':'var(--ink)')+'" title="'+c.vis+' vis · '+c.sep+' sep">'+_hmText(c.pct)+'</div>').join('')
               ).join('')+
             '</div>'
           :'<div style="padding:20px;color:var(--ink-4);font-size:12px">Sin datos de visitas para el período</div>')+
@@ -1960,7 +1977,7 @@ function _renderFlCrossTable(prosp){
   const _thBase='font-size:10.5px;font-weight:700;padding:9px 14px;text-align:center;white-space:nowrap;background:var(--bg);border-bottom:1px solid var(--line);letter-spacing:.04em;text-transform:uppercase;cursor:pointer;user-select:none';
   const _thF='font-size:11px;font-weight:700;color:var(--ink-2);padding:9px 18px;text-align:left;background:var(--bg);border-bottom:1px solid var(--line);text-transform:uppercase;letter-spacing:.04em;cursor:pointer;user-select:none';
   const _tdN='font-size:12px;font-weight:500;color:var(--ink);padding:9px 18px;border-bottom:1px solid var(--line-2);white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis';
-  const _tdTot='font-family:var(--mono);font-size:12px;font-weight:700;text-align:center;padding:9px 14px;border-bottom:1px solid var(--line-2);background:#eff6ff;color:#3b82f6';
+  const _tdTot='font-family:var(--mono);font-size:12px;font-weight:700;text-align:center;padding:9px 14px;border-bottom:1px solid var(--line-2);background:var(--brand-soft);color:var(--brand)';
   const _tfN='font-size:12px;font-weight:700;color:var(--ink);padding:10px 18px;background:var(--panel);border-top:1px solid var(--line)';
   const _tfV='font-family:var(--mono);font-size:12px;font-weight:600;text-align:center;padding:10px 14px;background:var(--panel);border-top:1px solid var(--line);color:var(--ink)';
   const _tfTot='font-family:var(--mono);font-size:12px;font-weight:700;text-align:center;padding:10px 14px;background:var(--brand-soft);border-top:1px solid var(--line);color:var(--brand)';
@@ -2317,6 +2334,10 @@ function renderFunnelMkt(){
       ${EVO_STAGES.map(s=>`<button onclick="_flCrossStage='${s.val}';renderFunnelMkt()" style="${_ffsE};padding:4px 14px;border-radius:99px;font-size:10.5px;font-weight:700;cursor:pointer;letter-spacing:.03em;border:1.5px solid ${_flCrossStage===s.val?'#3b82f6':'var(--line)'};background:${_flCrossStage===s.val?'var(--brand-soft)':'transparent'};color:${_flCrossStage===s.val?'var(--brand)':'var(--ink-3)'}">${s.lbl}</button>`).join('')}
     </div>`;
 
+    const _isDark=document.documentElement.classList.contains('dark');
+    const _gridC=_isDark?'rgba(51,65,85,.5)':'#F3F4F6';
+    const _tickC=_isDark?'#94a3b8':'#6B7280';
+
     // Agrupar por fecha y proyecto
     const dayMap = {};
     evoBase.forEach(r=>{
@@ -2411,7 +2432,7 @@ function renderFunnelMkt(){
           +'<div><h3>Evolución diaria · '+evoStageOpt.lbl+'</h3><p>'+(lblA||'Todo el período')+' · por proyecto</p></div>'
           +'<div style="display:flex;flex-direction:column;gap:5px;min-width:180px">'+legendHtml+'</div>'
         +'</div>'
-        +'<div style="height:280px;padding:8px 16px 16px"><canvas id="fl-evo-chart"></canvas></div>'
+        +'<div style="height:340px;padding:8px 16px 16px"><canvas id="fl-evo-chart"></canvas></div>'
       +'</div>';
 
     requestAnimationFrame(()=>{
@@ -2427,7 +2448,6 @@ function renderFunnelMkt(){
           plugins:{
             legend:{display:false},
             tooltip:{
-              backgroundColor:'#0A1628',
               titleFont:{family:"'Plus Jakarta Sans',sans-serif",size:11},
               bodyFont:{family:"'Plus Jakarta Sans',sans-serif",size:11},
               callbacks:{label:c=>' '+c.dataset.label+': '+fN(c.parsed.y)}
@@ -2435,13 +2455,13 @@ function renderFunnelMkt(){
           },
           scales:{
             x:{
-              grid:{color:'#F3F4F6'},
-              ticks:{font:{family:"'Plus Jakarta Sans',sans-serif",size:10},color:'#6B7280',maxTicksLimit:allDates.length>60?12:allDates.length>30?8:allDates.length,maxRotation:0}
+              grid:{color:_gridC},
+              ticks:{font:{family:"'Plus Jakarta Sans',sans-serif",size:10},color:_tickC,maxTicksLimit:allDates.length>60?12:allDates.length>30?8:allDates.length,maxRotation:0}
             },
             y:{
               beginAtZero:true,
-              grid:{color:'#F3F4F6'},
-              ticks:{font:{family:"'Plus Jakarta Sans',sans-serif",size:10},color:'#6B7280',stepSize:1}
+              grid:{color:_gridC},
+              ticks:{font:{family:"'Plus Jakarta Sans',sans-serif",size:10},color:_tickC,stepSize:1}
             }
           }
         }
@@ -3156,8 +3176,7 @@ function nav(id, el){
 function toggleDark(){
   const on=document.documentElement.classList.toggle('dark');
   localStorage.setItem('dk',on?'1':'');
-  const btn=document.getElementById('dark-toggle');
-  if(btn){btn.textContent=on?'◐':'◑';btn.title=on?'Modo claro':'Modo oscuro';}
+  document.querySelectorAll('.dark-toggle-btn').forEach(btn=>{btn.textContent=on?'◐':'◑';btn.title=on?'Modo claro':'Modo oscuro';});
   Chart.defaults.color=on?'#94a3b8':'#6B7280';
   Chart.defaults.borderColor=on?'#334155':'#e5e7eb';
   Chart.defaults.plugins.tooltip.backgroundColor=on?'#1e293b':'#ffffff';
@@ -3167,7 +3186,15 @@ function toggleDark(){
   try{if(typeof renderFunnelMkt!=='undefined')renderFunnelMkt();}catch(e){}
 }
 // Restore dark mode on load
-(function(){if(localStorage.getItem('dk')==='1'){document.documentElement.classList.add('dark');const btn=document.getElementById('dark-toggle');if(btn)btn.textContent='◐';}})();
+(function(){
+  if(localStorage.getItem('dk')==='1'){
+    document.documentElement.classList.add('dark');
+    document.querySelectorAll('.dark-toggle-btn').forEach(btn=>btn.textContent='◐');
+    Chart.defaults.color='#94a3b8';
+    Chart.defaults.borderColor='#334155';
+    Chart.defaults.plugins.tooltip.backgroundColor='#1e293b';
+  }
+})();
 
 (function(){
   if(localStorage.getItem('sb-collapsed')==='1')
