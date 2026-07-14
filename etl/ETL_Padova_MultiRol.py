@@ -205,14 +205,19 @@ def corregir_moneda_con_stock(df_ventas, df_stock):
     return df_ventas
 
 
-def corregir_moneda_sunny(df, col_precio='PrecioVenta', col_moneda='TipoMoneda', col_proyecto='Proyecto'):
+def corregir_moneda_sunny(df, col_precio='PrecioVenta', col_moneda='TipoMoneda', col_proyecto='Proyecto', col_tipo='TipoInmueble'):
+    """Evolta a veces etiqueta como SOLES departamentos de SUNNY que en realidad
+    están cotizados en dólares. Se corrige solo para Departamento: otros tipos
+    (estacionamiento, depósito, etc.) siempre tienen precios bajos y quedarían
+    mal marcados como DOLAR si se aplicara el mismo umbral."""
     UMBRAL = 600_000
-    cols_ok = all(c in df.columns for c in [col_precio, col_moneda, col_proyecto])
+    cols_ok = all(c in df.columns for c in [col_precio, col_moneda, col_proyecto, col_tipo])
     if not cols_ok: return df
     df = df.copy()
     corregidos = 0
     for idx, row in df.iterrows():
         if 'SUNNY' not in str(row[col_proyecto]).upper(): continue
+        if 'DEPARTAMENTO' not in str(row[col_tipo]).upper(): continue
         moneda = str(row[col_moneda]).upper().strip()
         if 'DOLAR' in moneda or 'USD' in moneda: continue
         try: precio = float(str(row[col_precio]).replace(',', '')) if row[col_precio] else 0
