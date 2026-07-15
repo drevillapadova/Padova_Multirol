@@ -212,7 +212,10 @@ def corregir_moneda_sunny(df, col_precio='PrecioVenta', col_moneda='TipoMoneda',
     mal marcados como DOLAR si se aplicara el mismo umbral."""
     UMBRAL = 600_000
     cols_ok = all(c in df.columns for c in [col_precio, col_moneda, col_proyecto, col_tipo])
-    if not cols_ok: return df
+    if not cols_ok:
+        faltantes = [c for c in [col_precio, col_moneda, col_proyecto, col_tipo] if c not in df.columns]
+        print(f"   -> [MONEDA] Sunny: omitido, faltan columnas {faltantes}")
+        return df
     df = df.copy()
     corregidos = 0
     for idx, row in df.iterrows():
@@ -854,6 +857,35 @@ def normalizar_ventas_unpivot(df):
         return df
 
 
+def _renombrar_columnas_evolta_ventas(df):
+    """Evolta renombró columnas de precio/moneda a nivel OC (sufijo '_OC') y
+    cambió el nombre de los stubs de precio por ítem. Mapea de vuelta a los
+    nombres que espera el resto del pipeline (COLUMNAS_FINALES / stubs)."""
+    rename_map = {
+        'Moneda_OC': 'TipoMoneda',
+        'PrecioVenta_OC': 'PrecioVenta',
+        'MontoDescuento_OC': 'MontoDescuento',
+        'MontoSeparacion_OC': 'MontoSeparacion',
+        'BonoVerde_OC': 'BonoVerde',
+        'MontoBono_OC': 'MontoBono',
+        'MontoPagadoBono_OC': 'MontoPagadoBono',
+        'MontoCuotaInicial_OC': 'MontoCuotaInicial',
+        'MontoPagadoCI_OC': 'MontoPagadoCI',
+        'MontoFinanciamiento_OC': 'MontoFinanciamiento',
+        'MontoDesembolsado_OC': 'MontoDesembolsado',
+    }
+    for n in range(1, 9):
+        rename_map[f'Precio_Base_{n}'] = f'PrecioBase_{n}'
+        rename_map[f'PrecioLista_OC_{n}'] = f'PrecioLista_{n}'
+        rename_map[f'DescuentoLista_OC_{n}'] = f'DescuentoLista_{n}'
+        rename_map[f'TotalVenta_OC_{n}'] = f'TotalLista_{n}'
+    rename_map = {k: v for k, v in rename_map.items() if k in df.columns}
+    if rename_map:
+        df = df.rename(columns=rename_map)
+        print(f"   -> [EVOLTA] Renombradas {len(rename_map)} columnas: {rename_map}")
+    return df
+
+
 def process_ventas_data(df_stock=None):
     print("\n>> [TRANSFORM VENTAS] Consolidando...")
     dataframes = {}
@@ -865,8 +897,15 @@ def process_ventas_data(df_stock=None):
         if not ruta: continue
         try:
             df = pd.read_csv(ruta, encoding='utf-8', low_memory=False) if ruta.endswith('.csv') else pd.read_excel(ruta)
+            df = _renombrar_columnas_evolta_ventas(df)
             dataframes[str(año)] = df
             print(f"   -> {año}: {len(df):,} filas")
+            for col in ("PrecioVenta", "TipoMoneda", "TotalLista", "IdProforma"):
+                if col in df.columns:
+                    nn = df[col].notna().sum()
+                    print(f"   -> [DEBUG] {año} '{col}': {nn}/{len(df)} no-nulos")
+                else:
+                    print(f"   -> [DEBUG] {año} '{col}': AUSENTE en raw")
         except Exception as e:
             print(f"   !! Error {año}: {e}")
 
@@ -875,10 +914,17 @@ def process_ventas_data(df_stock=None):
     dfs_norm = {a: normalizar_dataframe(df, a) for a, df in dataframes.items()}
     df = pd.concat(dfs_norm.values(), ignore_index=True)
     df = normalizar_ventas_unpivot(df)
+    for col in ("PrecioVenta", "TipoMoneda", "TotalLista", "TipoInmueble"):
+        if col in df.columns:
+            nn = df[col].notna().sum()
+            print(f"   -> [DEBUG] post-unpivot '{col}': {nn}/{len(df)} no-nulos")
+        else:
+            print(f"   -> [DEBUG] post-unpivot '{col}': AUSENTE")
 
     if "TotalLista" in df.columns:
         try:
             mask = df["TotalLista"].notna() & (df["TotalLista"] != 0) & (df["TotalLista"] != "")
+            df["PrecioVenta"] = df["PrecioVenta"].astype(object)
             df.loc[mask, "PrecioVenta"] = pd.to_numeric(df.loc[mask, "TotalLista"], errors="coerce")
         except Exception as e:
             print(f"   [Warning] TotalLista: {e}")
@@ -932,6 +978,15 @@ def process_stock_data(df_ventas=None):
     elif 'NroDormitorios' not in df.columns and 'TipoInmueble' in df.columns:
         df['NroDormitorios'] = df['TipoInmueble'].str.extract(r'(\d)[\s_]?[Dd]', expand=False)
         print("   -> NroDormitorios extraído de TipoInmueble")
+
+    # Moneda/PrecioVenta: Evolta ahora exporta el precio de venta (OC) como 'Moneda_OC'/'PrecioVenta_OC'
+    # en vez de las columnas simples 'Moneda'/'PrecioVenta' que usaba antes.
+    if 'Moneda' not in df.columns and 'Moneda_OC' in df.columns:
+        df = df.rename(columns={'Moneda_OC': 'Moneda'})
+        print("   -> Renombrado 'Moneda_OC' → 'Moneda'")
+    if 'PrecioVenta' not in df.columns and 'PrecioVenta_OC' in df.columns:
+        df = df.rename(columns={'PrecioVenta_OC': 'PrecioVenta'})
+        print("   -> Renombrado 'PrecioVenta_OC' → 'PrecioVenta'")
 
     if "Moneda" in df.columns:
         df = corregir_moneda_sunny(df, col_moneda='Moneda')
