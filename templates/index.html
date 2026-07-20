@@ -2352,11 +2352,14 @@ function renderFunnelMkt(){
     const _tickC=_isDark?'#94a3b8':'#6B7280';
 
     // Agrupar por fecha y proyecto
+    // Nota: si hay un proyecto seleccionado, evoBase ya viene filtrado por matchProj
+    // (que empareja "LOMAS DE CARABAYLLO" genérico con "LOMAS DE CARABAYLLO 4/5"), así
+    // que agrupamos bajo la etiqueta del filtro para no perder registros con Proyecto genérico.
     const dayMap = {};
     evoBase.forEach(r=>{
       const iso = _evoDateF(r);
       if(!iso) return;
-      const p = String(r.Proyecto||'Sin proyecto').trim();
+      const p = proj ? proj : String(r.Proyecto||'Sin proyecto').trim();
       if(!dayMap[iso]) dayMap[iso]={};
       dayMap[iso][p] = (dayMap[iso][p]||0)+1;
     });
