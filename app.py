@@ -1,5 +1,5 @@
-import os, io, re, requests, math, time
-from datetime import datetime
+import os, io, re, requests, math, time, json
+from datetime import datetime, timedelta
 from flask import Flask, jsonify, render_template, request
 from apscheduler.schedulers.background import BackgroundScheduler
 try:
@@ -56,6 +56,117 @@ def _fetch_monday_board(cfg):
         if not cursor:
             break
     return items
+
+
+META_ACCESS_TOKEN = os.getenv("META_ACCESS_TOKEN", "")
+META_ACCESS_TOKEN_MIRANO_BM = os.getenv("META_ACCESS_TOKEN_MIRANO_BM", "")
+META_API_VERSION = "v21.0"
+META_ADS_PROJECTS = [
+    {"id": "322739664119423",  "label": "HELIO - SANTA BEATRIZ", "token": META_ACCESS_TOKEN},
+    {"id": "992112534609798",  "label": "LOMAS DE CARABAYLLO",    "token": META_ACCESS_TOKEN},
+    {"id": "1715327522558274", "label": "SUNNY",                  "token": META_ACCESS_TOKEN_MIRANO_BM},
+    {"id": "980901671201759",  "label": "DOMINGO ORUE",           "token": META_ACCESS_TOKEN_MIRANO_BM},
+    {"id": "474169308224886",  "label": "LITORAL 900",            "token": META_ACCESS_TOKEN},
+]
+_meta_ads_cache = {}
+META_ADS_CACHE_TTL = 300  # 5 min
+META_LEAD_ACTION_TYPES = ["onsite_conversion.lead_grouped", "lead"]
+META_WHATSAPP_ACTION_TYPES = ["onsite_conversion.messaging_conversation_started_7d"]
+
+
+META_ESTADO_ES = {
+    "ACTIVE": "Activa", "PAUSED": "Pausada", "ARCHIVED": "Archivada",
+    "DELETED": "Eliminada", "PENDING_REVIEW": "En revisión",
+    "DISAPPROVED": "Rechazada", "CAMPAIGN_PAUSED": "Pausada",
+    "ADSET_PAUSED": "Pausada", "IN_PROCESS": "En proceso",
+    "WITH_ISSUES": "Con problemas",
+}
+
+
+def _extract_meta_action(actions, types):
+    for t in types:
+        for a in actions:
+            if a.get("action_type") == t:
+                try:
+                    return float(a["value"])
+                except (TypeError, ValueError):
+                    return 0
+    return 0
+
+
+def _meta_paginate(url, params):
+    out = []
+    while True:
+        resp = requests.get(url, params=params, timeout=20)
+        j = resp.json()
+        if "error" in j:
+            raise Exception(j["error"].get("message", "Error Meta API"))
+        out.extend(j.get("data", []))
+        next_url = j.get("paging", {}).get("next")
+        if not next_url:
+            break
+        url, params = next_url, {}
+    return out
+
+
+def _meta_row_metrics(row):
+    actions = row.get("actions", [])
+    spend = float(row.get("spend") or 0)
+    leads = _extract_meta_action(actions, META_LEAD_ACTION_TYPES)
+    whats = _extract_meta_action(actions, META_WHATSAPP_ACTION_TYPES)
+    return spend, leads, whats
+
+
+def _fetch_meta_account(account_id, since, until, token):
+    base = f"https://graph.facebook.com/{META_API_VERSION}/act_{account_id}"
+    time_range = json.dumps({"since": since, "until": until})
+
+    camp_insights = _meta_paginate(base + "/insights", {
+        "level": "campaign",
+        "fields": "campaign_id,campaign_name,spend,actions,impressions,clicks",
+        "time_range": time_range, "limit": 200, "access_token": token,
+    })
+    camp_meta_rows = _meta_paginate(base + "/campaigns", {
+        "fields": "id,effective_status,daily_budget,lifetime_budget",
+        "limit": 200, "access_token": token,
+    })
+    camp_meta = {c["id"]: c for c in camp_meta_rows}
+    ad_insights = _meta_paginate(base + "/insights", {
+        "level": "ad",
+        "fields": "ad_id,ad_name,spend,actions",
+        "time_range": time_range, "limit": 500, "access_token": token,
+    })
+
+    campaigns = []
+    for row in camp_insights:
+        spend, leads, whats = _meta_row_metrics(row)
+        impresiones = float(row.get("impressions") or 0)
+        clicks = float(row.get("clicks") or 0)
+        resultados = leads + whats
+        meta = camp_meta.get(row.get("campaign_id"), {})
+        daily_budget = meta.get("daily_budget")
+        campaigns.append({
+            "nombre": row.get("campaign_name", ""),
+            "estado": meta.get("effective_status", ""),
+            "gasto": spend, "leads": leads, "whatsapp": whats, "resultados": resultados,
+            "cpl": (spend / resultados) if resultados else None,
+            "impresiones": impresiones, "clicks": clicks,
+            "cpm": (spend / impresiones * 1000) if impresiones else None,
+            "cpc": (spend / clicks) if clicks else None,
+            "daily_budget": (float(daily_budget) / 100) if daily_budget else None,
+        })
+
+    ads = []
+    for row in ad_insights:
+        spend, leads, whats = _meta_row_metrics(row)
+        resultados = leads + whats
+        ads.append({
+            "nombre": row.get("ad_name", ""),
+            "gasto": spend, "resultados": resultados,
+            "cpl": (spend / resultados) if resultados else None,
+        })
+
+    return campaigns, ads
 
 # ─── SHEET CONFIG ────────────────────────────────────────────
 SHEET_ID = "1JIEEGPxJvCHvmGvVE6Zp9wBPUVXEF-iXy8FNaWr1PPI"
@@ -645,10 +756,98 @@ def api_monday_cobros():
     return jsonify(result)
 
 
+@app.route("/api/meta_ads")
+def api_meta_ads():
+    if not META_ACCESS_TOKEN and not META_ACCESS_TOKEN_MIRANO_BM:
+        return jsonify({"error": "META_ACCESS_TOKEN no configurado"}), 500
+    desde = request.args.get("desde", "")
+    hasta = request.args.get("hasta", "")
+    if not desde or not hasta:
+        hasta_dt = datetime.now(LIMA)
+        desde_dt = hasta_dt - timedelta(days=30)
+        desde = desde or desde_dt.strftime("%Y-%m-%d")
+        hasta = hasta or hasta_dt.strftime("%Y-%m-%d")
+    cache_key = f"{desde}_{hasta}"
+    cached = _meta_ads_cache.get(cache_key)
+    if cached and (time.time() - cached["ts"]) < META_ADS_CACHE_TTL:
+        return jsonify(cached["data"])
+    result = []
+    for proj in META_ADS_PROJECTS:
+        try:
+            if not proj["token"]:
+                raise Exception("Token no configurado para esta cuenta")
+            campaigns, ads = _fetch_meta_account(proj["id"], desde, hasta, proj["token"])
+            gasto       = sum(c["gasto"] for c in campaigns)
+            leads       = sum(c["leads"] for c in campaigns)
+            whatsapp    = sum(c["whatsapp"] for c in campaigns)
+            impresiones = sum(c["impresiones"] for c in campaigns)
+            clicks      = sum(c["clicks"] for c in campaigns)
+            total = leads + whatsapp
+            cpl = (gasto / total) if total else None
+            cpm = (gasto / impresiones * 1000) if impresiones else None
+            cpc = (gasto / clicks) if clicks else None
+            presupuesto_dia = sum(
+                c["daily_budget"] for c in campaigns
+                if c["daily_budget"] and c["estado"] == "ACTIVE"
+            )
+
+            campanas_out = sorted([{
+                "nombre": c["nombre"],
+                "estado": META_ESTADO_ES.get(c["estado"], c["estado"] or "—"),
+                "gasto": round(c["gasto"], 2),
+                "resultados": int(c["resultados"]),
+                "cpl": round(c["cpl"], 2) if c["cpl"] is not None else None,
+                "cpm": round(c["cpm"], 2) if c["cpm"] is not None else None,
+                "cpc": round(c["cpc"], 2) if c["cpc"] is not None else None,
+            } for c in campaigns if c["gasto"] > 0], key=lambda x: x["gasto"], reverse=True)
+
+            # Top 5 anuncios: mejor CPL entre los que tienen resultados y gasto relevante
+            top_candidatos = [a for a in ads if a["resultados"] > 0 and a["gasto"] >= 5]
+            top_ads = sorted(top_candidatos, key=lambda a: a["cpl"])[:5]
+
+            # A revisar: gasto relevante sin resultados, o CPL muy por encima del promedio del proyecto
+            def _riesgo_key(a):
+                if a["resultados"] == 0:
+                    return (0, -a["gasto"])
+                return (1, -a["cpl"])
+            revisar_candidatos = [
+                a for a in ads if a["gasto"] >= 10 and
+                (a["resultados"] == 0 or (cpl and a["cpl"] > cpl * 1.3))
+            ]
+            ads_revisar = sorted(revisar_candidatos, key=_riesgo_key)[:5]
+
+            result.append({
+                "label": proj["label"], "account_id": proj["id"],
+                "gasto": round(gasto, 2), "leads_formulario": int(leads),
+                "leads_whatsapp": int(whatsapp), "total_resultados": int(total),
+                "cpl": round(cpl, 2) if cpl is not None else None,
+                "impresiones": int(impresiones), "clicks": int(clicks),
+                "cpm": round(cpm, 2) if cpm is not None else None,
+                "cpc": round(cpc, 2) if cpc is not None else None,
+                "presupuesto_dia": round(presupuesto_dia, 2) if presupuesto_dia else None,
+                "campanas": campanas_out,
+                "top_ads": [{
+                    "nombre": a["nombre"], "cpl": round(a["cpl"], 2),
+                    "resultados": int(a["resultados"]), "gasto": round(a["gasto"], 2),
+                } for a in top_ads],
+                "ads_revisar": [{
+                    "nombre": a["nombre"],
+                    "cpl": round(a["cpl"], 2) if a["cpl"] is not None else None,
+                    "resultados": int(a["resultados"]), "gasto": round(a["gasto"], 2),
+                } for a in ads_revisar],
+            })
+        except Exception as e:
+            result.append({"label": proj["label"], "account_id": proj["id"], "error": str(e)})
+    payload = {"desde": desde, "hasta": hasta, "data": result}
+    _meta_ads_cache[cache_key] = {"data": payload, "ts": time.time()}
+    return jsonify(payload)
+
+
 @app.route("/api/refresh", methods=["POST"])
 def api_refresh():
     global _monday_cache
     _monday_cache = {"data": None, "ts": 0}  # invalidate Monday cache on refresh
+    _meta_ads_cache.clear()
     actualizar_cache()
     return jsonify({"ok": True, "updated_at": _cache["updated_at"]})
 

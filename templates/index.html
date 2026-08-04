@@ -838,6 +838,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
     <button class="tab-btn active" onclick="setFlTab('funnel',this)">Funnel</button>
     <button class="tab-btn" onclick="setFlTab('evolucion',this)">Evolución</button>
     <button class="tab-btn" onclick="setFlTab('calidad',this)">Calidad &amp; Canales</button>
+    <button class="tab-btn" onclick="setFlTab('metaads',this)">Meta Ads</button>
     <button class="tab-btn" onclick="setFlTab('cruce',this)">Tabla Cruce</button>
     <button class="tab-btn tab-ia" onclick="setFlTab('ia',this)">✦ Análisis IA</button>
   </div>
@@ -2300,6 +2301,28 @@ function renderFunnelMkt(){
     return;
   }
 
+  // ══ TAB: META ADS ════════════════════════════════════════════════════════
+  if(_flTab==='metaads'){
+    if(!window._metaAdsCache) window._metaAdsCache = {};
+    const key = (_flDateFrom||'')+'::'+(_flDateTo||'');
+    const cached = window._metaAdsCache[key];
+    if(cached){
+      _renderMetaAdsTab(cached);
+    } else {
+      document.getElementById('fl-content').innerHTML = '<div class="loading">Cargando datos de Meta Ads...</div>';
+      const qs = new URLSearchParams();
+      if(_flDateFrom) qs.set('desde', _flDateFrom);
+      if(_flDateTo) qs.set('hasta', _flDateTo);
+      fetch(API+'/api/meta_ads?'+qs.toString()).then(r=>r.json()).then(j=>{
+        window._metaAdsCache[key] = j;
+        if(_flTab==='metaads') _renderMetaAdsTab(j);
+      }).catch(e=>{
+        document.getElementById('fl-content').innerHTML = '<div style="padding:20px;color:var(--bad)">Error al cargar Meta Ads: '+e.message+'</div>';
+      });
+    }
+    return;
+  }
+
   // ══ TAB: TABLA CRUCE ═════════════════════════════════════════════════════
   if(_flTab==='cruce'){
     const FL_STAGE_OPTS=[
@@ -2839,6 +2862,139 @@ function renderAdmVentas(){
     </div>
   </div>`;
   renderMondayCobros();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// META ADS
+// ══════════════════════════════════════════════════════════════════════════
+function _renderMetaAdsTab(j){
+  const wrap = document.getElementById('fl-content');
+  if(!wrap) return;
+  if(j.error){ wrap.innerHTML = `<div style="padding:20px;color:var(--bad);font-size:13px">${j.error}</div>`; return; }
+  const proj = document.getElementById('fl-proj')?.value||'';
+  const rows = (j.data||[]).filter(p=>matchProj(p.label, proj));
+  const fUsd0 = v => v==null?'—':'$ '+Number(v).toLocaleString('es-PE',{minimumFractionDigits:0,maximumFractionDigits:0});
+  const fUsd2 = v => v==null?'—':'$ '+Number(v).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const periodo = (j.desde&&j.hasta) ? `${j.desde} – ${j.hasta}` : 'Últimos 30 días';
+  const _ffsJ = "font-family:'Plus Jakarta Sans',sans-serif";
+
+  const _pillEstado = st=>{
+    const s=(st||'').toLowerCase();
+    if(s.includes('activa'))    return `<span class="pill on" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">${st}</span>`;
+    if(s.includes('pausada'))   return `<span class="pill off" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">${st}</span>`;
+    if(s.includes('revisión')||s.includes('proceso')||s.includes('problemas')) return `<span class="pill rev" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">${st}</span>`;
+    return `<span class="pill b" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">${st||'—'}</span>`;
+  };
+
+  const _adRow = (a, cplColor) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 18px;border-bottom:1px solid var(--line-2);gap:12px">
+      <div style="min-width:0;flex:1">
+        <div style="${_ffsJ};font-weight:600;font-size:12.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nombre}</div>
+        <div style="${_ffsJ};font-size:11px;color:var(--ink-3);margin-top:3px">${fUsd0(a.gasto)} · ${fN(a.resultados)} res.</div>
+      </div>
+      <div style="flex-shrink:0;text-align:right">
+        <div style="${_ffsJ};font-weight:700;font-size:14px;color:${cplColor}">${a.cpl!=null?fUsd2(a.cpl):'Sin resultados'}</div>
+      </div>
+    </div>`;
+
+  const sections = rows.map(p=>{
+    if(p.error){
+      return `<div class="section-title" style="margin-top:0"><h2>${p.label}</h2><div class="hint" style="color:var(--bad)">${p.error}</div></div>`;
+    }
+    const campanas = p.campanas||[];
+    const activas = campanas.filter(c=>(c.estado||'').toLowerCase().includes('activa')).length;
+
+    const campRows = campanas.map(c=>`<tr>
+      <td style="max-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;color:var(--ink);${_ffsJ}" title="${c.nombre}">${c.nombre}</td>
+      <td style="text-align:center;${_ffsJ}">${_pillEstado(c.estado)}</td>
+      <td style="text-align:center;${_ffsJ};font-weight:600">${fUsd0(c.gasto)}</td>
+      <td style="text-align:center;${_ffsJ}">${fN(c.resultados)}</td>
+      <td style="text-align:center;${_ffsJ}">${c.cpl!=null?fUsd2(c.cpl):'—'}</td>
+      <td style="text-align:center;${_ffsJ}">${c.cpm!=null?fUsd2(c.cpm):'—'}</td>
+      <td style="text-align:center;${_ffsJ}">${c.cpc!=null?fUsd2(c.cpc):'—'}</td>
+    </tr>`).join('');
+
+    const topRows = (p.top_ads||[]).map(a=>_adRow(a,'var(--ok)')).join('')
+      || '<div style="padding:20px 18px;color:var(--ink-4);font-size:12px">Sin anuncios con resultados suficientes</div>';
+    const revRows = (p.ads_revisar||[]).map(a=>_adRow(a,'var(--bad)')).join('')
+      || '<div style="padding:20px 18px;color:var(--ink-4);font-size:12px">Nada que revisar</div>';
+
+    return `
+    <div class="section-title" style="margin-top:0">
+      <h2>${p.label}</h2>
+      <div class="hint">${activas} campaña${activas!==1?'s':''} activa${activas!==1?'s':''} · META ADS · ${periodo}</div>
+    </div>
+
+    <div class="kpi-row kpi-6" style="margin-bottom:20px">
+      <div class="kpi"><div class="lbl">INVERSIÓN</div><div class="val" style="font-size:20px;${_ffsJ}">${fUsd0(p.gasto)}</div></div>
+      <div class="kpi"><div class="lbl">LEADS</div><div class="val" style="font-size:20px;${_ffsJ}">${fN(p.total_resultados||0)}</div></div>
+      <div class="kpi"><div class="lbl">CPL</div><div class="val" style="font-size:20px;${_ffsJ}">${p.cpl!=null?fUsd2(p.cpl):'—'}</div></div>
+      <div class="kpi"><div class="lbl">PRESUPUESTO/DÍA</div><div class="val" style="font-size:20px;${_ffsJ}">${p.presupuesto_dia!=null?fUsd0(p.presupuesto_dia):'—'}</div></div>
+      <div class="kpi"><div class="lbl">CPM</div><div class="val" style="font-size:20px;${_ffsJ}">${p.cpm!=null?fUsd2(p.cpm):'—'}</div></div>
+      <div class="kpi"><div class="lbl">CPC</div><div class="val" style="font-size:20px;${_ffsJ}">${p.cpc!=null?fUsd2(p.cpc):'—'}</div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hd">
+        <div>
+          <h3 style="${_ffsJ}">CAMPAÑAS · Detalle</h3>
+          <p>${periodo} · ${campanas.length} campaña${campanas.length!==1?'s':''} con gasto</p>
+        </div>
+      </div>
+      ${campRows?`<div style="overflow-x:auto"><table class="tbl" style="table-layout:fixed;width:100%">
+        <colgroup>
+          <col style="width:36%"><col style="width:100px"><col style="width:88px">
+          <col style="width:100px"><col style="width:82px"><col style="width:82px"><col style="width:82px">
+        </colgroup>
+        <thead><tr>
+          <th style="${_ffsJ};text-align:left">CAMPAÑA</th>
+          <th style="${_ffsJ};text-align:center">ESTADO</th>
+          <th style="${_ffsJ};text-align:center">GASTO</th>
+          <th style="${_ffsJ};text-align:center">RESULTADOS</th>
+          <th style="${_ffsJ};text-align:center">CPL</th>
+          <th style="${_ffsJ};text-align:center">CPM</th>
+          <th style="${_ffsJ};text-align:center">CPC</th>
+        </tr></thead>
+        <tbody>${campRows}</tbody>
+      </table></div>`:'<div style="padding:20px;text-align:center;color:var(--ink-4);font-size:13px">Sin campañas con gasto en este período</div>'}
+    </div>
+
+    <div class="section-title">
+      <h2>RENDIMIENTO POR ANUNCIO</h2>
+      <div class="hint">Qué funciona / qué no · mediana de CPL del período</div>
+    </div>
+    <div class="grid-2" style="margin-bottom:28px">
+      <div class="card" style="padding:0">
+        <div class="card-hd" style="padding:14px 18px 12px">
+          <div style="display:flex;align-items:center;gap:9px">
+            <span style="width:9px;height:9px;border-radius:50%;background:var(--ok);flex-shrink:0;display:block"></span>
+            <div>
+              <h3 style="${_ffsJ}">TOP 5 ANUNCIOS</h3>
+              <p>Mejor costo por resultado</p>
+            </div>
+          </div>
+        </div>
+        <div>${topRows}</div>
+      </div>
+      <div class="card" style="padding:0">
+        <div class="card-hd" style="padding:14px 18px 12px">
+          <div style="display:flex;align-items:center;gap:9px">
+            <span style="width:9px;height:9px;border-radius:50%;background:var(--bad);flex-shrink:0;display:block"></span>
+            <div>
+              <h3 style="${_ffsJ}">REVISAR / PAUSAR</h3>
+              <p>Gasto alto sin resultados o CPL muy elevado</p>
+            </div>
+          </div>
+        </div>
+        <div>${revRows}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const showGenericHeader = rows.length !== 1;
+  wrap.innerHTML = `
+    ${showGenericHeader?`<div class="section-title" style="margin-top:0"><h2>META ADS</h2><div class="hint">Inversión y resultados por proyecto · ${periodo}</div></div>`:''}
+    ${sections || '<div style="padding:20px;color:var(--ink-4);font-size:13px">Sin datos</div>'}`;
 }
 
 // ══════════════════════════════════════════════════════════════════════════
