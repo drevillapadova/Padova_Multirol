@@ -166,7 +166,23 @@ def _fetch_meta_account(account_id, since, until, token):
             "cpl": (spend / resultados) if resultados else None,
         })
 
-    return campaigns, ads
+    daily_rows = _meta_paginate(base + "/insights", {
+        "level": "account",
+        "fields": "spend,actions",
+        "time_increment": "1",
+        "time_range": time_range, "limit": 200, "access_token": token,
+    })
+    daily = []
+    for row in sorted(daily_rows, key=lambda r: r.get("date_start", "")):
+        spend, leads, whats = _meta_row_metrics(row)
+        resultados = leads + whats
+        daily.append({
+            "fecha": row.get("date_start", ""),
+            "gasto": spend, "resultados": resultados,
+            "cpl": (spend / resultados) if resultados else None,
+        })
+
+    return campaigns, ads, daily
 
 # ─── SHEET CONFIG ────────────────────────────────────────────
 SHEET_ID = "1JIEEGPxJvCHvmGvVE6Zp9wBPUVXEF-iXy8FNaWr1PPI"
@@ -776,7 +792,7 @@ def api_meta_ads():
         try:
             if not proj["token"]:
                 raise Exception("Token no configurado para esta cuenta")
-            campaigns, ads = _fetch_meta_account(proj["id"], desde, hasta, proj["token"])
+            campaigns, ads, daily = _fetch_meta_account(proj["id"], desde, hasta, proj["token"])
             gasto       = sum(c["gasto"] for c in campaigns)
             leads       = sum(c["leads"] for c in campaigns)
             whatsapp    = sum(c["whatsapp"] for c in campaigns)
@@ -835,6 +851,11 @@ def api_meta_ads():
                     "cpl": round(a["cpl"], 2) if a["cpl"] is not None else None,
                     "resultados": int(a["resultados"]), "gasto": round(a["gasto"], 2),
                 } for a in ads_revisar],
+                "evolucion_diaria": [{
+                    "fecha": d["fecha"], "gasto": round(d["gasto"], 2),
+                    "resultados": int(d["resultados"]),
+                    "cpl": round(d["cpl"], 2) if d["cpl"] is not None else None,
+                } for d in daily],
             })
         except Exception as e:
             result.append({"label": proj["label"], "account_id": proj["id"], "error": str(e)})

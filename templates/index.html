@@ -2073,6 +2073,7 @@ let _flCrossSort = null;
 let _flCrossSortDir = 'desc';
 let _flComp = false;
 let _flTab = 'funnel';
+let _metaSubTab = 'detalle';
 let _flExcludeExt = false;
 let _flDateFrom = '';
 let _flDateTo = '';
@@ -2867,16 +2868,47 @@ function renderAdmVentas(){
 // ══════════════════════════════════════════════════════════════════════════
 // META ADS
 // ══════════════════════════════════════════════════════════════════════════
+function _destroyMetaEvoCharts(){
+  window._metaEvoCharts = window._metaEvoCharts || {};
+  Object.values(window._metaEvoCharts).forEach(c=>{ try{c.destroy();}catch(e){} });
+  window._metaEvoCharts = {};
+}
+
+function _setMetaSubTab(tab, el){
+  _metaSubTab = tab;
+  document.querySelectorAll('#meta-subtab-bar .tab-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  if(window._metaAdsLastPayload) _renderMetaAdsTab(window._metaAdsLastPayload);
+}
+
 function _renderMetaAdsTab(j){
   const wrap = document.getElementById('fl-content');
   if(!wrap) return;
+  window._metaAdsLastPayload = j;
   if(j.error){ wrap.innerHTML = `<div style="padding:20px;color:var(--bad);font-size:13px">${j.error}</div>`; return; }
   const proj = document.getElementById('fl-proj')?.value||'';
+
+  if(!proj){
+    _destroyMetaEvoCharts();
+    wrap.innerHTML = `<div style="padding:60px 20px;text-align:center;color:var(--ink-4);font-size:13px">
+      Selecciona un proyecto arriba (≡) para ver el detalle de Meta Ads.
+    </div>`;
+    return;
+  }
+
   const rows = (j.data||[]).filter(p=>matchProj(p.label, proj));
+  const p = rows[0];
   const fUsd0 = v => v==null?'—':'$ '+Number(v).toLocaleString('es-PE',{minimumFractionDigits:0,maximumFractionDigits:0});
   const fUsd2 = v => v==null?'—':'$ '+Number(v).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});
   const periodo = (j.desde&&j.hasta) ? `${j.desde} – ${j.hasta}` : 'Últimos 30 días';
   const _ffsJ = "font-family:'Plus Jakarta Sans',sans-serif";
+  const _METAEVO_COLOR = {'HELIO - SANTA BEATRIZ':'#60a5fa','SUNNY':'#34d399','LITORAL 900':'#fbbf24','LOMAS DE CARABAYLLO':'#a78bfa','DOMINGO ORUE':'#fb923c'};
+  const _saleInRange = f => { const d=String(f||'').slice(0,10); if(!d) return false; return (!j.desde||d>=j.desde)&&(!j.hasta||d<=j.hasta); };
+  const _ventasMeta = label => (D.ventas||[]).filter(r=>
+    matchProj(r.Proyecto, label) &&
+    String(r.ComoSeEntero||'').trim().toUpperCase()==='META ADS' &&
+    _saleInRange(r.FechaVenta)
+  ).length;
 
   const _pillEstado = st=>{
     const s=(st||'').toLowerCase();
@@ -2897,10 +2929,18 @@ function _renderMetaAdsTab(j){
       </div>
     </div>`;
 
-  const sections = rows.map(p=>{
-    if(p.error){
-      return `<div class="section-title" style="margin-top:0"><h2>${p.label}</h2><div class="hint" style="color:var(--bad)">${p.error}</div></div>`;
-    }
+  if(!p){
+    _destroyMetaEvoCharts();
+    wrap.innerHTML = `<div style="padding:20px;color:var(--ink-4);font-size:13px">Sin datos de Meta Ads para este proyecto.</div>`;
+    return;
+  }
+  if(p.error){
+    _destroyMetaEvoCharts();
+    wrap.innerHTML = `<div class="section-title" style="margin-top:0"><h2>${p.label}</h2><div class="hint" style="color:var(--bad)">${p.error}</div></div>`;
+    return;
+  }
+
+  const _buildSections = p=>{
     const campanas = p.campanas||[];
     const activas = campanas.filter(c=>(c.estado||'').toLowerCase().includes('activa')).length;
 
@@ -2919,12 +2959,11 @@ function _renderMetaAdsTab(j){
     const revRows = (p.ads_revisar||[]).map(a=>_adRow(a,'var(--bad)')).join('')
       || '<div style="padding:20px 18px;color:var(--ink-4);font-size:12px">Nada que revisar</div>';
 
-    return `
-    <div class="section-title" style="margin-top:0">
-      <h2>${p.label}</h2>
-      <div class="hint">${activas} campaña${activas!==1?'s':''} activa${activas!==1?'s':''} · META ADS · ${periodo}</div>
-    </div>
+    const ventasMeta = _ventasMeta(p.label);
+    const cac = ventasMeta ? (p.gasto / ventasMeta) : null;
+    const tasaCierre = p.total_resultados ? pct(ventasMeta, p.total_resultados) : '0%';
 
+    const detalleHtml = `
     <div class="kpi-row kpi-6" style="margin-bottom:20px">
       <div class="kpi"><div class="lbl">INVERSIÓN</div><div class="val" style="font-size:20px;${_ffsJ}">${fUsd0(p.gasto)}</div></div>
       <div class="kpi"><div class="lbl">LEADS</div><div class="val" style="font-size:20px;${_ffsJ}">${fN(p.total_resultados||0)}</div></div>
@@ -2963,7 +3002,7 @@ function _renderMetaAdsTab(j){
       <h2>RENDIMIENTO POR ANUNCIO</h2>
       <div class="hint">Qué funciona / qué no · mediana de CPL del período</div>
     </div>
-    <div class="grid-2" style="margin-bottom:28px">
+    <div class="grid-2" style="margin-bottom:8px">
       <div class="card" style="padding:0">
         <div class="card-hd" style="padding:14px 18px 12px">
           <div style="display:flex;align-items:center;gap:9px">
@@ -2989,12 +3028,75 @@ function _renderMetaAdsTab(j){
         <div>${revRows}</div>
       </div>
     </div>`;
-  }).join('');
 
-  const showGenericHeader = rows.length !== 1;
+    const evolucionHtml = `
+    <div class="kpi-row kpi-4" style="margin-bottom:20px">
+      <div class="kpi"><div class="lbl">VENTAS (META ADS)</div><div class="val" style="font-size:20px;${_ffsJ}">${fN(ventasMeta)}</div></div>
+      <div class="kpi"><div class="lbl">CAC</div><div class="val" style="font-size:20px;${_ffsJ}">${cac!=null?fUsd2(cac):'—'}</div></div>
+      <div class="kpi"><div class="lbl">TASA LEAD → VENTA</div><div class="val" style="font-size:20px;${_ffsJ}">${tasaCierre}</div></div>
+      <div class="kpi"><div class="lbl">INVERSIÓN TOTAL</div><div class="val" style="font-size:20px;${_ffsJ}">${fUsd0(p.gasto)}</div></div>
+    </div>
+    <div class="grid-2" style="margin-bottom:8px">
+      <div class="card">
+        <div class="card-hd"><div><h3 style="${_ffsJ}">EVOLUCIÓN DIARIA · LEADS</h3><p>Formulario + WhatsApp por día</p></div></div>
+        <div style="height:260px;padding:8px 16px 16px"><canvas id="meta-evo-leads-${p.account_id}"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div><h3 style="${_ffsJ}">EVOLUCIÓN DIARIA · CPL</h3><p>Costo por resultado, por día</p></div></div>
+        <div style="height:260px;padding:8px 16px 16px"><canvas id="meta-evo-cpl-${p.account_id}"></canvas></div>
+      </div>
+    </div>`;
+
+    return {detalleHtml, evolucionHtml, activas};
+  };
+
+  const {detalleHtml, evolucionHtml, activas} = _buildSections(p);
+
+  const subtabBar = `
+    <div class="tab-bar" id="meta-subtab-bar" style="margin:2px 0 16px">
+      <button class="tab-btn ${_metaSubTab==='detalle'?'active':''}" onclick="_setMetaSubTab('detalle',this)">Detalle</button>
+      <button class="tab-btn ${_metaSubTab==='evolucion'?'active':''}" onclick="_setMetaSubTab('evolucion',this)">CAC y Evolución</button>
+    </div>`;
+
   wrap.innerHTML = `
-    ${showGenericHeader?`<div class="section-title" style="margin-top:0"><h2>META ADS</h2><div class="hint">Inversión y resultados por proyecto · ${periodo}</div></div>`:''}
-    ${sections || '<div style="padding:20px;color:var(--ink-4);font-size:13px">Sin datos</div>'}`;
+    <div class="section-title" style="margin-top:0">
+      <h2>${p.label}</h2>
+      <div class="hint">${activas} campaña${activas!==1?'s':''} activa${activas!==1?'s':''} · META ADS · ${periodo}</div>
+    </div>
+    ${subtabBar}
+    ${_metaSubTab==='detalle' ? detalleHtml : evolucionHtml}`;
+
+  if(_metaSubTab!=='evolucion'){ _destroyMetaEvoCharts(); return; }
+
+  requestAnimationFrame(()=>{
+    window._metaEvoCharts = window._metaEvoCharts || {};
+    const daily = p.evolucion_diaria||[];
+    const color = _METAEVO_COLOR[p.label] || '#60a5fa';
+    const MM=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
+    const labels = daily.map(d=>{ const[y,m,dd]=(d.fecha||'').split('-'); return m?(dd+' '+MM[+m]):d.fecha; });
+
+    const leadsCtx = document.getElementById('meta-evo-leads-'+p.account_id);
+    if(leadsCtx){
+      const key='leads-'+p.account_id;
+      if(window._metaEvoCharts[key]) window._metaEvoCharts[key].destroy();
+      window._metaEvoCharts[key] = new Chart(leadsCtx, {
+        type:'bar',
+        data:{labels, datasets:[{label:'Resultados', data:daily.map(d=>d.resultados), backgroundColor:color+'cc', borderRadius:3}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'Resultados: '+fN(c.raw)}}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}},x:{ticks:{font:{size:10},maxRotation:45}}}}
+      });
+    }
+
+    const cplCtx = document.getElementById('meta-evo-cpl-'+p.account_id);
+    if(cplCtx){
+      const key='cpl-'+p.account_id;
+      if(window._metaEvoCharts[key]) window._metaEvoCharts[key].destroy();
+      window._metaEvoCharts[key] = new Chart(cplCtx, {
+        type:'line',
+        data:{labels, datasets:[{label:'CPL', data:daily.map(d=>d.cpl), borderColor:color, backgroundColor:color+'22', borderWidth:2, pointRadius:daily.length>20?0:3, pointHoverRadius:5, tension:0.35, fill:true, spanGaps:true}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'CPL: $'+(c.raw!=null?Number(c.raw).toFixed(2):'—')}}},scales:{y:{beginAtZero:true,ticks:{callback:v=>'$'+v}},x:{ticks:{font:{size:10},maxRotation:45}}}}
+      });
+    }
+  });
 }
 
 // ══════════════════════════════════════════════════════════════════════════
