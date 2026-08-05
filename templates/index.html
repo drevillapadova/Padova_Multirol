@@ -2047,6 +2047,7 @@ function _renderFlCrossTable(prosp){
 
 // ── Canales offline — todo lo demás se considera digital ──────────────────
 const FL_OFFLINE_CH = ['referid','cartel','volante','afiche','periódico','periodico','feria','radio','televisi','diario','valla','recomend','conocid','familiar','amigo','caminando'];
+function _isProper(canal){ return normStr(canal||'').trim()==='proper'; }
 function _isDigital(canal){
   const c=normStr(canal||'');
   if(!c||c==='sin especificar'||c==='sin canal'||c==='sin información'||c==='sin informacion') return false;
@@ -2062,6 +2063,7 @@ const FL_DIM_OPTS = [
   {val:'tipo',      lbl:'Tipo Inmueble',    stages:null,                               fn: r=>String(r.TipoInmueble||'Sin tipo').trim()},
   {val:'modelo',    lbl:'Modelo/Tipología', stages:null,                               fn: r=>{const d=String(r.NroDormitorios||'').trim();const m=String(r.Modelo||'').trim();return d&&/^\d+$/.test(d)?d+'D':(m||'Sin modelo');}},
   {val:'mes',       lbl:'Mes',              stages:null,                               fn: r=>{const mo=_extractMes(r);return mo?MES_ES[mo]||mo:'Sin mes';}},
+  {val:'distrito',  lbl:'Distrito',         stages:['visita','separacion','venta'],    fn: r=>String(r.Distrito_Procedencia||r.Distrito||'Sin distrito').trim()},
   {val:'financ',    lbl:'Financiamiento',   stages:['separacion','venta'],             fn: r=>String(r.TipoFinanciamiento||'Sin dato').trim()},
   {val:'motivo',    lbl:'Motivo Cerrado',   stages:['leads','contactados'],            fn: r=>String(r.Motivo_Cerrado_Actual||r.MotivoCierre||'Sin motivo').trim()},
 ];
@@ -2137,20 +2139,20 @@ function renderFunnelMkt(){
     let pr=D.prospectos||[];
     if(proj) pr=pr.filter(r=>matchProj(r.Proyecto, proj));
     if(from||to) pr=pr.filter(r=>_matchRange(r.FechaRegistro, from, to));
-    if(_flExcludeExt) pr=pr.filter(r=>!_isDigital(r.ComoSeEntero));
+    if(_flExcludeExt) pr=pr.filter(r=>!_isProper(r.ComoSeEntero));
     const lb=pr.filter(r=>String(r.LeadUnicoxMesProyecto||'').toUpperCase()==='SI');
     let vi=(D.visitas||[]).filter(r=>String(r.VisitaUnicaxMesProyecto||'').toUpperCase()==='SI');
     if(proj) vi=vi.filter(r=>matchProj(r.Proyecto, proj));
     if(from||to) vi=vi.filter(r=>_matchRange(r.FechaVisita, from, to));
-    if(_flExcludeExt) vi=vi.filter(r=>!_isDigital(r.ComoSeEntero));
+    if(_flExcludeExt) vi=vi.filter(r=>!_isProper(r.ComoSeEntero));
     let sp=(D.stock||[]).filter(r=>String(r.FechaSepDefinitiva||'').trim()&&String(r.FechaSepDefinitiva||'')!=='nan');
     if(proj) sp=sp.filter(r=>matchProj(r.Proyecto, proj));
     if(from||to) sp=sp.filter(r=>_matchRange(r.FechaSepDefinitiva, from, to));
-    if(_flExcludeExt) sp=sp.filter(r=>!_isDigital(r.ComoSeEntero));
+    if(_flExcludeExt) sp=sp.filter(r=>!_isProper(r.ComoSeEntero));
     let ve=(D.ventas||[]).filter(r=>normStr(r.TipoInmueble||'').includes('departamento'));
     if(proj) ve=ve.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
     if(from||to) ve=ve.filter(r=>_matchRange(r.FechaVenta||r.FechaEntrega_Minuta||'', from, to));
-    if(_flExcludeExt) ve=ve.filter(r=>!_isDigital(r.ComoSeEntero));
+    if(_flExcludeExt) ve=ve.filter(r=>!_isProper(r.ComoSeEntero));
     const trV=lb.map(r=>parseFloat(r.TiempoRespuesta_min||'')).filter(v=>!isNaN(v)&&v>=0).sort((a,b)=>a-b);
     const _validDate=v=>{const s=String(v||'').trim();return s&&s!=='nan'&&s!=='None'&&s!=='-'&&s!=='';};
     return {
