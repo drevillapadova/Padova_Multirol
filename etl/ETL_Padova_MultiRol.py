@@ -249,6 +249,7 @@ URL_REPORTE_VENTAS     = "https://v4.evolta.pe/Reportes/RepVenta/Index"
 URL_REPORTE_PROSPECTOS       = "https://v4.evolta.pe/Reportes/RepHiloProspectos/IndexProspecto"
 URL_REPORTE_VISITAS          = "https://v4.evolta.pe/Reportes/RepVisita/IndexVisita"
 URL_REPORTE_INGRESO_DEPOSITO = "https://v4.evolta.pe/Reportes/RepIngresoxDeposito/Index"
+URL_REPORTE_FLUJO_CAJA       = "https://v4.evolta.pe/Reportes/RepFlujoCaga/Index"
 
 TARGET_PROJECTS = [
     'SUNNY', 'LITORAL 900', 'HELIO - SANTA BEATRIZ',
@@ -264,12 +265,14 @@ if IS_CLOUD:
     DOWNLOAD_DIR_PROSPECTOS         = "/tmp/evolta_prospectos"
     DOWNLOAD_DIR_VISITAS            = "/tmp/evolta_visitas"
     DOWNLOAD_DIR_INGRESO_DEPOSITO   = "/tmp/evolta_ingreso_deposito"
+    DOWNLOAD_DIR_FLUJO_CAJA         = "/tmp/evolta_flujo_caja"
 else:
     DOWNLOAD_DIR                    = r"C:\Users\MKT\Documents\EVOLTA\descargas_stock"
     DOWNLOAD_DIR_VENTAS             = r"C:\Users\MKT\Documents\EVOLTA\descargas_ventas"
     DOWNLOAD_DIR_PROSPECTOS         = r"C:\Users\MKT\Documents\EVOLTA\descargas_prospectos"
     DOWNLOAD_DIR_VISITAS            = r"C:\Users\MKT\Documents\EVOLTA\descargas_visitas"
     DOWNLOAD_DIR_INGRESO_DEPOSITO   = r"C:\Users\MKT\Documents\EVOLTA\descargas_ingreso_deposito"
+    DOWNLOAD_DIR_FLUJO_CAJA         = r"C:\Users\MKT\Documents\EVOLTA\descargas_flujo_caja"
 
 ONEDRIVE_OUTPUT_DIR = None if IS_CLOUD else r"C:\Users\MKT\OneDrive - PADOVA SAC\PADOVA - MKT - MIRANO INMOBILIARIA - VENTAS\Dashboards"
 ONEDRIVE_FILE_NAME  = "ReporteEvolta.xlsx"
@@ -277,11 +280,13 @@ ONEDRIVE_FILE_NAME  = "ReporteEvolta.xlsx"
 # ── NUEVO Sheet ID (dashboard multi-rol) ──
 GSHEETS_SPREADSHEET_ID = "1JIEEGPxJvCHvmGvVE6Zp9wBPUVXEF-iXy8FNaWr1PPI"
 
-for dir_path in [DOWNLOAD_DIR, DOWNLOAD_DIR_VENTAS, DOWNLOAD_DIR_PROSPECTOS, DOWNLOAD_DIR_VISITAS, DOWNLOAD_DIR_INGRESO_DEPOSITO]:
+for dir_path in [DOWNLOAD_DIR, DOWNLOAD_DIR_VENTAS, DOWNLOAD_DIR_PROSPECTOS, DOWNLOAD_DIR_VISITAS, DOWNLOAD_DIR_INGRESO_DEPOSITO, DOWNLOAD_DIR_FLUJO_CAJA]:
     os.makedirs(dir_path, exist_ok=True)
 
 AÑOS_VENTAS            = [2023, 2024, 2025, 2026]
 AÑOS_PROSP_VISITAS     = [2026]
+AÑO_INICIO_FLUJO_CAJA  = 2023
+MES_INICIO_FLUJO_CAJA  = "Enero"
 
 # ── Columnas a conservar por pestaña (reduce celdas en Sheets) ──
 COLS_VENTAS = [
@@ -824,6 +829,99 @@ def execute_ingreso_deposito_extraction(driver, wait):
 
 
 # ============================================================
+# EXTRACCIÓN — FLUJO DE CAJA
+# ============================================================
+
+MESES_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio',
+            'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+
+
+def _selects_por_opciones(driver, opciones_validas):
+    """Devuelve, en el orden en que aparecen en la página, los <select>
+    cuya lista de opciones incluye alguno de los valores dados (ej. años o
+    nombres de mes). Evita depender de IDs/nombres internos de Evolta."""
+    encontrados = []
+    for sel in driver.find_elements(By.TAG_NAME, "select"):
+        try:
+            opts = [o.text.strip() for o in sel.find_elements(By.TAG_NAME, "option")]
+            if any(o in opciones_validas for o in opts):
+                encontrados.append(sel)
+        except Exception:
+            continue
+    return encontrados
+
+
+def execute_flujo_caja_extraction(driver, wait):
+    print("\n" + "="*60)
+    print(f">> [FLUJO_CAJA] Iniciando descarga ({AÑO_INICIO_FLUJO_CAJA} - hoy)")
+    print("="*60)
+    for f in glob.glob(os.path.join(DOWNLOAD_DIR_FLUJO_CAJA, "*.*")):
+        try: os.remove(f)
+        except: pass
+
+    driver.get(URL_REPORTE_FLUJO_CAJA)
+    time.sleep(4)
+    dismiss_popup(driver)
+
+    hoy = datetime.now()
+    años_validos = {str(y) for y in range(2020, hoy.year + 1)}
+    selects_año = _selects_por_opciones(driver, años_validos)
+    selects_mes = _selects_por_opciones(driver, set(MESES_ES))
+
+    try:
+        if len(selects_año) >= 2:
+            Select(selects_año[0]).select_by_visible_text(str(AÑO_INICIO_FLUJO_CAJA))
+            Select(selects_año[1]).select_by_visible_text(str(hoy.year))
+            print(f"   -> Año Inicio: {AÑO_INICIO_FLUJO_CAJA} | Año Fin: {hoy.year}")
+        else:
+            print(f"   !! Warning: se esperaban 2 selects de año, se encontraron {len(selects_año)}")
+    except Exception as e:
+        print(f"   !! Warning selects de año: {e}")
+
+    try:
+        if len(selects_mes) >= 2:
+            Select(selects_mes[0]).select_by_visible_text(MES_INICIO_FLUJO_CAJA)
+            Select(selects_mes[1]).select_by_visible_text(MESES_ES[hoy.month - 1])
+            print(f"   -> Mes Inicio: {MES_INICIO_FLUJO_CAJA} | Mes Fin: {MESES_ES[hoy.month - 1]}")
+        else:
+            print(f"   !! Warning: se esperaban 2 selects de mes, se encontraron {len(selects_mes)}")
+    except Exception as e:
+        print(f"   !! Warning selects de mes: {e}")
+    time.sleep(1)
+
+    for xpath in ["//input[@type='radio'][@value='Csv']", "//label[contains(text(),'Csv')]", "//*[text()='Csv']"]:
+        try:
+            el = driver.find_element(By.XPATH, xpath)
+            driver.execute_script("arguments[0].click();", el)
+            break
+        except Exception: pass
+    time.sleep(1)
+
+    existing = set(glob.glob(os.path.join(DOWNLOAD_DIR, "*.*")))
+
+    for xpath in ["//button[contains(text(),'Exportar')]", "//button[@id='btnExportar']", "//button[@type='submit']"]:
+        try:
+            btn = wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
+            driver.execute_script("arguments[0].click();", btn)
+            print("   -> Click en Exportar")
+            break
+        except Exception: pass
+
+    time.sleep(5)
+    archivo = esperar_descarga_nueva(DOWNLOAD_DIR, existing, timeout=480)
+    if not archivo:
+        print("   !! Warning: no se descargó Flujo de Caja")
+        return None
+
+    ext  = os.path.splitext(archivo)[1].lower()
+    dest = os.path.join(DOWNLOAD_DIR_FLUJO_CAJA, f"ReporteFlujoCaja{ext}")
+    if os.path.exists(dest): os.remove(dest)
+    shutil.move(archivo, dest)
+    print(f"   -> [OK] {os.path.basename(dest)}")
+    return dest
+
+
+# ============================================================
 # TRANSFORMACIÓN — VENTAS
 # ============================================================
 
@@ -1026,6 +1124,37 @@ def process_stock_data(df_ventas=None):
 
 
 # ============================================================
+# TRANSFORMACIÓN — FLUJO DE CAJA
+# ============================================================
+
+def process_flujo_caja_data(df):
+    """Filtra proyectos objetivo y convierte a soles si detecta columna de
+    moneda. Evolta puede variar el nombre exacto de las columnas, por eso se
+    detectan por palabras clave en vez de un nombre fijo (igual que en el
+    ETL de referencia de Finanzas-Comercial)."""
+    print("\n>> [TRANSFORM FLUJO_CAJA] Procesando...")
+    if df is None or len(df) == 0:
+        print("   !! Sin datos de Flujo de Caja")
+        return None
+    df = df.copy()
+    df.columns = df.columns.str.strip()
+    if 'Proyecto' in df.columns:
+        df = df[df['Proyecto'].str.upper().isin(TARGET_PROJECTS)]
+
+    col_monto  = next((c for c in df.columns if any(k in c.lower() for k in ['monto', 'importe', 'cuota', 'pago'])), None)
+    col_moneda = next((c for c in df.columns if any(k in c.lower() for k in ['moneda', 'tipo_mon'])), None)
+    col_fecha  = next((c for c in df.columns if any(k in c.lower() for k in ['fecha', 'vencim'])), None)
+
+    if col_monto and col_moneda:
+        df = convertir_precios_a_soles(df, col_monto, col_moneda, col_fecha=col_fecha)
+    else:
+        print(f"   !! Sin columna de moneda detectada (monto={col_monto}, moneda={col_moneda}), no se convierte")
+
+    print(f"   -> FLUJO_CAJA: {len(df):,} filas, {len(df.columns)} cols")
+    return df
+
+
+# ============================================================
 # GOOGLE SHEETS — subida
 # ============================================================
 
@@ -1068,7 +1197,7 @@ def subir_tab(spreadsheet, tab_name, df, batch_size=2000):
         print(f"   !! Error subiendo {tab_name}: {e}")
 
 
-def upload_to_gsheets(df_ventas, df_stock, df_prospectos=None, df_visitas=None, df_ingreso_deposito=None):
+def upload_to_gsheets(df_ventas, df_stock, df_prospectos=None, df_visitas=None, df_ingreso_deposito=None, df_flujo_caja=None):
     print("\n>> [GOOGLE SHEETS] Actualizando dashboard multi-rol...")
     try:
         scopes = ["https://www.googleapis.com/auth/spreadsheets",
@@ -1082,6 +1211,7 @@ def upload_to_gsheets(df_ventas, df_stock, df_prospectos=None, df_visitas=None, 
         subir_tab(sp, "PROSPECTOS",         df_prospectos)
         subir_tab(sp, "VISITAS",            df_visitas)
         subir_tab(sp, "INGRESO_DEPOSITO",   df_ingreso_deposito)
+        subir_tab(sp, "FLUJO_CAJA",         df_flujo_caja)
 
         print(f"   -> Dashboard: https://docs.google.com/spreadsheets/d/{GSHEETS_SPREADSHEET_ID}")
         return True
@@ -1167,6 +1297,11 @@ def main():
         execute_ingreso_deposito_extraction(driver, wait)
     except Exception as e:
         print(f"!! ERROR Ingreso Depósito: {e} — continuando")
+
+    try:
+        execute_flujo_caja_extraction(driver, wait)
+    except Exception as e:
+        print(f"!! ERROR Flujo de Caja: {e} — continuando")
 
     driver.quit()
 
@@ -1280,6 +1415,19 @@ def main():
     except Exception as e:
         print(f"!! INGRESO_DEPOSITO ERROR: {e}")
 
+    # Cargar flujo de caja
+    df_flujo_caja = None
+    try:
+        list_fc = glob.glob(os.path.join(DOWNLOAD_DIR_FLUJO_CAJA, '*.*'))
+        if list_fc:
+            ruta_fc = max(list_fc, key=os.path.getctime)
+            df_fc_crudo = pd.read_csv(ruta_fc, encoding='utf-8', low_memory=False) if ruta_fc.endswith('.csv') else pd.read_excel(ruta_fc)
+            df_flujo_caja = process_flujo_caja_data(df_fc_crudo)
+        else:
+            print("   !! FLUJO_CAJA: no se encontró archivo descargado")
+    except Exception as e:
+        print(f"!! FLUJO_CAJA ERROR: {e}")
+
     if final_file:
         # Email
         try: dispatch_report(final_file)
@@ -1294,11 +1442,11 @@ def main():
             except Exception as e:
                 print(f"!! ONEDRIVE ERROR: {e}")
 
-        # Google Sheets — sube las 4 pestañas (solo columnas necesarias)
+        # Google Sheets — sube las 6 pestañas (solo columnas necesarias)
         try:
             df_v_gs = filtrar_cols(df_ventas,   COLS_VENTAS)   if df_ventas   is not None else None
             df_s_gs = filtrar_cols(df_stock_gs, COLS_STOCK)    if df_stock_gs is not None else None
-            upload_to_gsheets(df_v_gs, df_s_gs, df_prospectos, df_visitas, df_ingreso_deposito)
+            upload_to_gsheets(df_v_gs, df_s_gs, df_prospectos, df_visitas, df_ingreso_deposito, df_flujo_caja)
         except Exception as e:
             print(f"!! GSHEETS ERROR: {e}")
 
