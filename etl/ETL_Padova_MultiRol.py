@@ -285,8 +285,10 @@ for dir_path in [DOWNLOAD_DIR, DOWNLOAD_DIR_VENTAS, DOWNLOAD_DIR_PROSPECTOS, DOW
 
 AÑOS_VENTAS            = [2023, 2024, 2025, 2026]
 AÑOS_PROSP_VISITAS     = [2026]
-AÑO_INICIO_FLUJO_CAJA  = 2023
+AÑO_INICIO_FLUJO_CAJA  = 2025
 MES_INICIO_FLUJO_CAJA  = "Enero"
+AÑO_FIN_FLUJO_CAJA     = 2027
+MES_FIN_FLUJO_CAJA     = "Diciembre"
 
 # ── Columnas a conservar por pestaña (reduce celdas en Sheets) ──
 COLS_VENTAS = [
@@ -853,7 +855,7 @@ def _selects_por_opciones(driver, opciones_validas):
 
 def execute_flujo_caja_extraction(driver, wait):
     print("\n" + "="*60)
-    print(f">> [FLUJO_CAJA] Iniciando descarga ({AÑO_INICIO_FLUJO_CAJA} - hoy)")
+    print(f">> [FLUJO_CAJA] Iniciando descarga ({AÑO_INICIO_FLUJO_CAJA} - {AÑO_FIN_FLUJO_CAJA})")
     print("="*60)
     for f in glob.glob(os.path.join(DOWNLOAD_DIR_FLUJO_CAJA, "*.*")):
         try: os.remove(f)
@@ -863,16 +865,15 @@ def execute_flujo_caja_extraction(driver, wait):
     time.sleep(4)
     dismiss_popup(driver)
 
-    hoy = datetime.now()
-    años_validos = {str(y) for y in range(2020, hoy.year + 1)}
+    años_validos = {str(y) for y in range(2020, AÑO_FIN_FLUJO_CAJA + 1)}
     selects_año = _selects_por_opciones(driver, años_validos)
     selects_mes = _selects_por_opciones(driver, set(MESES_ES))
 
     try:
         if len(selects_año) >= 2:
             Select(selects_año[0]).select_by_visible_text(str(AÑO_INICIO_FLUJO_CAJA))
-            Select(selects_año[1]).select_by_visible_text(str(hoy.year))
-            print(f"   -> Año Inicio: {AÑO_INICIO_FLUJO_CAJA} | Año Fin: {hoy.year}")
+            Select(selects_año[1]).select_by_visible_text(str(AÑO_FIN_FLUJO_CAJA))
+            print(f"   -> Año Inicio: {AÑO_INICIO_FLUJO_CAJA} | Año Fin: {AÑO_FIN_FLUJO_CAJA}")
         else:
             print(f"   !! Warning: se esperaban 2 selects de año, se encontraron {len(selects_año)}")
     except Exception as e:
@@ -881,8 +882,8 @@ def execute_flujo_caja_extraction(driver, wait):
     try:
         if len(selects_mes) >= 2:
             Select(selects_mes[0]).select_by_visible_text(MES_INICIO_FLUJO_CAJA)
-            Select(selects_mes[1]).select_by_visible_text(MESES_ES[hoy.month - 1])
-            print(f"   -> Mes Inicio: {MES_INICIO_FLUJO_CAJA} | Mes Fin: {MESES_ES[hoy.month - 1]}")
+            Select(selects_mes[1]).select_by_visible_text(MES_FIN_FLUJO_CAJA)
+            print(f"   -> Mes Inicio: {MES_INICIO_FLUJO_CAJA} | Mes Fin: {MES_FIN_FLUJO_CAJA}")
         else:
             print(f"   !! Warning: se esperaban 2 selects de mes, se encontraron {len(selects_mes)}")
     except Exception as e:
