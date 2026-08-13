@@ -1129,10 +1129,11 @@ def process_stock_data(df_ventas=None):
 # ============================================================
 
 def process_flujo_caja_data(df):
-    """Filtra proyectos objetivo y convierte a soles si detecta columna de
-    moneda. Evolta puede variar el nombre exacto de las columnas, por eso se
-    detectan por palabras clave en vez de un nombre fijo (igual que en el
-    ETL de referencia de Finanzas-Comercial)."""
+    """Filtra proyectos objetivo. No convierte moneda: cada fila trae ~40
+    columnas monetarias (TotalVenta, Pagos_Recibido, Saldo_Por_Cobrar, 36
+    columnas mensuales, TotalCI/SF, etc.), todas en la moneda de esa fila
+    (columna Tipo_Moneda) — el dashboard hace la conversión por fila según
+    corresponda, igual que ya hace con Ventas/Stock."""
     print("\n>> [TRANSFORM FLUJO_CAJA] Procesando...")
     if df is None or len(df) == 0:
         print("   !! Sin datos de Flujo de Caja")
@@ -1141,15 +1142,6 @@ def process_flujo_caja_data(df):
     df.columns = df.columns.str.strip()
     if 'Proyecto' in df.columns:
         df = df[df['Proyecto'].str.upper().isin(TARGET_PROJECTS)]
-
-    col_monto  = next((c for c in df.columns if any(k in c.lower() for k in ['monto', 'importe', 'cuota', 'pago'])), None)
-    col_moneda = next((c for c in df.columns if any(k in c.lower() for k in ['moneda', 'tipo_mon'])), None)
-    col_fecha  = next((c for c in df.columns if any(k in c.lower() for k in ['fecha', 'vencim'])), None)
-
-    if col_monto and col_moneda:
-        df = convertir_precios_a_soles(df, col_monto, col_moneda, col_fecha=col_fecha)
-    else:
-        print(f"   !! Sin columna de moneda detectada (monto={col_monto}, moneda={col_moneda}), no se convierte")
 
     print(f"   -> FLUJO_CAJA: {len(df):,} filas, {len(df.columns)} cols")
     return df
