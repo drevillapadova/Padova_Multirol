@@ -550,6 +550,8 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 .msel-filter{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:12px;margin-bottom:6px;font-family:inherit}
 html.dark .msel-panel{background:#253347;border-color:#334155}
 html.dark .msel-item:hover{background:#1e293b}
+/* misma "x" que los filtros de rango de fechas (dir-date-bar, adm-date-bar, fl-date-bar) */
+.btn-clear-fecha{background:transparent;border:none;color:var(--ink-4);font-size:14px;cursor:pointer;padding:0 4px;line-height:1}
 </style>
 
 <!-- ── FUNNEL MARKETING: design tokens ─────────────────────────────────── -->
@@ -931,12 +933,13 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
             <input type="text" id="mkt-mercado-buscar" placeholder="Buscar proyecto o inmobiliaria..." oninput="renderMercadoMapa()"
                    style="border:none;background:transparent;outline:none;width:100%;font-size:12px;font-family:inherit;color:var(--ink)"/>
           </label>
-          <button class="btn-clear-fecha" title="Limpiar filtros" onclick="limpiarFiltrosMercado()">✕</button>
+          <button class="btn-clear-fecha" title="Limpiar filtros" onclick="limpiarFiltrosMercado()" style="align-self:center">✕</button>
         </div>
       </div>
       <div style="padding:0 20px">
-        <div class="card" style="padding:0;overflow:hidden">
+        <div class="card" style="padding:0;overflow:hidden;position:relative;isolation:isolate">
           <div id="mkt-mercado-map" style="height:640px;width:100%"></div>
+          <div style="position:absolute;bottom:10px;left:10px;background:rgba(15,23,42,.72);color:#fff;font-size:11px;padding:4px 10px;border-radius:6px;pointer-events:none;z-index:1000;font-family:'Plus Jakarta Sans',sans-serif">Ctrl + scroll para hacer zoom</div>
         </div>
         <div id="mkt-mercado-legend" style="display:flex;flex-wrap:wrap;gap:14px;padding:12px 4px;font-size:11px;color:var(--ink-3)"></div>
       </div>
@@ -964,7 +967,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
               <div id="msel-ventas-proyecto-list"></div>
             </div>
           </div>
-          <button class="btn-clear-fecha" title="Limpiar filtros" onclick="limpiarFiltrosVentas()">✕</button>
+          <button class="btn-clear-fecha" title="Limpiar filtros" onclick="limpiarFiltrosVentas()" style="align-self:center">✕</button>
         </div>
       </div>
       <div style="padding:0 20px">
@@ -3893,17 +3896,22 @@ function renderMercadoMapa(){
   );
 
   if(!_mercadoMap){
-    // scrollWheelZoom arranca apagado y se activa recién al hacer click en el mapa
-    // (así el scroll normal de la página no queda "atrapado" por el mapa sin querer,
-    // pero una vez que entras al mapa sí puedes hacer zoom con la rueda del mouse)
+    // scrollWheelZoom queda siempre apagado: el scroll normal de la página nunca
+    // se lo "roba" el mapa. Para zoom con la rueda hay que mantener Ctrl (o Cmd)
+    // presionado, igual que Google Maps embebido.
     _mercadoMap = L.map('mkt-mercado-map', { scrollWheelZoom:false, zoomControl:false }).setView([-12.05, -77.04], 11);
     L.control.zoom({ position: 'topright' }).addTo(_mercadoMap);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap',
       maxZoom: 19,
     }).addTo(_mercadoMap);
-    _mercadoMap.on('click', () => _mercadoMap.scrollWheelZoom.enable());
-    _mercadoMap.on('mouseout', () => _mercadoMap.scrollWheelZoom.disable());
+    document.getElementById('mkt-mercado-map').addEventListener('wheel', function(e){
+      if(!(e.ctrlKey || e.metaKey)) return; // sin Ctrl/Cmd: deja que la página haga scroll normal
+      e.preventDefault();
+      const pt = _mercadoMap.mouseEventToContainerPoint(e);
+      const latlng = _mercadoMap.containerPointToLatLng(pt);
+      _mercadoMap.setZoomAround(latlng, _mercadoMap.getZoom() + (e.deltaY < 0 ? 1 : -1));
+    }, { passive:false });
   }
   if(_mercadoLayer) _mercadoMap.removeLayer(_mercadoLayer);
   _mercadoLayer = L.layerGroup().addTo(_mercadoMap);
