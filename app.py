@@ -195,8 +195,9 @@ TABS = {
     "meta_ads":    "1427834245",
     "ingreso_deposito": "457505928",
     "inversion":   "515829502",
-    "mkt_fisico":  "961281144",
+    "flujo_caja":  "961281144",
     "presupuesto": "485749651",
+    "mercado":     "477763204",
 }
 
 TARGET_PROJECTS = [
@@ -325,6 +326,116 @@ def filtrar_proyecto(lst, proyecto, campo="Proyecto"):
     return [r for r in lst if str(r.get(campo, "")).upper() == proyecto.upper()]
 
 
+def _parse_coord_pe(v):
+    """Corrige Latitud/Longitud de la pestaña TABLEAU: el export de Sheets perdió
+    el punto decimal y las mostró como enteros con separador de miles, ej.
+    '-120.977.732' en vez de '-12.0977732'. Perú: la parte entera de lat/lon
+    siempre tiene 2 dígitos (lat 0-19, lon 68-85), así que se reinserta el
+    punto decimal justo después de esos 2 dígitos."""
+    s = str(v or "").strip()
+    if not s or s.lower() in ("nan", "none"):
+        return None
+    neg = s.startswith("-")
+    digits = re.sub(r"[^0-9]", "", s)
+    if len(digits) < 3:
+        return None
+    try:
+        num = float(digits[:2] + "." + digits[2:])
+    except ValueError:
+        return None
+    return -num if neg else num
+
+
+def calcular_mercado():
+    """Agrupa el Estudio de Mercado (pestaña TABLEAU, 1 fila = 1 unidad vendida
+    de cualquier inmobiliaria) por Inmobiliaria+Proyecto: 1 punto por proyecto
+    para el mapa, con unidades vendidas totales y precio promedio de venta."""
+    rows = _cache.get("mercado", [])
+    grupos = {}
+    for r in rows:
+        inmob = _str(r, "Inmobiliaria")
+        proy  = _str(r, "Nombre de Proyecto")
+        if not inmob or not proy:
+            continue
+        key = (inmob, proy)
+        if key not in grupos:
+            grupos[key] = {
+                "inmobiliaria": inmob,
+                "proyecto":     proy,
+                "distrito":     _str(r, "Distrito"),
+                "sector":       _str(r, "Sector"),
+                "direccion":    _str(r, "Dirección"),
+                "lat":          _parse_coord_pe(r.get("Latitud")),
+                "lng":          _parse_coord_pe(r.get("Longitud")),
+                "unidades_vendidas": 0,
+                "_precio_sum":  0.0,
+                "_precio_n":    0,
+            }
+        g = grupos[key]
+        g["unidades_vendidas"] += _int(r, "Cantidad de Unidades Vendidas") or 1
+        precio = _float(r, "Precio de Venta Solarizado Neto")
+        if precio:
+            g["_precio_sum"] += precio
+            g["_precio_n"]   += 1
+
+    out = []
+    for g in grupos.values():
+        if g["lat"] is None or g["lng"] is None:
+            continue
+        out.append({
+            "inmobiliaria":      g["inmobiliaria"],
+            "proyecto":          g["proyecto"],
+            "distrito":          g["distrito"],
+            "sector":            g["sector"],
+            "direccion":         g["direccion"],
+            "lat":               g["lat"],
+            "lng":               g["lng"],
+            "unidades_vendidas": g["unidades_vendidas"],
+            "precio_promedio":   round(g["_precio_sum"] / g["_precio_n"], 2) if g["_precio_n"] else 0,
+        })
+    return out
+
+
+def _parse_fecha_mercado(s):
+    """'Fecha de Venta' de TABLEAU viene como '30/05/2026 12:00:00 a. m.'
+    (DD/MM/YYYY + hora en español). Solo interesa la fecha -> ISO 'YYYY-MM-DD'."""
+    s = str(s or "").strip()
+    if not s:
+        return None
+    fecha_part = s.split(" ")[0].strip()
+    try:
+        d, m, y = fecha_part.split("/")
+        return f"{y}-{m.zfill(2)}-{d.zfill(2)}"
+    except ValueError:
+        return None
+
+
+def calcular_mercado_ventas():
+    """Filas del Estudio de Mercado (pestaña TABLEAU) con los campos que
+    necesitan los cuadros de Ventas: tendencia mensual y distribución por
+    dormitorio. Fecha de Venta ya parseada a ISO; precios/áreas ya limpios."""
+    rows = _cache.get("mercado", [])
+    out = []
+    for r in rows:
+        proy = _str(r, "Nombre de Proyecto")
+        if not proy:
+            continue
+        fecha_iso = _parse_fecha_mercado(r.get("Fecha de Venta"))
+        if not fecha_iso:
+            continue
+        out.append({
+            "proyecto":          proy,
+            "distrito":          _str(r, "Distrito"),
+            "fecha_venta":       fecha_iso,
+            "dormitorios":       _int(r, "Cantidad de Dormitorios"),
+            "precio_m2_oferta":  _float(r, "Precio por m2 - Oferta Solarizado"),
+            "precio_m2_venta":   _float(r, "Precio por m2 - Venta Solarizado"),
+            "area_total":        _float(r, "Área Total"),
+            "precio_venta":      _float(r, "Precio de Venta Solarizado Neto"),
+        })
+    return out
+
+
 def calcular_funnel(ventas, prospectos, visitas, stock, proyecto=""):
     """Embudo completo con conversiones y tiempo de respuesta."""
     v  = filtrar_proyecto(ventas,     proyecto)
@@ -432,17 +543,6 @@ def calcular_campanas():
         leads = resumen[c]["leads"]
         resumen[c]["cpl"] = round(inv / leads, 2) if leads else 0
 
-    # Resumen MKT físico
-    mkt = _cache["mkt_fisico"]
-    mkt_resumen = {}
-    for r in mkt:
-        tipo = _str(r, "tipo_accion", "Tipo_accion", "Tipo", "tipo") or "otro"
-        if tipo not in mkt_resumen:
-            mkt_resumen[tipo] = {"costo": 0, "leads": 0, "acciones": 0}
-        mkt_resumen[tipo]["costo"]    += _float(r, "costo",            "Costo")
-        mkt_resumen[tipo]["leads"]    += _int(r,   "leads_atribuidos", "Leads_atribuidos", "Leads")
-        mkt_resumen[tipo]["acciones"] += 1
-
     # Presupuesto vs real por canal/mes
     presup = {}
     for r in _cache["presupuesto"]:
@@ -489,7 +589,6 @@ def calcular_campanas():
     return {
         "detalle":               detalle,
         "resumen":               resumen,
-        "mkt_fisico":            {"detalle": mkt, "resumen": mkt_resumen},
         "presupuesto":           list(presup.values()),
         "presupuesto_proyectos": presup_proyectos,
     }
@@ -597,7 +696,7 @@ def calcular_stock_resumen():
 # CACHE — actualización
 # ══════════════════════════════════════════════════════════════
 
-TABS_CON_PROYECTO = {"ventas", "stock", "prospectos", "visitas"}
+TABS_CON_PROYECTO = {"ventas", "stock", "prospectos", "visitas", "flujo_caja", "ingreso_deposito"}
 
 def leer_tab_header(tab_key, header_row):
     """Lee una pestaña usando una fila específica como encabezado (0-indexed)."""
@@ -750,6 +849,31 @@ def api_ingreso_deposito():
     proyecto = request.args.get("proyecto", "").upper()
     return jsonify({
         "data": filtrar_proyecto(_cache["ingreso_deposito"], proyecto),
+        "updated_at": _cache["updated_at"]
+    })
+
+
+@app.route("/api/flujo_caja")
+def api_flujo_caja():
+    proyecto = request.args.get("proyecto", "").upper()
+    return jsonify({
+        "data": filtrar_proyecto(_cache["flujo_caja"], proyecto),
+        "updated_at": _cache["updated_at"]
+    })
+
+
+@app.route("/api/mercado")
+def api_mercado():
+    return jsonify({
+        "data": calcular_mercado(),
+        "updated_at": _cache["updated_at"]
+    })
+
+
+@app.route("/api/mercado_ventas")
+def api_mercado_ventas():
+    return jsonify({
+        "data": calcular_mercado_ventas(),
         "updated_at": _cache["updated_at"]
     })
 

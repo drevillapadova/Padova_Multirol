@@ -540,6 +540,16 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
   .filter-bar select{min-width:80px;font-size:11px}
   .bud-sum b{font-size:13px}
 }
+
+/* ── Multi-select checkbox dropdown (Estudio de Mercado) ── */
+.msel-btn{font:inherit;border:none;margin:0}
+.msel-panel{position:absolute;top:100%;left:0;margin-top:4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:1000;max-height:300px;overflow-y:auto;padding:6px}
+.msel-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;font-size:12.5px;color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.msel-item:hover{background:var(--bg)}
+.msel-item input{margin:0;cursor:pointer}
+.msel-filter{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:12px;margin-bottom:6px;font-family:inherit}
+html.dark .msel-panel{background:#253347;border-color:#334155}
+html.dark .msel-item:hover{background:#1e293b}
 </style>
 
 <!-- ── FUNNEL MARKETING: design tokens ─────────────────────────────────── -->
@@ -681,6 +691,8 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 <button class="hamburger" onclick="toggleSidebar()" aria-label="Menú">
@@ -707,6 +719,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
   <div class="nav-item" onclick="nav('admventas',this)" title="Adm. de Ventas"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg><span class="nav-lbl">Adm. de Ventas</span></div>
   <div class="nav-item" onclick="nav('funnelmkt',this)" title="Marketing"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg><span class="nav-lbl">Marketing</span></div>
   <div class="nav-item" onclick="nav('stockproy',this)" title="Stock Proyecto"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="nav-lbl">Stock Proyecto</span></div>
+  <div class="nav-item" onclick="nav('mercado',this)" title="Estudio de Mercado"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4z"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg><span class="nav-lbl">Estudio de Mercado</span></div>
 </aside>
 
 <!-- ═══════════ DIRECTOR COMERCIAL ═══════════ -->
@@ -770,12 +783,6 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
       <div class="page-sub" id="adm-sub">Cargando...</div>
     </div>
     <div class="toolbar">
-      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">▭</span>
-        <select id="adm-año" onchange="renderAdmVentas()"><option value="">Año</option><option selected>2026</option><option>2025</option><option>2024</option><option>2023</option></select>
-      </label>
-      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">▭</span>
-        <select id="adm-mes" onchange="renderAdmVentas()"><option value="">Mes</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Setiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
-      </label>
       <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
         <select id="adm-proj" onchange="renderAdmVentas()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO 4</option><option>LOMAS DE CARABAYLLO 5</option><option>DOMINGO ORUE</option></select>
       </label>
@@ -785,6 +792,18 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
       <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
       <button class="dark-toggle-btn" onclick="toggleDark()" title="Modo oscuro" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all .2s">◑</button>
     </div>
+  </div>
+  <div class="kpi-row kpi-6" id="adm-kpis" style="padding:16px 20px 4px;margin-bottom:0"><div class="loading">Cargando...</div></div>
+  <div class="dir-date-bar" id="adm-date-bar" style="flex-wrap:wrap;row-gap:6px">
+    <span style="font-size:11px;color:var(--ink-3);font-weight:700;letter-spacing:.06em;text-transform:uppercase">Período</span>
+    <div style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:3px 10px">
+      <span style="font-size:10px;color:var(--ink-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Desde</span>
+      <input type="date" id="adm-date-desde" onchange="renderAdmVentas()" style="border:none;background:transparent;font-size:12.5px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;outline:none;padding:2px 0">
+      <span style="color:var(--ink-4);font-size:13px">→</span>
+      <span style="font-size:10px;color:var(--ink-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Hasta</span>
+      <input type="date" id="adm-date-hasta" onchange="renderAdmVentas()" style="border:none;background:transparent;font-size:12.5px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;outline:none;padding:2px 0">
+    </div>
+    <button onclick="document.getElementById('adm-date-desde').value='';document.getElementById('adm-date-hasta').value='';renderAdmVentas()" title="Limpiar fechas" style="background:transparent;border:none;color:var(--ink-4);font-size:14px;cursor:pointer;padding:0 4px;line-height:1">✕</button>
   </div>
   <div class="tab-bar" id="adm-tab-bar">
     <button class="tab-btn active" onclick="setAdmTab('resumen',this)">Resumen</button>
@@ -866,6 +885,113 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
   </div>
   <div id="sp-content"><div class="loading">Cargando...</div></div>
 </div>
+
+<!-- ═══════════ ESTUDIO DE MERCADO ═══════════ -->
+<div class="panel" id="panel-mercado">
+  <div class="topbar">
+    <div>
+      <div class="crumbs">Dashboard <span>›</span><b>Estudio de Mercado</b></div>
+      <h1 class="page-title">Estudio de Mercado · Competencia</h1>
+      <div class="page-sub" id="mkt-mercado-sub">Cargando...</div>
+    </div>
+    <div class="toolbar">
+      <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
+      <button class="dark-toggle-btn" onclick="toggleDark()" title="Modo oscuro" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all .2s">◑</button>
+    </div>
+  </div>
+  <div class="tab-bar" id="mercado-tab-bar">
+    <button class="tab-btn active" onclick="setMercadoTab('competencia',this)">Mapa de Competencia</button>
+    <button class="tab-btn" onclick="setMercadoTab('ventas',this)">Ventas</button>
+  </div>
+  <div id="mercado-content">
+    <div id="mercado-sub-competencia" class="mercado-subsection">
+      <div style="padding:16px 20px 0">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;margin-bottom:14px">
+          <div style="position:relative">
+            <button type="button" class="chip-sel msel-btn" onclick="mselToggle('distrito')">
+              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
+              <span id="msel-distrito-label">Todos los distritos</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
+            </button>
+            <div class="msel-panel" id="msel-distrito-panel" style="display:none;min-width:220px">
+              <div id="msel-distrito-list"></div>
+            </div>
+          </div>
+          <div style="position:relative">
+            <button type="button" class="chip-sel msel-btn" onclick="mselToggle('proyecto')">
+              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◈</span>
+              <span id="msel-proyecto-label">Todos los proyectos</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
+            </button>
+            <div class="msel-panel" id="msel-proyecto-panel" style="display:none;min-width:280px">
+              <input type="text" class="msel-filter" id="msel-proyecto-filter" placeholder="Filtrar lista..." oninput="mselFilterList('proyecto')"/>
+              <div id="msel-proyecto-list"></div>
+            </div>
+          </div>
+          <label class="chip-sel" style="flex:1;min-width:220px;max-width:320px">
+            <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">🔍</span>
+            <input type="text" id="mkt-mercado-buscar" placeholder="Buscar proyecto o inmobiliaria..." oninput="renderMercadoMapa()"
+                   style="border:none;background:transparent;outline:none;width:100%;font-size:12px;font-family:inherit;color:var(--ink)"/>
+          </label>
+          <button class="btn-clear-fecha" title="Limpiar filtros" onclick="limpiarFiltrosMercado()">✕</button>
+        </div>
+      </div>
+      <div style="padding:0 20px">
+        <div class="card" style="padding:0;overflow:hidden">
+          <div id="mkt-mercado-map" style="height:640px;width:100%"></div>
+        </div>
+        <div id="mkt-mercado-legend" style="display:flex;flex-wrap:wrap;gap:14px;padding:12px 4px;font-size:11px;color:var(--ink-3)"></div>
+      </div>
+    </div>
+
+    <div id="mercado-sub-ventas" class="mercado-subsection" style="display:none">
+      <div style="padding:16px 20px 0">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;margin-bottom:14px">
+          <div style="position:relative">
+            <button type="button" class="chip-sel msel-btn" onclick="mselToggle('ventas-distrito')">
+              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
+              <span id="msel-ventas-distrito-label">Todos los distritos</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
+            </button>
+            <div class="msel-panel" id="msel-ventas-distrito-panel" style="display:none;min-width:220px">
+              <div id="msel-ventas-distrito-list"></div>
+            </div>
+          </div>
+          <div style="position:relative">
+            <button type="button" class="chip-sel msel-btn" onclick="mselToggle('ventas-proyecto')">
+              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◈</span>
+              <span id="msel-ventas-proyecto-label">Todos los proyectos</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
+            </button>
+            <div class="msel-panel" id="msel-ventas-proyecto-panel" style="display:none;min-width:280px">
+              <input type="text" class="msel-filter" id="msel-ventas-proyecto-filter" placeholder="Filtrar lista..." oninput="mselFilterList('ventas-proyecto')"/>
+              <div id="msel-ventas-proyecto-list"></div>
+            </div>
+          </div>
+          <button class="btn-clear-fecha" title="Limpiar filtros" onclick="limpiarFiltrosVentas()">✕</button>
+        </div>
+      </div>
+      <div style="padding:0 20px">
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-hd"><div><h3>Evolución mensual de ventas</h3><p id="mkt-ventas-sub">Cargando...</p></div></div>
+          <div style="height:320px;padding:8px 16px 16px"><canvas id="mkt-ventas-chart"></canvas></div>
+        </div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-hd"><div><h3>Distribución de ventas por dormitorio</h3><p>Unidades vendidas · promedio precio/m² (venta), área total y precio de venta</p></div></div>
+          <div style="overflow-x:auto">
+            <table class="tbl" style="width:100%;min-width:640px">
+              <thead><tr>
+                <th style="text-align:left">Dormitorios</th>
+                <th style="text-align:center">Año</th>
+                <th style="text-align:center">Unidades vendidas</th>
+                <th style="text-align:center">Prom. precio/m²</th>
+                <th style="text-align:center">Prom. área total</th>
+                <th style="text-align:center">Prom. precio de venta</th>
+              </tr></thead>
+              <tbody id="mkt-ventas-tabla-body"><tr><td colspan="6" style="text-align:center;color:var(--ink-4);padding:20px">Cargando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 </main>
 </div>
 
@@ -884,7 +1010,7 @@ Chart.defaults.plugins.legend.labels.boxWidth = 10;
 Chart.defaults.plugins.legend.labels.padding = 14;
 
 const API = '';
-let D = {funnel:{}, ventas:[], stock:[], campanas:{}, desist:[], prospectos:[], visitas:[], inversion:[], ingresoDeposito:[], updatedAt:'—'};
+let D = {funnel:{}, ventas:[], stock:[], campanas:{}, desist:[], prospectos:[], visitas:[], inversion:[], ingresoDeposito:[], flujoCaja:[], mercado:[], mercadoVentas:[], updatedAt:'—'};
 let _jmktMetrica = 'leads';
 
 const MES_ES = {'01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Setiembre','10':'Octubre','11':'Noviembre','12':'Diciembre'};
@@ -1205,7 +1331,7 @@ async function loadAll(){
   document.querySelectorAll('.page-sub').forEach(el=>el.textContent='Actualizando...');
   try{
     await fetch(API+'/api/refresh',{method:'POST'}).catch(()=>{});
-    const [fR,vR,cR,pR,dR,viR,invR,idR] = await Promise.all([
+    const [fR,vR,cR,pR,dR,viR,invR,idR,fcR] = await Promise.all([
       fetch(API+'/api/funnel').then(r=>r.json()),
       fetch(API+'/api/ventas').then(r=>r.json()),
       fetch(API+'/api/campanas').then(r=>r.json()),
@@ -1214,6 +1340,7 @@ async function loadAll(){
       fetch(API+'/api/visitas').then(r=>r.json()),
       fetch(API+'/api/inversion').then(r=>r.json()),
       fetch(API+'/api/ingreso_deposito').then(r=>r.json()),
+      fetch(API+'/api/flujo_caja').then(r=>r.json()),
     ]);
     D.funnel          = fR.data||{};
     D.ventas          = vR.ventas||[];
@@ -1224,10 +1351,13 @@ async function loadAll(){
     D.visitas         = viR.data||[];
     D.inversion       = invR.data||[];
     D.ingresoDeposito = idR.data||[];
+    D.flujoCaja       = fcR.data||[];
     D.updatedAt  = fR.updated_at||vR.updated_at||'—';
     // también stock completo
     fetch(API+'/api/stock').then(r=>r.json()).then(s=>{D.stock=s.data||[];renderAll();}).catch(()=>renderAll());
     fetch(API+'/api/monday_cobros').then(r=>r.json()).then(m=>{D.monday_cobros=m;renderAdmVentas();}).catch(()=>{});
+    fetch(API+'/api/mercado').then(r=>r.json()).then(m=>{D.mercado=m.data||[];if(typeof renderMercadoMapa!=='undefined')renderMercadoMapa();}).catch(()=>{});
+    fetch(API+'/api/mercado_ventas').then(r=>r.json()).then(m=>{D.mercadoVentas=m.data||[];if(typeof renderMercadoVentas!=='undefined')renderMercadoVentas();}).catch(()=>{});
     _schedNextRefresh();
   }catch(e){
     console.error(e);
@@ -1256,6 +1386,8 @@ function renderAll(){
 
 // ── Date helpers & range filter ──────────────────────────────────────────
 const _fechaYM=f=>{const s=String(f||'').trim();if(!s||s==='nan')return null;if(/^\d{4}-\d{2}/.test(s))return s.slice(0,7);if(/^\d{2}\/\d{2}\/\d{4}/.test(s))return s.slice(6,10)+'-'+s.slice(3,5);return null;};
+const _toISODate=f=>{f=String(f||'').trim();if(!f||f==='nan'||f==='None'||f==='-')return null;let m=f.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[1]+'-'+m[2]+'-'+m[3];m=f.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(m)return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');return null;};
+const _matchDateRange=(f,desde,hasta)=>{if(!desde&&!hasta)return true;const d=_toISODate(f);if(!d)return false;return(!desde||d>=desde)&&(!hasta||d<=hasta);};
 
 function filtrarVentasRango(prefix,sfx=''){
   const proj=document.getElementById(prefix+'-proj')?.value||'';
@@ -2684,77 +2816,73 @@ function renderAdmVentas(){
   if(_tipo) sep = sep.filter(r=>_matchTipo(r,_tipo));
   const monto = v.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
 
-  // Cobros desde ingreso_deposito (acumulado total, misma proj/tipo)
+  // Cobros desde ingreso_deposito (usado por "Seguimiento de liberación de dinero")
   let ingDep = D.ingresoDeposito||[];
   if(proj) ingDep = ingDep.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
   if(_tipo) ingDep = ingDep.filter(r=>normStr(r.TipoInmueble_1||'').includes(_tipo));
-  const _pm=s=>{const v=String(s||'').replace(/S\/\./g,'').replace(/S\//g,'').replace(/\$/g,'').replace(/,/g,'').trim();const n=parseFloat(v);return isNaN(n)?0:n;};
-  const cobrado = ingDep.reduce((a,r)=>a+_pm(r.Monto_Cuota_Pagado),0);
 
   // Monto total acumulado de ventas (sin filtro año/mes) para comparar con cobrado
   let vTodas = D.ventas||[];
   if(proj)  vTodas = vTodas.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
   if(_tipo) vTodas = vTodas.filter(r=>_matchTipo(r,_tipo));
   const montoTotal = vTodas.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
-  const pendiente  = Math.max(0, montoTotal - cobrado);
 
   document.getElementById('adm-sub').textContent = 'Actualizado: '+D.updatedAt+' · Cobranzas y contratos';
 
-  // ── Distribución cruzando ventas ↔ ingDep por DNI, agrupado por tipo de ingDep ──
-  const parseMonto=s=>{const v=String(s||'').replace(/S\/\./g,'').replace(/S\//g,'').replace(/\$/g,'').replace(/,/g,'').trim();const n=parseFloat(v);return isNaN(n)?0:n;};
   const normDNI=s=>String(s||'').trim().toUpperCase();
 
-  // Mapa DNI → {tipo, cobrado total, set de stages Tipo_Cuota}
-  const ingDepTipoByDNI={}, ingDepCobByDNI={}, ingDepHas={};
-  const _tcIdx=tc=>{const t=String(tc||'').trim().toLowerCase();if(t.includes('bono'))return 3;if(t.includes('saldo financiar')||t.includes('saldo fin'))return 2;if(t.includes('cuota'))return 1;if(t.includes('separac'))return 0;return -1;};
-  ingDep.forEach(r=>{
-    const dni=normDNI(r.Nro_Documento_Identidad);
-    if(!dni) return;
-    if(!ingDepTipoByDNI[dni]) ingDepTipoByDNI[dni]=(String(r.Tipo_Financiamiento_SF||'').split('/')[0].trim())||'Sin dato';
-    ingDepCobByDNI[dni]=(ingDepCobByDNI[dni]||0)+parseMonto(r.Monto_Cuota_Pagado);
-    const idx=_tcIdx(r.Tipo_Cuota);
-    if(idx!==-1){if(!ingDepHas[dni])ingDepHas[dni]=new Set();ingDepHas[dni].add(idx);}
-  });
-  // DNI desembolsado = tiene sep(0) + cuota inicial(1) + saldo financiar(2) en ingDep
-  const _esDesembolsado=dni=>{const h=ingDepHas[dni];return h&&h.has(0)&&h.has(1)&&h.has(2);};
+  // ── Cobranza real desde Flujo de Caja (1 fila = 1 transacción, moneda por fila) ──
+  let fc = D.flujoCaja||[];
+  if(proj)  fc = fc.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
+  if(_tipo) fc = fc.filter(r=>normStr(r.TipoInmueble_1||'').includes(_tipo));
+  const _esUSD_fc = r => String(r.Tipo_Moneda||'').toUpperCase().includes('DOLAR');
+  const _n_fc = v => { const n=parseFloat(v); return isNaN(n)?0:n; };
+  const fUsd_fc = n => '$ '+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const FX_FC = 3.5; // solo para ordenar/blend visual (% avance, gráficos); los KPIs quedan en moneda nativa
 
-  // Cruzar ventas: desembolsado según combinación Tipo_Cuota; monto = todo lo pagado
-  const finMap={};
-  const _af=t=>{if(!finMap[t])finMap[t]={total:0,desembolsado:0,montoVenta:0,montoCobrado:0};};
-  v.forEach(r=>{
-    const dni=normDNI(r.NroDocumentoTitular);
-    const mVenta=Number(r.PrecioVentaSoles||r.PrecioVenta||0);
-    const tipo=(dni&&ingDepTipoByDNI[dni])?ingDepTipoByDNI[dni]:((String(r.TipoFinanciamiento||'').split('/')[0].trim())||'Sin dato');
-    _af(tipo);
-    finMap[tipo].total++;
-    finMap[tipo].montoVenta+=mVenta;
-    if(_esDesembolsado(dni)){
-      finMap[tipo].desembolsado++;
-      finMap[tipo].montoCobrado+=(ingDepCobByDNI[dni]||0);
+  const cobradoS_fc   = fc.filter(r=>!_esUSD_fc(r)).reduce((a,r)=>a+_n_fc(r.Pagos_Recibido),0);
+  const cobradoD_fc   = fc.filter(r=> _esUSD_fc(r)).reduce((a,r)=>a+_n_fc(r.Pagos_Recibido),0);
+  const pendienteS_fc = fc.filter(r=>!_esUSD_fc(r)).reduce((a,r)=>a+_n_fc(r.Saldo_Por_Cobrar),0);
+  const pendienteD_fc = fc.filter(r=> _esUSD_fc(r)).reduce((a,r)=>a+_n_fc(r.Saldo_Por_Cobrar),0);
+
+  // Estado por tipo de financiamiento (Flujo de Caja)
+  const finMapFC = {};
+  fc.forEach(r=>{
+    const tipo = String(r.TipoFinanciamiento||'').trim() || 'Sin dato';
+    if(!finMapFC[tipo]) finMapFC[tipo] = {clientesCobrados:0, clientesPendientes:0, cobS:0, cobD:0, penS:0, penD:0};
+    const saldo = _n_fc(r.Saldo_Por_Cobrar);
+    if(saldo<=0.01) finMapFC[tipo].clientesCobrados++; else finMapFC[tipo].clientesPendientes++;
+    if(_esUSD_fc(r)){
+      finMapFC[tipo].cobD += _n_fc(r.Pagos_Recibido);
+      finMapFC[tipo].penD += saldo;
+    } else {
+      finMapFC[tipo].cobS += _n_fc(r.Pagos_Recibido);
+      finMapFC[tipo].penS += saldo;
     }
   });
-
-  const cobradoTotal=Object.values(finMap).reduce((a,b)=>a+b.montoCobrado,0);
-  const pendGlobal=Math.max(0,montoTotal-cobradoTotal);
   const FIN_COLORS=['#60a5fa','#a78bfa','#fbbf24','#f87171','#34d399','#38bdf8','#fb923c'];
-
-  const finRows=Object.entries(finMap).sort((a,b)=>b[1].total-a[1].total).map(([tipo,d],i)=>{
-    const pend=d.total-d.desembolsado;
-    const montoPend=Math.max(0,d.montoVenta-d.montoCobrado);
-    const pctAv=d.montoVenta?Math.min(Math.round(d.montoCobrado/d.montoVenta*100),100):0;
-    const prog=`<div class="prog"><div class="t"><i class="ok" style="width:${pctAv}%"></i></div><span class="pctxt">${pctAv}%</span></div>`;
+  const _blendFC = d => d.cobS + d.cobD*FX_FC + d.penS + d.penD*FX_FC;
+  const finRows=Object.entries(finMapFC).sort((a,b)=>_blendFC(b[1])-_blendFC(a[1])).map(([tipo,d],i)=>{
+    const total = _blendFC(d);
+    const cob   = d.cobS + d.cobD*FX_FC;
+    const pctAv = total ? Math.min(Math.round(cob/total*100),100) : 0;
+    const prog  = `<div class="prog"><div class="t"><i class="ok" style="width:${pctAv}%"></i></div><span class="pctxt">${pctAv}%</span></div>`;
     return`<tr>
       <td><span class="finico"><span class="dot" style="background:${FIN_COLORS[i%FIN_COLORS.length]}"></span>${tipo}</span></td>
-      <td style="text-align:center">${d.total}</td>
-      <td style="text-align:center">${d.desembolsado}</td>
-      <td style="text-align:center">${pend}</td>
-      <td style="text-align:center">${d.montoCobrado?fFull(d.montoCobrado):'—'}</td>
-      <td style="text-align:center">${montoPend?fFull(montoPend):'—'}</td>
+      <td style="text-align:center">${d.clientesCobrados}</td>
+      <td style="text-align:center">${d.clientesPendientes}</td>
+      <td style="text-align:center">${d.cobS?fFull(d.cobS):'—'}</td>
+      <td style="text-align:center">${d.penS?fFull(d.penS):'—'}</td>
+      <td style="text-align:center">${d.cobD?fUsd_fc(d.cobD):'—'}</td>
+      <td style="text-align:center">${d.penD?fUsd_fc(d.penD):'—'}</td>
       <td style="text-align:center">${prog}</td>
     </tr>`;
-  }).join('')||`<tr><td colspan="7" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de financiamiento</td></tr>`;
+  }).join('')||`<tr><td colspan="8" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de financiamiento</td></tr>`;
 
-
+  const totBlendFC = cobradoS_fc + cobradoD_fc*FX_FC + pendienteS_fc + pendienteD_fc*FX_FC;
+  const totPctFC   = totBlendFC ? Math.min(Math.round((cobradoS_fc+cobradoD_fc*FX_FC)/totBlendFC*100),100) : 0;
+  const totClientesCobrados    = fc.filter(r=>_n_fc(r.Saldo_Por_Cobrar)<=0.01).length;
+  const totClientesPendientes  = fc.length - totClientesCobrados;
 
   // ── Tabla detalle clientes: cruce ingDep × ventas × stock ──
   const stockMonedaByDNI={};
@@ -2799,15 +2927,17 @@ function renderAdmVentas(){
     </tr>`;
   }).join('');
 
-  const kpiHtml=`<div class="kpi-row kpi-4">
+  document.getElementById('adm-kpis').innerHTML=`
     ${kpi('Ventas totales',`${fN(vTodas.length)} <span class="unit">und.</span>`,'Escrituras firmadas acumuladas')}
-    ${kpi('Monto total de ventas',fFull(montoTotal),'Acumulado · todas las ventas')}
-    ${kpi('Monto cuota pagado',cobrado?fFull(cobrado):'—',cobrado?`${ingDep.length} registros de cobro`:'Sin datos en ingreso deposito')}
-    ${kpi('Pendiente por cobrar',cobrado?fFull(pendiente):'—',cobrado?'Venta − Cobrado':'—')}
-  </div>`;
+    ${kpi('Monto de ventas',fFull(montoTotal),'Acumulado · todas las ventas')}
+    ${kpi('Cobrado S/',cobradoS_fc?fFull(cobradoS_fc):'—','Pagos recibidos · Flujo de Caja')}
+    ${kpi('Cobrado $',cobradoD_fc?fUsd_fc(cobradoD_fc):'—','Pagos recibidos · Flujo de Caja')}
+    ${kpi('Pendiente S/',pendienteS_fc?fFull(pendienteS_fc):'—','Saldo por cobrar · Flujo de Caja')}
+    ${kpi('Pendiente $',pendienteD_fc?fUsd_fc(pendienteD_fc):'—','Saldo por cobrar · Flujo de Caja')}
+  `;
 
   if(_admTab==='detalle'){
-    document.getElementById('adm-content').innerHTML=kpiHtml+`
+    document.getElementById('adm-content').innerHTML=`
     <div class="card" style="margin-top:16px">
       <div class="card-hd"><div><h3>Estado de cobranza por cliente</h3><p>Moneda cruzada con stock por DNI · ${vTodas.length} registros — coincide con Ventas totales</p></div></div>
       <div style="overflow-y:auto;max-height:800px">
@@ -2828,33 +2958,50 @@ function renderAdmVentas(){
     return;
   }
 
-  document.getElementById('adm-content').innerHTML = kpiHtml+`
-  <div class="section-title"><h2>Estado por tipo de financiamiento</h2><div class="hint">Clientes · pagos recibidos vs. saldo total del portafolio</div></div>
+  document.getElementById('adm-content').innerHTML = `
+  <div class="section-title"><h2>Estado por tipo de financiamiento</h2><div class="hint">Clientes · cobrado vs. pendiente por moneda · Flujo de Caja</div></div>
   <div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>Distribución por financiamiento</h3><p>Cartera vigente · Desembolsado según EstadoSF · Monto cobrado = suma total recibida en ingreso depósito</p></div></div>
+    <div class="card-hd"><div><h3>Distribución por financiamiento</h3><p>Cobrado/Pendiente = Pagos_Recibido / Saldo_Por_Cobrar de Flujo de Caja, por moneda nativa</p></div></div>
     <table class="tbl" style="table-layout:fixed;width:100%">
       <thead><tr>
-        <th style="width:22%">Financiamiento</th>
-        <th style="text-align:center;width:13%">Clientes</th>
-        <th style="text-align:center;width:13%">Desembolsado</th>
-        <th style="text-align:center;width:13%">Pend. Desembolsar</th>
-        <th style="text-align:center;width:13%">Monto Cobrado</th>
-        <th style="text-align:center;width:13%">Saldo pendiente</th>
+        <th style="width:19%">Financiamiento</th>
+        <th style="text-align:center;width:11%">Cobrado completo</th>
+        <th style="text-align:center;width:11%">Pendientes</th>
+        <th style="text-align:center;width:11.5%">Cobrado S/</th>
+        <th style="text-align:center;width:11.5%">Pendiente S/</th>
+        <th style="text-align:center;width:11.5%">Cobrado $</th>
+        <th style="text-align:center;width:11.5%">Pendiente $</th>
         <th style="text-align:center;width:13%">% Avance</th>
       </tr></thead>
-      <tbody>${finRows||'<tr><td colspan="7" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de financiamiento en el CRM</td></tr>'}</tbody>
+      <tbody>${finRows||'<tr><td colspan="8" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de financiamiento en Flujo de Caja</td></tr>'}</tbody>
       <tfoot><tr>
         <td style="text-transform:uppercase;letter-spacing:.03em">Total cartera</td>
-        <td style="text-align:center">${v.length}</td>
-        <td style="text-align:center">${Object.values(finMap).reduce((a,b)=>a+b.desembolsado,0)}</td>
-        <td style="text-align:center">${Object.values(finMap).reduce((a,b)=>a+b.total-b.desembolsado,0)}</td>
-        <td style="text-align:center">${cobradoTotal?fFull(cobradoTotal):'—'}</td>
-        <td style="text-align:center">${pendGlobal?fFull(pendGlobal):'—'}</td>
-        <td style="text-align:center">${montoTotal?Math.min(Math.round(cobradoTotal/montoTotal*100),100):0}%</td>
+        <td style="text-align:center">${totClientesCobrados}</td>
+        <td style="text-align:center">${totClientesPendientes}</td>
+        <td style="text-align:center">${cobradoS_fc?fFull(cobradoS_fc):'—'}</td>
+        <td style="text-align:center">${pendienteS_fc?fFull(pendienteS_fc):'—'}</td>
+        <td style="text-align:center">${cobradoD_fc?fUsd_fc(cobradoD_fc):'—'}</td>
+        <td style="text-align:center">${pendienteD_fc?fUsd_fc(pendienteD_fc):'—'}</td>
+        <td style="text-align:center">${totPctFC}%</td>
       </tr></tfoot>
     </table>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:26px;align-items:start">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:26px">
+    <div class="card">
+      <div class="card-hd"><div><h3>Proyección de cobros — por mes</h3><p>Suma mensual de Flujo de Caja (Enero 2025 – Diciembre 2027) · USD a S/ referencial ×${FX_FC}</p></div></div>
+      <div style="height:260px;padding:8px 16px 16px"><canvas id="adm-fc-chart-mes"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div><h3>Proyección mensual — por proyecto</h3><p>Mismo periodo, apilado por proyecto</p></div></div>
+      <div style="height:260px;padding:8px 16px 16px"><canvas id="adm-fc-chart-proy"></canvas></div>
+    </div>
+  </div>
+  <div class="section-title"><h2>Cobranza mensual — real vs. proyectada</h2><div class="hint">Pasado = depósitos reales (Ingreso x Depósito) · Futuro = proyección (Flujo de Caja)</div></div>
+  <div class="card" style="margin-bottom:26px">
+    <div class="card-hd"><div><h3>Cobrado real (hasta hoy) + proyectado (a futuro)</h3><p>Por mes · USD a S/ referencial ×${FX_FC}</p></div></div>
+    <div style="height:280px;padding:8px 16px 16px"><canvas id="adm-fc-chart-real"></canvas></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
     <div>
       <div class="section-title" style="margin-top:0"><h2>Gestión de Cobros</h2><div class="hint">Desembolsos bancarios · Monday.com</div></div>
       <div id="monday-cobros-wrap"><div style="padding:20px;color:var(--ink-4);font-size:13px">Cargando datos de Monday...</div></div>
@@ -2865,6 +3012,111 @@ function renderAdmVentas(){
     </div>
   </div>`;
   renderMondayCobros();
+  renderFlujoCajaCharts(fc, FX_FC);
+  renderCobranzaRealChart(fc, ingDep, FX_FC);
+}
+
+function renderFlujoCajaCharts(fc, FX){
+  const MESES_FC = [];
+  ['2025','2026','2027'].forEach(y=>{
+    ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Setiembre','Octubre','Novienbre','Diciembre'].forEach(m=>MESES_FC.push(m+'_'+y));
+  });
+  const mesLabels = MESES_FC.map(c=>c.replace('_',' '));
+  const _convMes = (r,col) => {
+    const n = parseFloat(r[col]);
+    if(isNaN(n)) return 0;
+    return String(r.Tipo_Moneda||'').toUpperCase().includes('DOLAR') ? n*FX : n;
+  };
+
+  if(window._admFcChartMes) window._admFcChartMes.destroy();
+  const ctxMes = document.getElementById('adm-fc-chart-mes');
+  if(ctxMes){
+    const mesData = MESES_FC.map(col => fc.reduce((s,r)=>s+_convMes(r,col),0));
+    window._admFcChartMes = new Chart(ctxMes, {
+      type:'bar',
+      data:{ labels:mesLabels, datasets:[{ label:'Proyección de cobro (S/ equiv.)', data:mesData, backgroundColor:'rgba(96,165,250,0.75)', borderRadius:4, borderSkipped:false }]},
+      options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>'S/ '+fN(c.raw)}} },
+        scales:{ y:{beginAtZero:true,ticks:{callback:v=>fN(v)}}, x:{ticks:{font:{size:9},maxRotation:60}} }
+      }
+    });
+  }
+
+  if(window._admFcChartProy) window._admFcChartProy.destroy();
+  const ctxProy = document.getElementById('adm-fc-chart-proy');
+  if(ctxProy){
+    const proyectos = [...new Set(fc.map(r=>String(r.Proyecto||'').trim()).filter(Boolean))];
+    const PALETTE = ['#60a5fa','#a78bfa','#34d399','#fbbf24','#f472b6','#fb923c','#f87171'];
+    const porProyecto = {};
+    proyectos.forEach(p => { porProyecto[p] = fc.filter(r=>String(r.Proyecto||'').trim()===p); });
+    const datasets = proyectos.map((p,i)=>({
+      label: p,
+      data: MESES_FC.map(col => porProyecto[p].reduce((s,r)=>s+_convMes(r,col),0)),
+      backgroundColor: PALETTE[i%PALETTE.length],
+      borderRadius: 2, borderSkipped:false
+    }));
+    window._admFcChartProy = new Chart(ctxProy, {
+      type:'bar',
+      data:{ labels:mesLabels, datasets },
+      options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:8}} },
+        scales:{ y:{stacked:true,beginAtZero:true,ticks:{callback:v=>fN(v)}}, x:{stacked:true,ticks:{font:{size:9},maxRotation:60}} }
+      }
+    });
+  }
+}
+
+function renderCobranzaRealChart(fc, ingDep, FX){
+  const ctx = document.getElementById('adm-fc-chart-real');
+  if(!ctx) return;
+
+  const MESES = [];
+  ['2025','2026','2027'].forEach(y=>{
+    ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Setiembre','Octubre','Novienbre','Diciembre'].forEach((m,i)=>MESES.push({label:m+' '+y, ym:y+'-'+String(i+1).padStart(2,'0'), col:m+'_'+y}));
+  });
+
+  // Moneda por unidad, tomada de Flujo de Caja (Proyecto|NroInmueble_1 → Tipo_Moneda)
+  const monedaByUnidad = {};
+  fc.forEach(r=>{
+    const key = String(r.Proyecto||'').trim().toUpperCase()+'|'+String(r.NroInmueble_1||'').trim().toUpperCase();
+    if(key!=='|' && !(key in monedaByUnidad)) monedaByUnidad[key] = String(r.Tipo_Moneda||'').toUpperCase();
+  });
+
+  // Cobrado real por mes (Ingreso x Depósito): cada fila = 1 depósito con su fecha
+  const realByMonth = {};
+  (ingDep||[]).forEach(r=>{
+    const fecha = String(r.Fecha_Pago||r.Fecha_Programada||'').trim();
+    const ym = fecha.slice(0,7);
+    if(!/^\d{4}-\d{2}$/.test(ym)) return;
+    const key = String(r.Proyecto||'').trim().toUpperCase()+'|'+String(r.NroInmueble_1||'').trim().toUpperCase();
+    const esUSD = (monedaByUnidad[key]||'').includes('DOLAR');
+    const monto = parseFloat(r.Monto_Cuota_Pagado)||0;
+    if(!realByMonth[ym]) realByMonth[ym]=0;
+    realByMonth[ym] += esUSD ? monto*FX : monto;
+  });
+
+  const hoyYM = new Date().toISOString().slice(0,7);
+  const _convCol = (r,col) => {
+    const n = parseFloat(r[col]);
+    if(isNaN(n)) return 0;
+    return String(r.Tipo_Moneda||'').toUpperCase().includes('DOLAR') ? n*FX : n;
+  };
+
+  const dataReal = MESES.map(m => m.ym<=hoyYM ? (realByMonth[m.ym]||0) : null);
+  const dataProy = MESES.map(m => m.ym>hoyYM ? fc.reduce((s,r)=>s+_convCol(r,m.col),0) : null);
+
+  if(window._admCobranzaRealChart) window._admCobranzaRealChart.destroy();
+  window._admCobranzaRealChart = new Chart(ctx, {
+    type:'bar',
+    data:{ labels: MESES.map(m=>m.label), datasets:[
+      { label:'Cobrado real (Ingreso x Depósito)', data:dataReal, backgroundColor:'rgba(52,211,153,0.8)', borderRadius:4, borderSkipped:false },
+      { label:'Proyectado (Flujo de Caja)', data:dataProy, backgroundColor:'rgba(96,165,250,0.5)', borderRadius:4, borderSkipped:false },
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:8}}, tooltip:{callbacks:{label:c=>c.dataset.label+': S/ '+fN(c.raw)}} },
+      scales:{ y:{beginAtZero:true,ticks:{callback:v=>fN(v)}}, x:{ticks:{font:{size:9},maxRotation:60}} }
+    }
+  });
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -3111,8 +3363,8 @@ function renderMondayCobros(){
   if(!data){ wrap.innerHTML='<div style="padding:20px;color:var(--ink-4);font-size:13px">Cargando datos de Monday...</div>'; return; }
   if(data.error){ wrap.innerHTML=`<div style="padding:20px;color:var(--bad);font-size:13px">${data.error}</div>`; return; }
 
-  const _año  = document.getElementById('adm-año')?.value||'';
-  const _mes  = document.getElementById('adm-mes')?.value||'';
+  const _desde = document.getElementById('adm-date-desde')?.value||'';
+  const _hasta = document.getElementById('adm-date-hasta')?.value||'';
   const _proj = (document.getElementById('adm-proj')?.value||'').toUpperCase();
 
   const _MES_ES={'ENERO':'01','FEBRERO':'02','MARZO':'03','ABRIL':'04','MAYO':'05',
@@ -3131,8 +3383,8 @@ function renderMondayCobros(){
   const _grupoMatch=g=>{
     const ym=_grupoToYYYYMM(g);
     if(!ym) return false;
-    if(_año&&_mes) return ym===`${_año}-${_mes}`;
-    if(_año)       return ym.startsWith(_año);
+    if(_desde && ym<_desde.slice(0,7)) return false;
+    if(_hasta && ym>_hasta.slice(0,7)) return false;
     return true;
   };
 
@@ -3161,7 +3413,7 @@ function renderMondayCobros(){
   const cards = boards.map(board=>{
     const items = board.items.filter(i=>{
       if(!i.status) return false;
-      if(!_año&&!_mes) return true;
+      if(!_desde&&!_hasta) return true;
       return _grupoMatch(i.grupo||'');
     });
 
@@ -3196,7 +3448,7 @@ function renderMondayCobros(){
     const totCount = items.length;
 
     return `<div class="card" style="margin-bottom:16px">
-      <div class="card-hd"><div><h3>${board.label}</h3><p>${totCount} registro${totCount!==1?'s':''} · ${_año&&_mes?['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][+_mes]+' '+_año:_año||'todos los períodos'}</p></div></div>
+      <div class="card-hd"><div><h3>${board.label}</h3><p>${totCount} registro${totCount!==1?'s':''} · ${(_desde||_hasta)?((_desde?_desde.split('-').reverse().join('/'):'…')+' → '+(_hasta?_hasta.split('-').reverse().join('/'):'…')):'todos los períodos'}</p></div></div>
       ${rows?`<table class="tbl" style="table-layout:fixed;width:100%">
         <thead><tr>
           <th style="width:28%">Estado</th>
@@ -3232,16 +3484,12 @@ function toggleSidebar(){
 
 // ─── FILTRO HELPERS ─────────────────────────────────────────────────────────
 function filtrarVentas(prefix){
-  const proj = document.getElementById(prefix+'-proj')?.value||'';
-  const año  = document.getElementById(prefix+'-año')?.value||'';
-  const mes  = document.getElementById(prefix+'-mes')?.value||'';
+  const proj  = document.getElementById(prefix+'-proj')?.value||'';
+  const desde = document.getElementById(prefix+'-date-desde')?.value||'';
+  const hasta = document.getElementById(prefix+'-date-hasta')?.value||'';
   let v = D.ventas||[];
   if(proj) v = v.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
-  if(año)  v = v.filter(r=>String(r.AÑO||r['AÑO']||'')===año);
-  if(mes)  v = v.filter(r=>{
-    const f = String(r.FechaVenta||r.FechaEntrega_Minuta||'');
-    return f.slice(5,7)===mes || f.slice(3,5)===mes;
-  });
+  if(desde||hasta) v = v.filter(r=>_matchDateRange(r.FechaVenta||r.FechaEntrega_Minuta||'', desde, hasta));
   return v;
 }
 function filtrarProj(prefix){ return document.getElementById(prefix+'-proj')?.value||''; }
@@ -3478,6 +3726,10 @@ function nav(id, el){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('panel-'+id)?.classList.add('active');
   el.classList.add('active');
+  if(id==='mercado'){
+    if(!D.mercado||!D.mercado.length) renderMercadoMapa();
+    setTimeout(()=>{ if(_mercadoMap) _mercadoMap.invalidateSize(); }, 50);
+  }
 }
 
 function toggleDark(){
@@ -3508,8 +3760,281 @@ function toggleDark(){
     document.querySelector('.app')?.classList.add('sb-collapsed');
 })();
 
+// ══════════════════════════════════════════════════════════════════════════
+// ESTUDIO DE MERCADO — mapa Leaflet
+// ══════════════════════════════════════════════════════════════════════════
+const SECTOR_COLORS = {
+  'LIMA TOP':     '#2f6df6',
+  'LIMA MODERNA': '#19b36b',
+  'LIMA NORTE':   '#e0913a',
+  'LIMA SUR':     '#d6466f',
+  'LIMA ESTE':    '#7b5bd6',
+  'LIMA CENTRO':  '#38bdf8',
+  'CALLAO':       '#fbbf24',
+};
+const SECTOR_COLOR_DEFAULT = '#94a3b8';
+let _mercadoMap = null, _mercadoLayer = null;
+const _mselState = {}; // { key: Set } — un Set independiente por cada dropdown (distrito, proyecto, ventas-distrito, ventas-proyecto)
+function _mselGet(key){ if(!_mselState[key]) _mselState[key] = new Set(); return _mselState[key]; }
+
+function setMercadoTab(tab, el){
+  document.querySelectorAll('#mercado-tab-bar .tab-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.mercado-subsection').forEach(s=>s.style.display='none');
+  const sec = document.getElementById('mercado-sub-'+tab);
+  if(sec) sec.style.display='';
+  if(tab==='competencia') setTimeout(()=>{ if(_mercadoMap) _mercadoMap.invalidateSize(); }, 50);
+  if(tab==='ventas' && D.mercadoVentas && D.mercadoVentas.length) renderMercadoVentas();
+}
+
+// ── Multi-select checkbox dropdown genérico (distrito / proyecto, x2 secciones) ──
+function mselToggle(key){
+  const panel = document.getElementById('msel-'+key+'-panel');
+  const isOpen = panel.style.display==='block';
+  document.querySelectorAll('.msel-panel').forEach(p=>p.style.display='none');
+  panel.style.display = isOpen ? 'none' : 'block';
+}
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.msel-btn') && !e.target.closest('.msel-panel')){
+    document.querySelectorAll('.msel-panel').forEach(p=>p.style.display='none');
+  }
+});
+
+function mselToggleValue(key, val, checked){
+  const set = _mselGet(key);
+  if(checked) set.add(val); else set.delete(val);
+
+  if(key==='distrito'){
+    const data = D.mercado||[];
+    const validos = new Set(data.filter(r=>!_mselGet('distrito').size || _mselGet('distrito').has(r.distrito)).map(r=>r.proyecto));
+    [..._mselGet('proyecto')].forEach(p=>{ if(!validos.has(p)) _mselGet('proyecto').delete(p); });
+    renderMercadoMapa();
+  } else if(key==='proyecto'){
+    renderMercadoMapa();
+  } else if(key==='ventas-distrito'){
+    const data = D.mercadoVentas||[];
+    const validos = new Set(data.filter(r=>!_mselGet('ventas-distrito').size || _mselGet('ventas-distrito').has(r.distrito)).map(r=>r.proyecto));
+    [..._mselGet('ventas-proyecto')].forEach(p=>{ if(!validos.has(p)) _mselGet('ventas-proyecto').delete(p); });
+    renderMercadoVentas();
+  } else if(key==='ventas-proyecto'){
+    renderMercadoVentas();
+  }
+}
+
+function mselFilterList(key){
+  const q = (document.getElementById('msel-'+key+'-filter')?.value||'').toUpperCase();
+  document.querySelectorAll('#msel-'+key+'-list .msel-item').forEach(item=>{
+    item.style.display = (item.dataset.val||'').toUpperCase().includes(q) ? '' : 'none';
+  });
+}
+
+function _mselBuildList(key, options, selectedSet){
+  const list = document.getElementById('msel-'+key+'-list');
+  if(!list) return;
+  list.innerHTML = options.map(opt=>{
+    const esc = String(opt).replace(/"/g,'&quot;');
+    return `<label class="msel-item" data-val="${esc}">
+      <input type="checkbox" ${selectedSet.has(opt)?'checked':''} onchange="mselToggleValue('${key}', this.closest('.msel-item').dataset.val, this.checked)">
+      <span>${esc}</span>
+    </label>`;
+  }).join('') || '<div style="padding:8px;color:var(--ink-4);font-size:12px">Sin resultados</div>';
+}
+
+function _mselUpdateLabel(key, selectedSet, defaultTxt){
+  const lbl = document.getElementById('msel-'+key+'-label');
+  if(!lbl) return;
+  const n = selectedSet.size;
+  lbl.textContent = n ? `${n} seleccionado${n>1?'s':''}` : defaultTxt;
+}
+
+function limpiarFiltrosMercado(){
+  _mselGet('distrito').clear();
+  _mselGet('proyecto').clear();
+  const buscar = document.getElementById('mkt-mercado-buscar'); if(buscar) buscar.value='';
+  const pf = document.getElementById('msel-proyecto-filter'); if(pf) pf.value='';
+  renderMercadoMapa();
+}
+
+function limpiarFiltrosVentas(){
+  _mselGet('ventas-distrito').clear();
+  _mselGet('ventas-proyecto').clear();
+  const pf = document.getElementById('msel-ventas-proyecto-filter'); if(pf) pf.value='';
+  renderMercadoVentas();
+}
+
+function renderMercadoMapa(){
+  const wrap = document.getElementById('mkt-mercado-map');
+  if(!wrap) return;
+  const data = D.mercado||[];
+
+  document.getElementById('mkt-mercado-sub').textContent =
+    data.length ? `Actualizado: ${D.updatedAt} · ${data.length} proyectos (competencia)` : 'Cargando...';
+  if(!data.length) return;
+
+  // Distritos: siempre las 34 opciones. Proyectos: en cascada, solo los de los distritos elegidos.
+  const distritos = [...new Set(data.map(r=>r.distrito).filter(Boolean))].sort();
+  _mselBuildList('distrito', distritos, _mselGet('distrito'));
+
+  const dataPorDistrito = _mselGet('distrito').size ? data.filter(r=>_mselGet('distrito').has(r.distrito)) : data;
+  const proyectos = [...new Set(dataPorDistrito.map(r=>r.proyecto).filter(Boolean))].sort();
+  _mselBuildList('proyecto', proyectos, _mselGet('proyecto'));
+
+  _mselUpdateLabel('distrito', _mselGet('distrito'), 'Todos los distritos');
+  _mselUpdateLabel('proyecto', _mselGet('proyecto'), 'Todos los proyectos');
+
+  const busqueda = (document.getElementById('mkt-mercado-buscar')?.value||'').trim().toUpperCase();
+
+  let filtrado = data;
+  if(_mselGet('distrito').size) filtrado = filtrado.filter(r=>_mselGet('distrito').has(r.distrito));
+  if(_mselGet('proyecto').size) filtrado = filtrado.filter(r=>_mselGet('proyecto').has(r.proyecto));
+  if(busqueda) filtrado = filtrado.filter(r=>
+    (r.proyecto||'').toUpperCase().includes(busqueda) ||
+    (r.inmobiliaria||'').toUpperCase().includes(busqueda)
+  );
+
+  if(!_mercadoMap){
+    // scrollWheelZoom arranca apagado y se activa recién al hacer click en el mapa
+    // (así el scroll normal de la página no queda "atrapado" por el mapa sin querer,
+    // pero una vez que entras al mapa sí puedes hacer zoom con la rueda del mouse)
+    _mercadoMap = L.map('mkt-mercado-map', { scrollWheelZoom:false, zoomControl:false }).setView([-12.05, -77.04], 11);
+    L.control.zoom({ position: 'topright' }).addTo(_mercadoMap);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 19,
+    }).addTo(_mercadoMap);
+    _mercadoMap.on('click', () => _mercadoMap.scrollWheelZoom.enable());
+    _mercadoMap.on('mouseout', () => _mercadoMap.scrollWheelZoom.disable());
+  }
+  if(_mercadoLayer) _mercadoMap.removeLayer(_mercadoLayer);
+  _mercadoLayer = L.layerGroup().addTo(_mercadoMap);
+
+  const fSol = n => 'S/ '+Number(n||0).toLocaleString('es-PE',{minimumFractionDigits:0,maximumFractionDigits:0});
+  const RADIO_FIJO = 5;
+  const puntos = [];
+
+  filtrado.forEach(r=>{
+    const color = SECTOR_COLORS[(r.sector||'').toUpperCase()] || SECTOR_COLOR_DEFAULT;
+    const marker = L.circleMarker([r.lat, r.lng], {
+      radius: RADIO_FIJO,
+      color: color, weight: 1.5, fillColor: color, fillOpacity: 0.6,
+    });
+    marker.bindPopup(`
+      <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:12.5px;min-width:220px">
+        <div style="font-weight:700;font-size:13.5px;margin-bottom:2px">${r.proyecto}</div>
+        <div style="color:#64748b;margin-bottom:8px">${r.inmobiliaria}</div>
+        <div><b>Distrito:</b> ${r.distrito||'—'}</div>
+        <div><b>Sector:</b> ${r.sector||'—'}</div>
+        <div><b>Dirección:</b> ${r.direccion||'—'}</div>
+        <div style="margin-top:6px"><b>Unidades vendidas:</b> ${r.unidades_vendidas}</div>
+        <div><b>Precio prom. de venta:</b> ${fSol(r.precio_promedio)}</div>
+      </div>
+    `);
+    marker.addTo(_mercadoLayer);
+    puntos.push([r.lat, r.lng]);
+  });
+
+  // Si hay algún filtro activo, llevar el mapa a la selección; si no, vista general de Lima
+  const hayFiltro = _mselGet('distrito').size || _mselGet('proyecto').size || busqueda;
+  if(hayFiltro && puntos.length){
+    _mercadoMap.fitBounds(puntos, { maxZoom: 15, padding:[30,30] });
+  } else if(!hayFiltro){
+    _mercadoMap.setView([-12.05,-77.04], 11);
+  }
+
+  const legend = document.getElementById('mkt-mercado-legend');
+  if(legend && !legend.dataset.built){
+    legend.dataset.built = '1';
+    legend.innerHTML = Object.entries(SECTOR_COLORS).map(([s,c])=>
+      `<span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="width:9px;height:9px;border-radius:50%;background:${c};display:inline-block"></span>${s}
+      </span>`
+    ).join('') + `<span style="color:var(--ink-4)">· color = sector</span>`;
+  }
+}
+
+function renderMercadoVentas(){
+  const data = D.mercadoVentas||[];
+  const subEl = document.getElementById('mkt-ventas-sub');
+  if(!data.length){ if(subEl) subEl.textContent = 'Cargando...'; return; }
+
+  // Distritos: todos. Proyectos: en cascada según distrito(s) elegido(s).
+  const distritos = [...new Set(data.map(r=>r.distrito).filter(Boolean))].sort();
+  _mselBuildList('ventas-distrito', distritos, _mselGet('ventas-distrito'));
+  const dataPorDistrito = _mselGet('ventas-distrito').size ? data.filter(r=>_mselGet('ventas-distrito').has(r.distrito)) : data;
+  const proyectos = [...new Set(dataPorDistrito.map(r=>r.proyecto).filter(Boolean))].sort();
+  _mselBuildList('ventas-proyecto', proyectos, _mselGet('ventas-proyecto'));
+  _mselUpdateLabel('ventas-distrito', _mselGet('ventas-distrito'), 'Todos los distritos');
+  _mselUpdateLabel('ventas-proyecto', _mselGet('ventas-proyecto'), 'Todos los proyectos');
+
+  let filtrado = data;
+  if(_mselGet('ventas-distrito').size) filtrado = filtrado.filter(r=>_mselGet('ventas-distrito').has(r.distrito));
+  if(_mselGet('ventas-proyecto').size) filtrado = filtrado.filter(r=>_mselGet('ventas-proyecto').has(r.proyecto));
+
+  if(subEl) subEl.textContent = `Actualizado: ${D.updatedAt} · ${filtrado.length.toLocaleString('es-PE')} ventas registradas`;
+
+  // ── Gráfico: ventas por año-mes ──
+  const MM=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
+  const porMes = {};
+  filtrado.forEach(r=>{
+    const ym = (r.fecha_venta||'').slice(0,7);
+    if(!ym) return;
+    porMes[ym] = (porMes[ym]||0)+1;
+  });
+  const meses = Object.keys(porMes).sort();
+  const labels = meses.map(ym=>{ const[y,m]=ym.split('-'); return MM[+m]+' '+y; });
+  const valores = meses.map(ym=>porMes[ym]);
+
+  if(window._mktVentasChart) window._mktVentasChart.destroy();
+  const ctx = document.getElementById('mkt-ventas-chart');
+  if(ctx){
+    window._mktVentasChart = new Chart(ctx, {
+      type:'line',
+      data:{ labels, datasets:[{
+        label:'Unidades vendidas', data:valores,
+        borderColor:'#2f6df6', backgroundColor:'rgba(47,109,246,0.08)',
+        borderWidth:2, tension:0.35, fill:true,
+        pointRadius: labels.length>40?0:3, pointHoverRadius:5,
+      }]},
+      options:{ responsive:true, maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>' '+fN(c.parsed.y)+' unidades'}} },
+        scales:{ y:{beginAtZero:true,ticks:{stepSize:1}}, x:{ticks:{font:{size:10},maxRotation:60}} }
+      }
+    });
+  }
+
+  // ── Tabla: distribución por dormitorio × año ──
+  const grupos = {};
+  filtrado.forEach(r=>{
+    const dorm = r.dormitorios || 0;
+    const anio = (r.fecha_venta||'').slice(0,4);
+    if(!anio) return;
+    const key = dorm+'|'+anio;
+    if(!grupos[key]) grupos[key] = { dorm, anio, n:0, sumM2:0, nM2:0, sumArea:0, nArea:0, sumPrecio:0, nPrecio:0 };
+    const g = grupos[key];
+    g.n++;
+    if(r.precio_m2_venta){ g.sumM2 += r.precio_m2_venta; g.nM2++; }
+    if(r.area_total){ g.sumArea += r.area_total; g.nArea++; }
+    if(r.precio_venta){ g.sumPrecio += r.precio_venta; g.nPrecio++; }
+  });
+  const filas = Object.values(grupos).sort((a,b)=> a.dorm-b.dorm || a.anio-b.anio);
+  const fM2  = n => n ? 'S/ '+Math.round(n).toLocaleString('es-PE') : '—';
+  const fM2s = n => n ? Number(n).toLocaleString('es-PE',{minimumFractionDigits:1,maximumFractionDigits:1})+' m²' : '—';
+  const tbody = document.getElementById('mkt-ventas-tabla-body');
+  if(tbody){
+    tbody.innerHTML = filas.map(g=>`<tr>
+      <td style="text-align:left">${g.dorm ? g.dorm+' dorm.' : 'Sin dato'}</td>
+      <td style="text-align:center">${g.anio}</td>
+      <td style="text-align:center">${fN(g.n)}</td>
+      <td style="text-align:center">${fM2(g.nM2?g.sumM2/g.nM2:0)}</td>
+      <td style="text-align:center">${fM2s(g.nArea?g.sumArea/g.nArea:0)}</td>
+      <td style="text-align:center">${fM2(g.nPrecio?g.sumPrecio/g.nPrecio:0)}</td>
+    </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos</td></tr>';
+  }
+}
+
 // ─── INIT ──────────────────────────────────────────────────────────────────
-['dir-año','adm-año'].forEach(id=>{
+['dir-año'].forEach(id=>{
   const el=document.getElementById(id);
   if(el&&!el.value) el.value='2026';
 });
