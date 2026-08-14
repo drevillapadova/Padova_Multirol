@@ -349,7 +349,8 @@ def _parse_coord_pe(v):
 def calcular_mercado():
     """Agrupa el Estudio de Mercado (pestaña TABLEAU, 1 fila = 1 unidad vendida
     de cualquier inmobiliaria) por Inmobiliaria+Proyecto: 1 punto por proyecto
-    para el mapa, con unidades vendidas totales y precio promedio de venta."""
+    para el mapa, con unidades vendidas totales, ticket promedio, precio por
+    m2 promedio y rango de metraje."""
     rows = _cache.get("mercado", [])
     grupos = {}
     for r in rows:
@@ -365,18 +366,40 @@ def calcular_mercado():
                 "distrito":     _str(r, "Distrito"),
                 "sector":       _str(r, "Sector"),
                 "direccion":    _str(r, "Dirección"),
+                "fase_proyecto": _str(r, "Fase de Proyecto"),
+                "fecha_entrega": _parse_fecha_mercado(r.get("Fecha de Entrega")),
                 "lat":          _parse_coord_pe(r.get("Latitud")),
                 "lng":          _parse_coord_pe(r.get("Longitud")),
                 "unidades_vendidas": 0,
-                "_precio_sum":  0.0,
-                "_precio_n":    0,
+                "unidades_totales": 0,
+                "cantidad_pisos": 0,
+                "_precio_sum":   0.0,
+                "_precio_n":     0,
+                "_precio_m2_sum": 0.0,
+                "_precio_m2_n":   0,
+                "_area_min":     None,
+                "_area_max":     None,
             }
         g = grupos[key]
         g["unidades_vendidas"] += _int(r, "Cantidad de Unidades Vendidas") or 1
+        g["unidades_totales"] = max(g["unidades_totales"], _int(r, "Cantidad de Unidades Totales"))
+        g["cantidad_pisos"] = max(g["cantidad_pisos"], _int(r, "Cantidad de Pisos"))
+        if not g["fase_proyecto"]:
+            g["fase_proyecto"] = _str(r, "Fase de Proyecto")
+        if not g["fecha_entrega"]:
+            g["fecha_entrega"] = _parse_fecha_mercado(r.get("Fecha de Entrega"))
         precio = _float(r, "Precio de Venta Solarizado Neto")
         if precio:
             g["_precio_sum"] += precio
             g["_precio_n"]   += 1
+        precio_m2 = _float(r, "Precio por m2 - Venta Solarizado")
+        if precio_m2:
+            g["_precio_m2_sum"] += precio_m2
+            g["_precio_m2_n"]   += 1
+        area = _float(r, "Área Total")
+        if area:
+            g["_area_min"] = area if g["_area_min"] is None else min(g["_area_min"], area)
+            g["_area_max"] = area if g["_area_max"] is None else max(g["_area_max"], area)
 
     out = []
     for g in grupos.values():
@@ -388,10 +411,17 @@ def calcular_mercado():
             "distrito":          g["distrito"],
             "sector":            g["sector"],
             "direccion":         g["direccion"],
+            "fase_proyecto":     g["fase_proyecto"],
+            "fecha_entrega":     g["fecha_entrega"],
+            "cantidad_pisos":    g["cantidad_pisos"],
             "lat":               g["lat"],
             "lng":               g["lng"],
             "unidades_vendidas": g["unidades_vendidas"],
+            "unidades_totales":  g["unidades_totales"],
             "precio_promedio":   round(g["_precio_sum"] / g["_precio_n"], 2) if g["_precio_n"] else 0,
+            "precio_m2_promedio": round(g["_precio_m2_sum"] / g["_precio_m2_n"], 2) if g["_precio_m2_n"] else 0,
+            "area_min":          g["_area_min"],
+            "area_max":          g["_area_max"],
         })
     return out
 
@@ -425,6 +455,7 @@ def calcular_mercado_ventas():
             continue
         out.append({
             "proyecto":          proy,
+            "inmobiliaria":      _str(r, "Inmobiliaria"),
             "distrito":          _str(r, "Distrito"),
             "fecha_venta":       fecha_iso,
             "dormitorios":       _int(r, "Cantidad de Dormitorios"),

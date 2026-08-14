@@ -58,7 +58,7 @@ html,body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkM
 .filter-sep{width:1px;height:24px;background:var(--line);margin:0 4px}
 
 /* ── MAIN ── */
-main{overflow-x:clip}
+main{overflow-x:clip;min-width:0}
 .panel{display:none;padding:24px 32px 40px}
 .panel.active{display:block}
 
@@ -552,6 +552,26 @@ html.dark .msel-panel{background:#253347;border-color:#334155}
 html.dark .msel-item:hover{background:#1e293b}
 /* misma "x" que los filtros de rango de fechas (dir-date-bar, adm-date-bar, fl-date-bar) */
 .btn-clear-fecha{background:transparent;border:none;color:var(--ink-4);font-size:14px;cursor:pointer;padding:0 4px;line-height:1}
+
+/* ── Precios Competencia: tabla comparativa por proyecto (columnas) ── */
+.precios-tabla{width:100%;border-collapse:collapse;font-size:12px;min-width:600px}
+.precios-tabla thead th{padding:10px 16px;font-size:11.5px;font-weight:700;color:var(--ink);text-align:center;background:var(--panel);border-bottom:2px solid var(--line);white-space:nowrap}
+.precios-tabla td,.precios-tabla th{border-bottom:1px solid var(--line-2)}
+.precios-tabla td{padding:7px 16px;text-align:center;color:var(--ink-2);white-space:nowrap}
+.precios-tabla td.precios-rowlbl,.precios-tabla th.precios-rowlbl{position:sticky;left:0;z-index:2;background:var(--panel);text-align:left;font-weight:600;color:var(--ink-3);font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;border-right:1px solid var(--line)}
+.precios-tabla tr.pc-summary td{background:var(--brand-soft);font-weight:600;font-style:italic}
+.precios-tabla tr.pc-summary td.precios-rowlbl{background:var(--brand-soft)}
+.precios-tabla tr.pc-total td{background:var(--ok-soft);font-weight:700;color:var(--ok)}
+.precios-tabla tr.pc-total td.precios-rowlbl{background:var(--ok-soft);color:var(--ok)}
+
+/* ── Ventas Competencia: ventas por proyecto y tipología (heatmap mensual) ── */
+.ventasproy-tabla{width:100%;border-collapse:collapse;font-size:12px;min-width:900px}
+.ventasproy-tabla th,.ventasproy-tabla td{padding:7px 12px;text-align:center;white-space:nowrap;border-bottom:1px solid var(--line-2)}
+.ventasproy-tabla thead th{background:var(--panel);font-weight:700;font-size:10px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.03em;border-bottom:2px solid var(--line)}
+.ventasproy-tabla td.vp-rowlbl,.ventasproy-tabla th.vp-rowlbl{position:sticky;left:0;z-index:2;background:var(--panel);text-align:left;font-weight:600;color:var(--ink);border-right:1px solid var(--line)}
+.ventasproy-tabla tr.vp-propio td,.ventasproy-tabla tr.vp-propio td.vp-rowlbl{background:var(--brand-soft)}
+.ventasproy-tabla tr.vp-total-propio td,.ventasproy-tabla tr.vp-total-propio td.vp-rowlbl{background:var(--brand-soft);font-style:italic;font-weight:700}
+.ventasproy-tabla tr.vp-total-general td,.ventasproy-tabla tr.vp-total-general td.vp-rowlbl{background:var(--ok-soft);color:var(--ok);font-weight:700}
 </style>
 
 <!-- ── FUNNEL MARKETING: design tokens ─────────────────────────────────── -->
@@ -740,7 +760,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
       <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◈</span>
         <select id="dir-tipo" onchange="renderDirector()"><option value="">Tipo: Todos</option><option value="departamento">Departamento</option><option value="azotea">Azotea</option><option value="estacionamiento">Estacionamiento</option><option value="deposito">Depósito</option><option value="comercio">Comercio</option></select>
       </label>
-      <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
+      <div class="chip refresh" onclick="loadAll(true)">↻ Actualizar</div>
       <button class="dark-toggle-btn" onclick="toggleDark()" title="Modo oscuro" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all .2s">◑</button>
     </div>
   </div>
@@ -791,7 +811,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
       <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◈</span>
         <select id="adm-tipo" onchange="renderAdmVentas()"><option value="">Tipo: Todos</option><option value="departamento">Departamento</option><option value="azotea">Azotea</option><option value="estacionamiento">Estacionamiento</option><option value="deposito">Depósito</option><option value="comercio">Comercio</option></select>
       </label>
-      <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
+      <div class="chip refresh" onclick="loadAll(true)">↻ Actualizar</div>
       <button class="dark-toggle-btn" onclick="toggleDark()" title="Modo oscuro" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all .2s">◑</button>
     </div>
   </div>
@@ -826,7 +846,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
       <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
         <select id="fl-proj" onchange="renderFunnelMkt()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO 4</option><option>LOMAS DE CARABAYLLO 5</option><option>DOMINGO ORUE</option></select>
       </label>
-      <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
+      <div class="chip refresh" onclick="loadAll(true)">↻ Actualizar</div>
       <button class="dark-toggle-btn" onclick="toggleDark()" title="Modo oscuro" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all .2s">◑</button>
     </div>
   </div>
@@ -881,7 +901,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
       <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◈</span>
         <select id="sp-tipo" onchange="renderStockProy()"><option value="">Tipo: Todos</option><option value="departamento">Departamento</option><option value="azotea">Azotea</option><option value="estacionamiento">Estacionamiento</option><option value="deposito">Depósito</option></select>
       </label>
-      <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
+      <div class="chip refresh" onclick="loadAll(true)">↻ Actualizar</div>
       <button class="dark-toggle-btn" onclick="toggleDark()" title="Modo oscuro" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all .2s">◑</button>
     </div>
   </div>
@@ -897,13 +917,14 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
       <div class="page-sub" id="mkt-mercado-sub">Cargando...</div>
     </div>
     <div class="toolbar">
-      <div class="chip refresh" onclick="loadAll()">↻ Actualizar</div>
+      <div class="chip refresh" onclick="loadAll(true)">↻ Actualizar</div>
       <button class="dark-toggle-btn" onclick="toggleDark()" title="Modo oscuro" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all .2s">◑</button>
     </div>
   </div>
   <div class="tab-bar" id="mercado-tab-bar">
     <button class="tab-btn active" onclick="setMercadoTab('competencia',this)">Mapa de Competencia</button>
-    <button class="tab-btn" onclick="setMercadoTab('ventas',this)">Ventas</button>
+    <button class="tab-btn" onclick="setMercadoTab('ventas',this)">Ventas Competencia</button>
+    <button class="tab-btn" onclick="setMercadoTab('precios',this)">Precios Competencia</button>
   </div>
   <div id="mercado-content">
     <div id="mercado-sub-competencia" class="mercado-subsection">
@@ -916,6 +937,16 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
             </button>
             <div class="msel-panel" id="msel-distrito-panel" style="display:none;min-width:220px">
               <div id="msel-distrito-list"></div>
+            </div>
+          </div>
+          <div style="position:relative">
+            <button type="button" class="chip-sel msel-btn" onclick="mselToggle('inmobiliaria')">
+              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">⌂</span>
+              <span id="msel-inmobiliaria-label">Todas las inmobiliarias</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
+            </button>
+            <div class="msel-panel" id="msel-inmobiliaria-panel" style="display:none;min-width:260px">
+              <input type="text" class="msel-filter" id="msel-inmobiliaria-filter" placeholder="Filtrar lista..." oninput="mselFilterList('inmobiliaria')"/>
+              <div id="msel-inmobiliaria-list"></div>
             </div>
           </div>
           <div style="position:relative">
@@ -958,6 +989,16 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
             </div>
           </div>
           <div style="position:relative">
+            <button type="button" class="chip-sel msel-btn" onclick="mselToggle('ventas-inmobiliaria')">
+              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">⌂</span>
+              <span id="msel-ventas-inmobiliaria-label">Todas las inmobiliarias</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
+            </button>
+            <div class="msel-panel" id="msel-ventas-inmobiliaria-panel" style="display:none;min-width:260px">
+              <input type="text" class="msel-filter" id="msel-ventas-inmobiliaria-filter" placeholder="Filtrar lista..." oninput="mselFilterList('ventas-inmobiliaria')"/>
+              <div id="msel-ventas-inmobiliaria-list"></div>
+            </div>
+          </div>
+          <div style="position:relative">
             <button type="button" class="chip-sel msel-btn" onclick="mselToggle('ventas-proyecto')">
               <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◈</span>
               <span id="msel-ventas-proyecto-label">Todos los proyectos</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
@@ -976,21 +1017,85 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
           <div style="height:320px;padding:8px 16px 16px"><canvas id="mkt-ventas-chart"></canvas></div>
         </div>
         <div class="card" style="margin-bottom:16px">
-          <div class="card-hd"><div><h3>Distribución de ventas por dormitorio</h3><p>Unidades vendidas · promedio precio/m² (venta), área total y precio de venta</p></div></div>
-          <div style="overflow-x:auto">
-            <table class="tbl" style="width:100%;min-width:640px">
-              <thead><tr>
-                <th style="text-align:left">Dormitorios</th>
-                <th style="text-align:center">Año</th>
-                <th style="text-align:center">Unidades vendidas</th>
-                <th style="text-align:center">Prom. precio/m²</th>
-                <th style="text-align:center">Prom. área total</th>
-                <th style="text-align:center">Prom. precio de venta</th>
-              </tr></thead>
-              <tbody id="mkt-ventas-tabla-body"><tr><td colspan="6" style="text-align:center;color:var(--ink-4);padding:20px">Cargando...</td></tr></tbody>
-            </table>
+          <div class="card-hd"><div><h3>Ventas por proyecto y tipología</h3><p>Unid. por tipología (est.), precios y descuento, stock estimado y evolución mensual de ventas</p></div></div>
+          <div style="display:flex;align-items:center;gap:10px;padding:0 18px 14px;flex-wrap:wrap;max-width:100%;box-sizing:border-box">
+            <span style="font-size:11px;color:var(--ink-3);font-weight:700;letter-spacing:.04em;text-transform:uppercase">Tipología (dormitorios):</span>
+            <div style="position:relative">
+              <button type="button" class="chip-sel msel-btn" onclick="mselToggle('tipologia-dorm')">
+                <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◆</span>
+                <span id="msel-tipologia-dorm-label">Todas</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
+              </button>
+              <div class="msel-panel" id="msel-tipologia-dorm-panel" style="display:none;min-width:160px">
+                <div id="msel-tipologia-dorm-list"></div>
+              </div>
+            </div>
+            <div style="position:relative">
+              <button type="button" class="chip-sel msel-btn" onclick="mselToggle('tipologia-periodo')">
+                <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◷</span>
+                <span id="tipologia-periodo-label">Últimos 3 meses</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
+              </button>
+              <div class="msel-panel" id="msel-tipologia-periodo-panel" style="display:none;min-width:150px">
+                <div class="msel-item" onclick="_setTipologiaPeriodo(3)">Últimos 3 meses</div>
+                <div class="msel-item" onclick="_setTipologiaPeriodo(6)">Últimos 6 meses</div>
+              </div>
+            </div>
+            <button class="btn-clear-fecha" title="Limpiar filtro" onclick="limpiarFiltroTipologia()">✕</button>
           </div>
+          <div id="mkt-tipologia-wrap" style="overflow-x:auto;max-width:100%;padding:0 18px 18px;box-sizing:border-box"></div>
         </div>
+      </div>
+    </div>
+
+    <div id="mercado-sub-precios" class="mercado-subsection" style="display:none">
+      <div style="padding:16px 20px 0">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;margin-bottom:14px">
+          <div style="position:relative">
+            <button type="button" class="chip-sel msel-btn" onclick="mselToggle('precios-distrito')">
+              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
+              <span id="msel-precios-distrito-label">Todos los distritos</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
+            </button>
+            <div class="msel-panel" id="msel-precios-distrito-panel" style="display:none;min-width:220px">
+              <div id="msel-precios-distrito-list"></div>
+            </div>
+          </div>
+          <div style="position:relative">
+            <button type="button" class="chip-sel msel-btn" onclick="mselToggle('precios-inmobiliaria')">
+              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">⌂</span>
+              <span id="msel-precios-inmobiliaria-label">Todas las inmobiliarias</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
+            </button>
+            <div class="msel-panel" id="msel-precios-inmobiliaria-panel" style="display:none;min-width:260px">
+              <input type="text" class="msel-filter" id="msel-precios-inmobiliaria-filter" placeholder="Filtrar lista..." oninput="mselFilterList('precios-inmobiliaria')"/>
+              <div id="msel-precios-inmobiliaria-list"></div>
+            </div>
+          </div>
+          <div style="position:relative">
+            <button type="button" class="chip-sel msel-btn" onclick="mselToggle('precios-proyecto')">
+              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◈</span>
+              <span id="msel-precios-proyecto-label">Elige proyectos a comparar</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
+            </button>
+            <div class="msel-panel" id="msel-precios-proyecto-panel" style="display:none;min-width:280px">
+              <input type="text" class="msel-filter" id="msel-precios-proyecto-filter" placeholder="Filtrar lista..." oninput="mselFilterList('precios-proyecto')"/>
+              <div id="msel-precios-proyecto-list"></div>
+            </div>
+          </div>
+          <label class="chip-sel">
+            <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◷</span>
+            <select id="precios-periodo" onchange="_preciosPeriodoMeses = this.value==='todo' ? null : parseInt(this.value); renderMercadoPrecios();" style="border:none;background:transparent;font-size:12px;font-family:inherit;color:var(--ink);outline:none;cursor:pointer">
+              <option value="3">Últimos 3 meses</option>
+              <option value="6" selected>Últimos 6 meses</option>
+              <option value="12">Últimos 12 meses</option>
+              <option value="24">Últimos 24 meses</option>
+              <option value="todo">Todo el histórico</option>
+            </select>
+          </label>
+          <button class="btn-clear-fecha" title="Limpiar filtros" onclick="limpiarFiltrosPrecios()" style="align-self:center">✕</button>
+        </div>
+      </div>
+      <div style="padding:0 20px 20px">
+        <div class="card" style="padding:0">
+          <div id="mkt-precios-wrap" style="overflow-x:auto;max-width:100%"></div>
+        </div>
+        <div id="mkt-precios-legend" style="display:flex;flex-wrap:wrap;gap:14px;padding:10px 4px;font-size:11px;color:var(--ink-3)"></div>
       </div>
     </div>
   </div>
@@ -1330,10 +1435,13 @@ function calcMeta(proj, tipo) {
 }
 
 // ─── FETCH ─────────────────────────────────────────────────────────────────
-async function loadAll(){
+async function loadAll(forzarRefresh){
   document.querySelectorAll('.page-sub').forEach(el=>el.textContent='Actualizando...');
   try{
-    await fetch(API+'/api/refresh',{method:'POST'}).catch(()=>{});
+    // El servidor ya se refresca solo cada hora (ver scheduler en app.py), así que al
+    // abrir el dashboard basta con leer lo que ya está en caché — instantáneo. Solo el
+    // botón "↻ Actualizar" fuerza una relectura completa del Google Sheet (más lento).
+    if(forzarRefresh) await fetch(API+'/api/refresh',{method:'POST'}).catch(()=>{});
     const [fR,vR,cR,pR,dR,viR,invR,idR,fcR] = await Promise.all([
       fetch(API+'/api/funnel').then(r=>r.json()),
       fetch(API+'/api/ventas').then(r=>r.json()),
@@ -1359,8 +1467,8 @@ async function loadAll(){
     // también stock completo
     fetch(API+'/api/stock').then(r=>r.json()).then(s=>{D.stock=s.data||[];renderAll();}).catch(()=>renderAll());
     fetch(API+'/api/monday_cobros').then(r=>r.json()).then(m=>{D.monday_cobros=m;renderAdmVentas();}).catch(()=>{});
-    fetch(API+'/api/mercado').then(r=>r.json()).then(m=>{D.mercado=m.data||[];if(typeof renderMercadoMapa!=='undefined')renderMercadoMapa();}).catch(()=>{});
-    fetch(API+'/api/mercado_ventas').then(r=>r.json()).then(m=>{D.mercadoVentas=m.data||[];if(typeof renderMercadoVentas!=='undefined')renderMercadoVentas();}).catch(()=>{});
+    fetch(API+'/api/mercado').then(r=>r.json()).then(m=>{D.mercado=m.data||[];if(typeof renderMercadoMapa!=='undefined')renderMercadoMapa();if(typeof renderMercadoPrecios!=='undefined')renderMercadoPrecios();if(typeof renderMercadoTipologia!=='undefined')renderMercadoTipologia();}).catch(()=>{});
+    fetch(API+'/api/mercado_ventas').then(r=>r.json()).then(m=>{D.mercadoVentas=m.data||[];if(typeof renderMercadoVentas!=='undefined')renderMercadoVentas();if(typeof renderMercadoPrecios!=='undefined')renderMercadoPrecios();if(typeof renderMercadoTipologia!=='undefined')renderMercadoTipologia();}).catch(()=>{});
     _schedNextRefresh();
   }catch(e){
     console.error(e);
@@ -3730,7 +3838,13 @@ function nav(id, el){
   document.getElementById('panel-'+id)?.classList.add('active');
   el.classList.add('active');
   if(id==='mercado'){
-    if(!D.mercado||!D.mercado.length) renderMercadoMapa();
+    // Cada vez que se entra a Estudio de Mercado se resetean los filtros
+    // (distrito/inmobiliaria/proyecto/búsqueda/periodo) de las 3 pestañas,
+    // para no arrastrar lo que quedó seleccionado la última vez.
+    limpiarFiltrosMercado();
+    limpiarFiltrosVentas();
+    limpiarFiltrosPrecios();
+    limpiarFiltroTipologia();
     setTimeout(()=>{ if(_mercadoMap) _mercadoMap.invalidateSize(); }, 50);
   }
 }
@@ -3787,7 +3901,11 @@ function setMercadoTab(tab, el){
   const sec = document.getElementById('mercado-sub-'+tab);
   if(sec) sec.style.display='';
   if(tab==='competencia') setTimeout(()=>{ if(_mercadoMap) _mercadoMap.invalidateSize(); }, 50);
-  if(tab==='ventas' && D.mercadoVentas && D.mercadoVentas.length) renderMercadoVentas();
+  if(tab==='ventas' && D.mercadoVentas && D.mercadoVentas.length){
+    renderMercadoVentas();
+    if(D.mercado && D.mercado.length) renderMercadoTipologia();
+  }
+  if(tab==='precios' && D.mercado && D.mercado.length && D.mercadoVentas && D.mercadoVentas.length) renderMercadoPrecios();
 }
 
 // ── Multi-select checkbox dropdown genérico (distrito / proyecto, x2 secciones) ──
@@ -3796,6 +3914,13 @@ function mselToggle(key){
   const isOpen = panel.style.display==='block';
   document.querySelectorAll('.msel-panel').forEach(p=>p.style.display='none');
   panel.style.display = isOpen ? 'none' : 'block';
+  if(!isOpen){
+    // Al abrir el dropdown siempre arranca limpio: buscador vacío y scroll arriba
+    // (lo tildado/seleccionado NO se toca, solo el estado visual de la lista).
+    const filtro = document.getElementById('msel-'+key+'-filter');
+    if(filtro){ filtro.value=''; mselFilterList(key); }
+    panel.scrollTop = 0;
+  }
 }
 document.addEventListener('click', e=>{
   if(!e.target.closest('.msel-btn') && !e.target.closest('.msel-panel')){
@@ -3807,20 +3932,40 @@ function mselToggleValue(key, val, checked){
   const set = _mselGet(key);
   if(checked) set.add(val); else set.delete(val);
 
-  if(key==='distrito'){
+  if(key==='distrito' || key==='inmobiliaria'){
     const data = D.mercado||[];
-    const validos = new Set(data.filter(r=>!_mselGet('distrito').size || _mselGet('distrito').has(r.distrito)).map(r=>r.proyecto));
+    const validos = new Set(data.filter(r=>
+      (!_mselGet('distrito').size || _mselGet('distrito').has(r.distrito)) &&
+      (!_mselGet('inmobiliaria').size || _mselGet('inmobiliaria').has(r.inmobiliaria))
+    ).map(r=>r.proyecto));
     [..._mselGet('proyecto')].forEach(p=>{ if(!validos.has(p)) _mselGet('proyecto').delete(p); });
     renderMercadoMapa();
   } else if(key==='proyecto'){
     renderMercadoMapa();
-  } else if(key==='ventas-distrito'){
+  } else if(key==='ventas-distrito' || key==='ventas-inmobiliaria'){
     const data = D.mercadoVentas||[];
-    const validos = new Set(data.filter(r=>!_mselGet('ventas-distrito').size || _mselGet('ventas-distrito').has(r.distrito)).map(r=>r.proyecto));
+    const validos = new Set(data.filter(r=>
+      (!_mselGet('ventas-distrito').size || _mselGet('ventas-distrito').has(r.distrito)) &&
+      (!_mselGet('ventas-inmobiliaria').size || _mselGet('ventas-inmobiliaria').has(r.inmobiliaria))
+    ).map(r=>r.proyecto));
     [..._mselGet('ventas-proyecto')].forEach(p=>{ if(!validos.has(p)) _mselGet('ventas-proyecto').delete(p); });
     renderMercadoVentas();
+    renderMercadoTipologia();
   } else if(key==='ventas-proyecto'){
     renderMercadoVentas();
+    renderMercadoTipologia();
+  } else if(key==='tipologia-dorm'){
+    renderMercadoTipologia();
+  } else if(key==='precios-distrito' || key==='precios-inmobiliaria'){
+    const data = D.mercado||[];
+    const validos = new Set(data.filter(r=>
+      (!_mselGet('precios-distrito').size || _mselGet('precios-distrito').has(r.distrito)) &&
+      (!_mselGet('precios-inmobiliaria').size || _mselGet('precios-inmobiliaria').has(r.inmobiliaria))
+    ).map(r=>r.proyecto));
+    [..._mselGet('precios-proyecto')].forEach(p=>{ if(!validos.has(p)) _mselGet('precios-proyecto').delete(p); });
+    renderMercadoPrecios();
+  } else if(key==='precios-proyecto'){
+    renderMercadoPrecios();
   }
 }
 
@@ -3852,17 +3997,49 @@ function _mselUpdateLabel(key, selectedSet, defaultTxt){
 
 function limpiarFiltrosMercado(){
   _mselGet('distrito').clear();
+  _mselGet('inmobiliaria').clear();
   _mselGet('proyecto').clear();
   const buscar = document.getElementById('mkt-mercado-buscar'); if(buscar) buscar.value='';
+  const inf = document.getElementById('msel-inmobiliaria-filter'); if(inf) inf.value='';
   const pf = document.getElementById('msel-proyecto-filter'); if(pf) pf.value='';
   renderMercadoMapa();
 }
 
 function limpiarFiltrosVentas(){
   _mselGet('ventas-distrito').clear();
+  _mselGet('ventas-inmobiliaria').clear();
   _mselGet('ventas-proyecto').clear();
+  const inf = document.getElementById('msel-ventas-inmobiliaria-filter'); if(inf) inf.value='';
   const pf = document.getElementById('msel-ventas-proyecto-filter'); if(pf) pf.value='';
   renderMercadoVentas();
+  if(typeof renderMercadoTipologia!=='undefined') renderMercadoTipologia();
+}
+
+function limpiarFiltrosPrecios(){
+  _mselGet('precios-distrito').clear();
+  _mselGet('precios-inmobiliaria').clear();
+  _mselGet('precios-proyecto').clear();
+  const inf = document.getElementById('msel-precios-inmobiliaria-filter'); if(inf) inf.value='';
+  const pf = document.getElementById('msel-precios-proyecto-filter'); if(pf) pf.value='';
+  _preciosPeriodoMeses = 6;
+  const per = document.getElementById('precios-periodo'); if(per) per.value = '6';
+  renderMercadoPrecios();
+}
+
+// Zoom de referencia: al que un popup se ve a tamaño normal (escala 1).
+const MERCADO_POPUP_BASE_ZOOM = 14;
+function _mercadoScalePopups(){
+  if(!_mercadoMap) return;
+  let scale = Math.pow(1.18, _mercadoMap.getZoom() - MERCADO_POPUP_BASE_ZOOM);
+  scale = Math.max(0.5, Math.min(1.3, scale));
+  document.querySelectorAll('#mkt-mercado-map .leaflet-popup-content-wrapper').forEach(el=>{
+    el.style.transformOrigin = 'bottom center';
+    el.style.transform = `scale(${scale})`;
+  });
+  document.querySelectorAll('#mkt-mercado-map .leaflet-popup-tip').forEach(el=>{
+    el.style.transformOrigin = 'top center';
+    el.style.transform = `scale(${scale})`;
+  });
 }
 
 function renderMercadoMapa(){
@@ -3874,21 +4051,30 @@ function renderMercadoMapa(){
     data.length ? `Actualizado: ${D.updatedAt} · ${data.length} proyectos (competencia)` : 'Cargando...';
   if(!data.length) return;
 
-  // Distritos: siempre las 34 opciones. Proyectos: en cascada, solo los de los distritos elegidos.
+  // Distritos e inmobiliarias: siempre todas las opciones. Proyectos: en cascada,
+  // solo los que quedan tras aplicar distrito + inmobiliaria elegidos.
   const distritos = [...new Set(data.map(r=>r.distrito).filter(Boolean))].sort();
   _mselBuildList('distrito', distritos, _mselGet('distrito'));
 
-  const dataPorDistrito = _mselGet('distrito').size ? data.filter(r=>_mselGet('distrito').has(r.distrito)) : data;
-  const proyectos = [...new Set(dataPorDistrito.map(r=>r.proyecto).filter(Boolean))].sort();
+  const inmobiliarias = [...new Set(data.map(r=>r.inmobiliaria).filter(Boolean))].sort();
+  _mselBuildList('inmobiliaria', inmobiliarias, _mselGet('inmobiliaria'));
+
+  const dataPorFiltroSuperior = data.filter(r=>
+    (!_mselGet('distrito').size || _mselGet('distrito').has(r.distrito)) &&
+    (!_mselGet('inmobiliaria').size || _mselGet('inmobiliaria').has(r.inmobiliaria))
+  );
+  const proyectos = [...new Set(dataPorFiltroSuperior.map(r=>r.proyecto).filter(Boolean))].sort();
   _mselBuildList('proyecto', proyectos, _mselGet('proyecto'));
 
   _mselUpdateLabel('distrito', _mselGet('distrito'), 'Todos los distritos');
+  _mselUpdateLabel('inmobiliaria', _mselGet('inmobiliaria'), 'Todas las inmobiliarias');
   _mselUpdateLabel('proyecto', _mselGet('proyecto'), 'Todos los proyectos');
 
   const busqueda = (document.getElementById('mkt-mercado-buscar')?.value||'').trim().toUpperCase();
 
   let filtrado = data;
   if(_mselGet('distrito').size) filtrado = filtrado.filter(r=>_mselGet('distrito').has(r.distrito));
+  if(_mselGet('inmobiliaria').size) filtrado = filtrado.filter(r=>_mselGet('inmobiliaria').has(r.inmobiliaria));
   if(_mselGet('proyecto').size) filtrado = filtrado.filter(r=>_mselGet('proyecto').has(r.proyecto));
   if(busqueda) filtrado = filtrado.filter(r=>
     (r.proyecto||'').toUpperCase().includes(busqueda) ||
@@ -3912,11 +4098,23 @@ function renderMercadoMapa(){
       const latlng = _mercadoMap.containerPointToLatLng(pt);
       _mercadoMap.setZoomAround(latlng, _mercadoMap.getZoom() + (e.deltaY < 0 ? 1 : -1));
     }, { passive:false });
+    // Los cuadros (popups) se achican/agrandan junto con el zoom del mapa,
+    // en vez de quedarse siempre al mismo tamaño en pantalla.
+    _mercadoMap.on('zoom zoomend popupopen', _mercadoScalePopups);
   }
   if(_mercadoLayer) _mercadoMap.removeLayer(_mercadoLayer);
   _mercadoLayer = L.layerGroup().addTo(_mercadoMap);
 
   const fSol = n => 'S/ '+Number(n||0).toLocaleString('es-PE',{minimumFractionDigits:0,maximumFractionDigits:0});
+  const fOracion = s => {
+    s = String(s||'').trim().toLowerCase();
+    return s ? s.replace(/(^\s*\w|[.!?]\s+\w)/g, c => c.toUpperCase()) : '—';
+  };
+  const fMetraje = r => {
+    if(!r.area_min && !r.area_max) return '—';
+    const min = Math.round(r.area_min), max = Math.round(r.area_max);
+    return min===max ? `${min} m²` : `${min} - ${max} m²`;
+  };
   const RADIO_FIJO = 5;
   const puntos = [];
 
@@ -3931,18 +4129,20 @@ function renderMercadoMapa(){
         <div style="font-weight:700;font-size:13.5px;margin-bottom:2px">${r.proyecto}</div>
         <div style="color:#64748b;margin-bottom:8px">${r.inmobiliaria}</div>
         <div><b>Distrito:</b> ${r.distrito||'—'}</div>
-        <div><b>Sector:</b> ${r.sector||'—'}</div>
-        <div><b>Dirección:</b> ${r.direccion||'—'}</div>
+        <div><b>Dirección:</b> ${fOracion(r.direccion)}</div>
         <div style="margin-top:6px"><b>Unidades vendidas:</b> ${r.unidades_vendidas}</div>
-        <div><b>Precio prom. de venta:</b> ${fSol(r.precio_promedio)}</div>
+        <div><b>Precio por m² (prom.):</b> ${fSol(r.precio_m2_promedio)}</div>
+        <div><b>Metraje (rango):</b> ${fMetraje(r)}</div>
+        <div><b>Ticket:</b> ${fSol(r.precio_promedio)}</div>
       </div>
-    `);
+    `, { autoClose:false, closeOnClick:false });
     marker.addTo(_mercadoLayer);
+    if(_mselGet('proyecto').size) marker.openPopup();
     puntos.push([r.lat, r.lng]);
   });
 
   // Si hay algún filtro activo, llevar el mapa a la selección; si no, vista general de Lima
-  const hayFiltro = _mselGet('distrito').size || _mselGet('proyecto').size || busqueda;
+  const hayFiltro = _mselGet('distrito').size || _mselGet('inmobiliaria').size || _mselGet('proyecto').size || busqueda;
   if(hayFiltro && puntos.length){
     _mercadoMap.fitBounds(puntos, { maxZoom: 15, padding:[30,30] });
   } else if(!hayFiltro){
@@ -3965,17 +4165,24 @@ function renderMercadoVentas(){
   const subEl = document.getElementById('mkt-ventas-sub');
   if(!data.length){ if(subEl) subEl.textContent = 'Cargando...'; return; }
 
-  // Distritos: todos. Proyectos: en cascada según distrito(s) elegido(s).
+  // Distritos e inmobiliarias: todos. Proyectos: en cascada según lo elegido arriba.
   const distritos = [...new Set(data.map(r=>r.distrito).filter(Boolean))].sort();
   _mselBuildList('ventas-distrito', distritos, _mselGet('ventas-distrito'));
-  const dataPorDistrito = _mselGet('ventas-distrito').size ? data.filter(r=>_mselGet('ventas-distrito').has(r.distrito)) : data;
-  const proyectos = [...new Set(dataPorDistrito.map(r=>r.proyecto).filter(Boolean))].sort();
+  const inmobiliarias = [...new Set(data.map(r=>r.inmobiliaria).filter(Boolean))].sort();
+  _mselBuildList('ventas-inmobiliaria', inmobiliarias, _mselGet('ventas-inmobiliaria'));
+  const dataPorFiltroSuperior = data.filter(r=>
+    (!_mselGet('ventas-distrito').size || _mselGet('ventas-distrito').has(r.distrito)) &&
+    (!_mselGet('ventas-inmobiliaria').size || _mselGet('ventas-inmobiliaria').has(r.inmobiliaria))
+  );
+  const proyectos = [...new Set(dataPorFiltroSuperior.map(r=>r.proyecto).filter(Boolean))].sort();
   _mselBuildList('ventas-proyecto', proyectos, _mselGet('ventas-proyecto'));
   _mselUpdateLabel('ventas-distrito', _mselGet('ventas-distrito'), 'Todos los distritos');
+  _mselUpdateLabel('ventas-inmobiliaria', _mselGet('ventas-inmobiliaria'), 'Todas las inmobiliarias');
   _mselUpdateLabel('ventas-proyecto', _mselGet('ventas-proyecto'), 'Todos los proyectos');
 
   let filtrado = data;
   if(_mselGet('ventas-distrito').size) filtrado = filtrado.filter(r=>_mselGet('ventas-distrito').has(r.distrito));
+  if(_mselGet('ventas-inmobiliaria').size) filtrado = filtrado.filter(r=>_mselGet('ventas-inmobiliaria').has(r.inmobiliaria));
   if(_mselGet('ventas-proyecto').size) filtrado = filtrado.filter(r=>_mselGet('ventas-proyecto').has(r.proyecto));
 
   if(subEl) subEl.textContent = `Actualizado: ${D.updatedAt} · ${filtrado.length.toLocaleString('es-PE')} ventas registradas`;
@@ -4011,34 +4218,344 @@ function renderMercadoVentas(){
     });
   }
 
-  // ── Tabla: distribución por dormitorio × año ──
-  const grupos = {};
-  filtrado.forEach(r=>{
-    const dorm = r.dormitorios || 0;
-    const anio = (r.fecha_venta||'').slice(0,4);
-    if(!anio) return;
-    const key = dorm+'|'+anio;
-    if(!grupos[key]) grupos[key] = { dorm, anio, n:0, sumM2:0, nM2:0, sumArea:0, nArea:0, sumPrecio:0, nPrecio:0 };
-    const g = grupos[key];
-    g.n++;
-    if(r.precio_m2_venta){ g.sumM2 += r.precio_m2_venta; g.nM2++; }
-    if(r.area_total){ g.sumArea += r.area_total; g.nArea++; }
-    if(r.precio_venta){ g.sumPrecio += r.precio_venta; g.nPrecio++; }
-  });
-  const filas = Object.values(grupos).sort((a,b)=> a.dorm-b.dorm || a.anio-b.anio);
-  const fM2  = n => n ? 'S/ '+Math.round(n).toLocaleString('es-PE') : '—';
-  const fM2s = n => n ? Number(n).toLocaleString('es-PE',{minimumFractionDigits:1,maximumFractionDigits:1})+' m²' : '—';
-  const tbody = document.getElementById('mkt-ventas-tabla-body');
-  if(tbody){
-    tbody.innerHTML = filas.map(g=>`<tr>
-      <td style="text-align:left">${g.dorm ? g.dorm+' dorm.' : 'Sin dato'}</td>
-      <td style="text-align:center">${g.anio}</td>
-      <td style="text-align:center">${fN(g.n)}</td>
-      <td style="text-align:center">${fM2(g.nM2?g.sumM2/g.nM2:0)}</td>
-      <td style="text-align:center">${fM2s(g.nArea?g.sumArea/g.nArea:0)}</td>
-      <td style="text-align:center">${fM2(g.nPrecio?g.sumPrecio/g.nPrecio:0)}</td>
-    </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos</td></tr>';
+}
+
+// ── Ventas Competencia: ventas por proyecto y tipología (con heatmap mensual) ──
+function _dormLabel(n){
+  n = Number(n)||0;
+  return n<=0 ? 'Estudio' : n+'D';
+}
+function _dormOrden(lbl){ return lbl==='Estudio' ? 0 : parseInt(lbl,10)||0; }
+
+let _tipologiaPeriodoMeses = 3;
+function _setTipologiaPeriodo(n){
+  _tipologiaPeriodoMeses = n;
+  const lbl = document.getElementById('tipologia-periodo-label'); if(lbl) lbl.textContent = `Últimos ${n} meses`;
+  const panel = document.getElementById('msel-tipologia-periodo-panel'); if(panel) panel.style.display='none';
+  renderMercadoTipologia();
+}
+function limpiarFiltroTipologia(){
+  _mselGet('tipologia-dorm').clear();
+  _tipologiaPeriodoMeses = 3;
+  const lbl = document.getElementById('tipologia-periodo-label'); if(lbl) lbl.textContent = 'Últimos 3 meses';
+  renderMercadoTipologia();
+}
+
+function renderMercadoTipologia(){
+  const wrap = document.getElementById('mkt-tipologia-wrap');
+  if(!wrap) return;
+  const dataProy = D.mercado||[], dataVentasAll = D.mercadoVentas||[];
+  if(!dataProy.length || !dataVentasAll.length){ wrap.innerHTML = '<div class="loading">Cargando...</div>'; return; }
+
+  const dormOpciones = [...new Set(dataVentasAll.map(v=>_dormLabel(v.dormitorios)))].sort((a,b)=>_dormOrden(a)-_dormOrden(b));
+  _mselBuildList('tipologia-dorm', dormOpciones, _mselGet('tipologia-dorm'));
+  _mselUpdateLabel('tipologia-dorm', _mselGet('tipologia-dorm'), 'Todas');
+  const filtroDorm = _mselGet('tipologia-dorm');
+  const filtroDistrito = _mselGet('ventas-distrito');
+  const filtroInmobiliaria = _mselGet('ventas-inmobiliaria');
+  const filtroProyecto = _mselGet('ventas-proyecto');
+
+  // Igual que Precios Competencia: no se calcula nada pesado hasta que elijas algún filtro.
+  if(!filtroDorm.size && !filtroDistrito.size && !filtroInmobiliaria.size && !filtroProyecto.size){
+    wrap.innerHTML = '<div style="padding:44px 20px;text-align:center;color:var(--ink-4);font-size:13px">Elige un distrito, inmobiliaria, proyecto (arriba) o una tipología (abajo) para ver el detalle.</div>';
+    return;
   }
+
+  const projPorNombre = new Map(dataProy.map(p=>[p.proyecto, p]));
+  const esPropio = proj => (proj.inmobiliaria||'').trim().toLowerCase()==='padova';
+
+  const dataVentas = dataVentasAll.filter(v=>
+    (!filtroDistrito.size || filtroDistrito.has(v.distrito)) &&
+    (!filtroInmobiliaria.size || filtroInmobiliaria.has(v.inmobiliaria)) &&
+    (!filtroProyecto.size || filtroProyecto.has(v.proyecto))
+  );
+
+  // El filtro de período controla cuántos meses hacia atrás se muestran en el heatmap
+  // mensual (y por lo tanto el "Prom. mensual", que se calcula sobre esos mismos meses).
+  // Los precios (S/m² lista/venta) usan siempre una ventana fija de 3 meses, aparte.
+  const periodoMeses = _tipologiaPeriodoMeses || 3;
+  const cutoffPrecios = _isoMenosMeses(3);
+  const fSol = n => n ? 'S/ '+Math.round(n).toLocaleString('es-PE') : '—';
+  const fPct = n => n==null ? '—' : (n*100).toFixed(1)+'%';
+
+  // conteo total de ventas por proyecto (todas las tipologías, sin el filtro de dorm) — para estimar el % de mezcla
+  const totalVentasPorProyecto = {};
+  dataVentas.forEach(v=>{ totalVentasPorProyecto[v.proyecto] = (totalVentasPorProyecto[v.proyecto]||0)+1; });
+
+  // agrupar por (proyecto, tipología) respetando el filtro de dormitorio
+  const grupos = new Map();
+  dataVentas.forEach(v=>{
+    const dl = _dormLabel(v.dormitorios);
+    if(filtroDorm.size && !filtroDorm.has(dl)) return;
+    const key = v.proyecto+'||'+dl;
+    if(!grupos.has(key)) grupos.set(key, { proyecto:v.proyecto, dormLabel:dl, ventas:[] });
+    grupos.get(key).ventas.push(v);
+  });
+
+  const filas = [...grupos.values()].map(g=>{
+    const proj = projPorNombre.get(g.proyecto) || {};
+    const ventanaPrecios = g.ventas.filter(v=>v.fecha_venta>=cutoffPrecios);
+    const areaMed = g.ventas.reduce((s,v)=>s+(v.area_total||0),0)/g.ventas.length;
+    const sM2Lista = ventanaPrecios.length ? ventanaPrecios.reduce((s,v)=>s+(v.precio_m2_oferta||0),0)/ventanaPrecios.length : 0;
+    const sM2Venta = ventanaPrecios.length ? ventanaPrecios.reduce((s,v)=>s+(v.precio_m2_venta||0),0)/ventanaPrecios.length : 0;
+    const ticketProm = g.ventas.reduce((s,v)=>s+(v.precio_venta||0),0)/g.ventas.length;
+    const desc = sM2Lista ? (sM2Lista-sM2Venta)/sM2Lista : null;
+    const totalProyecto = totalVentasPorProyecto[g.proyecto]||1;
+    const unidTipEst = Math.round((proj.unidades_totales||0) * (g.ventas.length/totalProyecto));
+    const stockEst = Math.max(0, unidTipEst - g.ventas.length);
+    const meses = {};
+    g.ventas.forEach(v=>{ const ym=(v.fecha_venta||'').slice(0,7); if(ym) meses[ym]=(meses[ym]||0)+1; });
+    return { proyecto:g.proyecto, dormLabel:g.dormLabel, etapa:proj.fase_proyecto, unidTipEst, areaMed, sM2Lista, sM2Venta, ticketProm, desc, stockEst, meses, esPropio: esPropio(proj) };
+  });
+  filas.sort((a,b)=> a.proyecto.localeCompare(b.proyecto) || _dormOrden(a.dormLabel)-_dormOrden(b.dormLabel));
+
+  if(!filas.length){
+    wrap.innerHTML = '<div style="padding:30px 20px;text-align:center;color:var(--ink-4);font-size:13px">Sin ventas para este filtro.</div>';
+    return;
+  }
+
+  // filas "TOTAL" de los proyectos propios (Padova) que queden dentro del filtro elegido:
+  // siempre con el total real del proyecto, sin importar el filtro de tipología.
+  const proyectosPropios = [...new Set(filas.filter(f=>f.esPropio).map(f=>f.proyecto))];
+  const filasTotalPropio = proyectosPropios.map(proyecto=>{
+    const proj = projPorNombre.get(proyecto) || {};
+    const ventasProyecto = dataVentas.filter(v=>v.proyecto===proyecto);
+    const meses = {};
+    ventasProyecto.forEach(v=>{ const ym=(v.fecha_venta||'').slice(0,7); if(ym) meses[ym]=(meses[ym]||0)+1; });
+    const stockEst = Math.max(0, (proj.unidades_totales||0) - ventasProyecto.length);
+    return { proyecto, unidadesTotales: proj.unidades_totales||0, stockEst, meses };
+  });
+
+  // meses a mostrar en el heatmap: SIEMPRE los últimos "periodoMeses" meses calendario
+  // COMPLETOS (con celda vacía si no hubo ventas ese mes) — no incluye el mes actual,
+  // que todavía está a mitad y no es comparable con un mes cerrado.
+  const mesesOrdenados = [];
+  { const hoy = new Date();
+    for(let i=periodoMeses; i>=1; i--){
+      const d = new Date(hoy.getFullYear(), hoy.getMonth()-i, 1);
+      mesesOrdenados.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+    }
+  }
+  const maxMes = Math.max(1, ...filas.flatMap(f=>mesesOrdenados.map(ym=>f.meses[ym]||0)), ...filasTotalPropio.flatMap(f=>mesesOrdenados.map(ym=>f.meses[ym]||0)));
+  const maxStock = Math.max(1, ...filas.map(f=>f.stockEst), ...filasTotalPropio.map(f=>f.stockEst));
+  // "Prom. mensual" = promedio de unidades vendidas sobre los mismos meses que se ven en el heatmap
+  const promMensualDe = meses => mesesOrdenados.length ? mesesOrdenados.reduce((s,ym)=>s+(meses[ym]||0),0)/mesesOrdenados.length : 0;
+
+  const MM_CORTO = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
+  const fMesLbl = ym => { const [y,m] = ym.split('-'); return `${MM_CORTO[parseInt(m,10)]} ${y.slice(2)}`; };
+
+  const celdaMes = (meses, ym) => {
+    const v = meses[ym]||0;
+    if(!v) return '<td></td>';
+    const intensidad = Math.min(1, v/maxMes);
+    const bg = `color-mix(in srgb, var(--brand) ${Math.round(15+intensidad*85)}%, var(--panel))`;
+    const txt = intensidad>0.45 ? '#fff' : 'var(--ink)';
+    return `<td style="background:${bg};color:${txt};font-weight:600">${v}</td>`;
+  };
+  const barraStock = v => `<span style="display:inline-flex;align-items:center;gap:6px"><b>${v}</b><span style="display:inline-block;width:44px;height:5px;border-radius:3px;background:var(--line-2);overflow:hidden"><span style="display:block;height:100%;width:${Math.round(Math.min(1,v/maxStock)*100)}%;background:var(--brand)"></span></span></span>`;
+  const celdasMeses = meses => mesesOrdenados.map(ym=>celdaMes(meses,ym)).join('');
+
+  let rowsHtml = filas.map(f=>`
+    <tr class="${f.esPropio?'vp-propio':''}">
+      <td class="vp-rowlbl">${f.proyecto}</td>
+      <td>${f.dormLabel}</td>
+      <td><span class="pill" style="background:var(--line-2);color:var(--ink-2)">${f.etapa||'—'}</span></td>
+      <td>${f.unidTipEst||'—'}</td>
+      <td>${f.areaMed?f.areaMed.toFixed(1)+' m²':'—'}</td>
+      <td>${fSol(f.sM2Lista)}</td>
+      <td>${fSol(f.sM2Venta)}</td>
+      <td>${fSol(f.ticketProm)}</td>
+      <td>${fPct(f.desc)}</td>
+      <td>${barraStock(f.stockEst)}</td>
+      ${celdasMeses(f.meses)}
+      <td>${promMensualDe(f.meses).toFixed(1)}</td>
+    </tr>`).join('');
+
+  rowsHtml += filasTotalPropio.map(f=>`
+    <tr class="vp-total-propio">
+      <td class="vp-rowlbl">${f.proyecto} — TOTAL</td>
+      <td></td><td></td>
+      <td>${f.unidadesTotales} total proy.</td>
+      <td></td><td></td><td></td><td></td><td></td>
+      <td>${barraStock(f.stockEst)}</td>
+      ${celdasMeses(f.meses)}
+      <td>${promMensualDe(f.meses).toFixed(1)}</td>
+    </tr>`).join('');
+
+  const stockTotalGeneral = filas.reduce((s,f)=>s+f.stockEst,0);
+  const mesesTotalGeneral = {};
+  filas.forEach(f=>Object.entries(f.meses).forEach(([ym,v])=>{ mesesTotalGeneral[ym]=(mesesTotalGeneral[ym]||0)+v; }));
+  const proyectosVisibles = new Set(filas.map(f=>f.proyecto)).size;
+
+  rowsHtml += `
+    <tr class="vp-total-general">
+      <td class="vp-rowlbl">COMPETENCIA — TOTAL</td>
+      <td></td><td>${proyectosVisibles} filas</td>
+      <td></td><td></td><td></td><td></td><td></td><td></td>
+      <td>${barraStock(stockTotalGeneral)}</td>
+      ${celdasMeses(mesesTotalGeneral)}
+      <td>${promMensualDe(mesesTotalGeneral).toFixed(1)}</td>
+    </tr>`;
+
+  wrap.innerHTML = `<table class="ventasproy-tabla">
+    <thead><tr>
+      <th class="vp-rowlbl">Proyecto</th><th>Dorm</th><th>Etapa</th>
+      <th>Unid. tipología (est.)</th><th>Área med.</th>
+      <th>S/m² lista (prom. 3m)</th><th>S/m² venta (prom. 3m)</th>
+      <th>Ticket venta (prom.)</th><th>Desc.</th><th>Stock disp. (est.)</th>
+      ${mesesOrdenados.map(ym=>`<th>${fMesLbl(ym)}</th>`).join('')}
+      <th>Prom. mensual</th>
+    </tr></thead>
+    <tbody>${rowsHtml}</tbody>
+  </table>`;
+}
+
+// ── Precios Competencia: tabla comparativa por proyecto (uno por columna) ──
+const PRECIOS_BUCKETS = [[30,50],[50,60],[60,70],[70,80],[80,90]];
+// misma familia de colores que el mapa de Competencia (SECTOR_COLORS), sin ámbar ni rojo
+const PRECIOS_DORM_COLORS = {1:'#2f6df6', 2:'#19b36b', 3:'#7b5bd6'};
+let _preciosPeriodoMeses = 6; // null = todo el histórico
+function _isoMenosMeses(n){
+  const d = new Date();
+  d.setMonth(d.getMonth() - n);
+  return d.toISOString().slice(0,10);
+}
+// meses transcurridos entre una fecha ISO 'YYYY-MM-DD' y hoy (para la velocidad cuando el periodo es "todo")
+function _preciosMesesDesde(fechaIso){
+  const [y,m] = fechaIso.split('-').map(Number);
+  const hoy = new Date();
+  return Math.max(1, (hoy.getFullYear()-y)*12 + (hoy.getMonth()+1-m) + 1);
+}
+
+function renderMercadoPrecios(){
+  const wrap = document.getElementById('mkt-precios-wrap');
+  const legend = document.getElementById('mkt-precios-legend');
+  if(!wrap) return;
+  const dataProy = D.mercado||[], dataVentas = D.mercadoVentas||[];
+  if(!dataProy.length || !dataVentas.length){ wrap.innerHTML = '<div class="loading">Cargando...</div>'; return; }
+
+  const distritos = [...new Set(dataProy.map(r=>r.distrito).filter(Boolean))].sort();
+  _mselBuildList('precios-distrito', distritos, _mselGet('precios-distrito'));
+  const inmobiliarias = [...new Set(dataProy.map(r=>r.inmobiliaria).filter(Boolean))].sort();
+  _mselBuildList('precios-inmobiliaria', inmobiliarias, _mselGet('precios-inmobiliaria'));
+  const dataPorFiltroSuperior = dataProy.filter(r=>
+    (!_mselGet('precios-distrito').size || _mselGet('precios-distrito').has(r.distrito)) &&
+    (!_mselGet('precios-inmobiliaria').size || _mselGet('precios-inmobiliaria').has(r.inmobiliaria))
+  );
+  const proyectosDisponibles = [...new Set(dataPorFiltroSuperior.map(r=>r.proyecto).filter(Boolean))].sort();
+  _mselBuildList('precios-proyecto', proyectosDisponibles, _mselGet('precios-proyecto'));
+  _mselUpdateLabel('precios-distrito', _mselGet('precios-distrito'), 'Todos los distritos');
+  _mselUpdateLabel('precios-inmobiliaria', _mselGet('precios-inmobiliaria'), 'Todas las inmobiliarias');
+  _mselUpdateLabel('precios-proyecto', _mselGet('precios-proyecto'), 'Elige proyectos a comparar');
+
+  let proyectos;
+  if(_mselGet('precios-proyecto').size){
+    proyectos = proyectosDisponibles.filter(p=>_mselGet('precios-proyecto').has(p));
+  } else if(_mselGet('precios-distrito').size || _mselGet('precios-inmobiliaria').size){
+    proyectos = proyectosDisponibles;
+  } else {
+    proyectos = [];
+  }
+
+  if(!proyectos.length){
+    wrap.innerHTML = '<div style="padding:44px 20px;text-align:center;color:var(--ink-4);font-size:13px">Elige uno o más proyectos (o filtra por distrito / inmobiliaria) para comparar precios.</div>';
+    if(legend) legend.innerHTML = '';
+    return;
+  }
+
+  let nota = '';
+  const LIMITE = 20;
+  if(proyectos.length > LIMITE){
+    nota = `<div style="padding:8px 16px;color:var(--ink-4);font-size:11px">Mostrando ${LIMITE} de ${proyectos.length} proyectos — filtra más para acotar.</div>`;
+    proyectos = proyectos.slice(0, LIMITE);
+  }
+
+  const periodoMeses = _preciosPeriodoMeses; // null = todo el histórico
+  const cutoff = periodoMeses ? _isoMenosMeses(periodoMeses) : null;
+  const enVentana = v => !cutoff || v.fecha_venta >= cutoff;
+  const etiquetaPeriodo = periodoMeses ? `últimos ${periodoMeses} meses` : 'todo el histórico';
+  const fSol = n => n ? 'S/ '+Math.round(n).toLocaleString('es-PE') : '—';
+
+  // divisor mensual para la velocidad: el periodo elegido, o -si es "todo"- los meses
+  // reales desde la venta más antigua registrada en el dataset completo.
+  let divisorMeses = periodoMeses;
+  if(!divisorMeses){
+    const fechas = dataVentas.map(v=>v.fecha_venta).filter(Boolean).sort();
+    divisorMeses = fechas.length ? _preciosMesesDesde(fechas[0]) : 1;
+  }
+
+  const cols = proyectos.map(proyecto=>{
+    const proj = dataProy.find(p=>p.proyecto===proyecto) || {};
+    const ventas = dataVentas.filter(v=>v.proyecto===proyecto);
+    const ventasVentana = ventas.filter(enVentana);
+    const buckets = PRECIOS_BUCKETS.map(([lo,hi])=>{
+      const unitsAll = ventas.filter(v=>v.area_total>=lo && v.area_total<hi);
+      if(!unitsAll.length) return null;
+      const unitsVentana = unitsAll.filter(enVentana);
+      const avgM2 = unitsAll.reduce((s,v)=>s+v.area_total,0)/unitsAll.length;
+      const dormCount = {};
+      unitsAll.forEach(v=>{ dormCount[v.dormitorios] = (dormCount[v.dormitorios]||0)+1; });
+      const dormMode = Object.entries(dormCount).sort((a,b)=>b[1]-a[1])[0]?.[0];
+      const avgVenta = unitsVentana.length ? unitsVentana.reduce((s,v)=>s+v.precio_venta,0)/unitsVentana.length : 0;
+      const avgM2Precio = unitsVentana.length ? unitsVentana.reduce((s,v)=>s+v.precio_m2_venta,0)/unitsVentana.length : 0;
+      return { avgM2, dormMode, cant: unitsVentana.length, avgVenta, avgM2Precio };
+    });
+    const cantVentana = ventasVentana.length;
+    const precioProm = cantVentana ? ventasVentana.reduce((s,v)=>s+v.precio_venta,0)/cantVentana : 0;
+    const precioM2Prom = cantVentana ? ventasVentana.reduce((s,v)=>s+v.precio_m2_venta,0)/cantVentana : 0;
+    const totalVendidos = proj.unidades_vendidas||0;
+    const stock = Math.max(0, (proj.unidades_totales||0) - totalVendidos);
+    return { proyecto, proj, buckets, cantVentana, velocidad: cantVentana/divisorMeses, precioProm, precioM2Prom, totalVendidos, stock };
+  });
+
+  const rowsHtml = [];
+  const addRow = (label, cellFn, rowClass='') => {
+    const cells = cols.map(c=>`<td>${cellFn(c)}</td>`).join('');
+    rowsHtml.push(`<tr class="${rowClass}"><td class="precios-rowlbl">${label}</td>${cells}</tr>`);
+  };
+
+  const MM_CORTO = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
+  const fFechaCorta = iso => {
+    if(!iso) return '—';
+    const [y,m] = iso.split('-');
+    return `${MM_CORTO[parseInt(m,10)]}-${y}`;
+  };
+
+  addRow('Empresa Inmobiliaria', c=>c.proj.inmobiliaria||'—');
+  addRow('Distrito', c=>c.proj.distrito||'—');
+  addRow('Etapa del proyecto', c=>c.proj.fase_proyecto||'—');
+  addRow('Fecha de entrega', c=>fFechaCorta(c.proj.fecha_entrega));
+  addRow('N° de pisos', c=>c.proj.cantidad_pisos||'—');
+  addRow('N° total de deptos', c=>c.proj.unidades_totales||'—');
+
+  PRECIOS_BUCKETS.forEach(([lo,hi], i)=>{
+    addRow(`Dpto. ${lo}-${hi} m²`, c=>{
+      const b = c.buckets[i];
+      if(!b) return '';
+      const color = PRECIOS_DORM_COLORS[b.dormMode] || 'var(--ink-4)';
+      return `<span style="display:block;margin:-7px -16px;padding:7px 16px;background:${color};color:#fff;font-weight:700">${Math.round(b.avgM2)} m²</span>`;
+    }, 'pc-bucket-hd');
+    addRow(`Cant. vendidas (${etiquetaPeriodo})`, c=>{ const b=c.buckets[i]; return b ? b.cant : ''; });
+    addRow('Precio de venta (prom.)', c=>{ const b=c.buckets[i]; return b && b.cant ? fSol(b.avgVenta) : ''; });
+    addRow('Precio x m²', c=>{ const b=c.buckets[i]; return b && b.cant ? fSol(b.avgM2Precio) : ''; });
+  });
+
+  addRow(`Vendidas (${etiquetaPeriodo})`, c=>c.cantVentana, 'pc-summary');
+  addRow('Velocidad (u/mes)', c=>c.velocidad.toFixed(1), 'pc-summary');
+  addRow(`Precio promedio (${etiquetaPeriodo})`, c=>fSol(c.precioProm), 'pc-summary');
+  addRow(`Precio promedio x m² (${etiquetaPeriodo})`, c=>fSol(c.precioM2Prom), 'pc-summary');
+  addRow('Total vendidos (histórico)', c=>c.totalVendidos, 'pc-total');
+  addRow('Stock disponible', c=>c.stock, 'pc-total');
+
+  const theadCols = cols.map(c=>`<th>${c.proyecto}</th>`).join('');
+  wrap.innerHTML = nota + `<table class="precios-tabla">
+    <thead><tr><th class="precios-rowlbl"></th>${theadCols}</tr></thead>
+    <tbody>${rowsHtml.join('')}</tbody>
+  </table>`;
+
+  if(legend) legend.innerHTML = Object.entries(PRECIOS_DORM_COLORS).map(([d,c])=>
+    `<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:3px;background:${c};display:inline-block"></span>${d} dorm.</span>`
+  ).join('') + `<span>· color del bloque de m² = dormitorios más frecuentes en ese rango</span>`;
 }
 
 // ─── INIT ──────────────────────────────────────────────────────────────────
