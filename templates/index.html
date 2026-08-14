@@ -1069,6 +1069,15 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
             </div>
           </div>
           <div style="position:relative">
+            <button type="button" class="chip-sel msel-btn" onclick="mselToggle('precios-etapa')">
+              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">▦</span>
+              <span id="msel-precios-etapa-label">Todas las etapas</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
+            </button>
+            <div class="msel-panel" id="msel-precios-etapa-panel" style="display:none;min-width:200px">
+              <div id="msel-precios-etapa-list"></div>
+            </div>
+          </div>
+          <div style="position:relative">
             <button type="button" class="chip-sel msel-btn" onclick="mselToggle('precios-proyecto')">
               <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◈</span>
               <span id="msel-precios-proyecto-label">Elige proyectos a comparar</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
@@ -1078,16 +1087,19 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
               <div id="msel-precios-proyecto-list"></div>
             </div>
           </div>
-          <label class="chip-sel">
-            <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◷</span>
-            <select id="precios-periodo" onchange="_preciosPeriodoMeses = this.value==='todo' ? null : parseInt(this.value); renderMercadoPrecios();" style="border:none;background:transparent;font-size:12px;font-family:inherit;color:var(--ink);outline:none;cursor:pointer">
-              <option value="3">Últimos 3 meses</option>
-              <option value="6" selected>Últimos 6 meses</option>
-              <option value="12">Últimos 12 meses</option>
-              <option value="24">Últimos 24 meses</option>
-              <option value="todo">Todo el histórico</option>
-            </select>
-          </label>
+          <div style="position:relative">
+            <button type="button" class="chip-sel msel-btn" onclick="mselToggle('precios-periodo')">
+              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◷</span>
+              <span id="precios-periodo-label">Últimos 6 meses</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
+            </button>
+            <div class="msel-panel" id="msel-precios-periodo-panel" style="display:none;min-width:160px">
+              <div class="msel-item" onclick="_setPreciosPeriodo(3)">Últimos 3 meses</div>
+              <div class="msel-item" onclick="_setPreciosPeriodo(6)">Últimos 6 meses</div>
+              <div class="msel-item" onclick="_setPreciosPeriodo(12)">Últimos 12 meses</div>
+              <div class="msel-item" onclick="_setPreciosPeriodo(24)">Últimos 24 meses</div>
+              <div class="msel-item" onclick="_setPreciosPeriodo('todo')">Todo el histórico</div>
+            </div>
+          </div>
           <button class="btn-clear-fecha" title="Limpiar filtros" onclick="limpiarFiltrosPrecios()" style="align-self:center">✕</button>
         </div>
       </div>
@@ -3956,11 +3968,26 @@ function mselToggleValue(key, val, checked){
     renderMercadoTipologia();
   } else if(key==='tipologia-dorm'){
     renderMercadoTipologia();
-  } else if(key==='precios-distrito' || key==='precios-inmobiliaria'){
+  } else if(key==='precios-distrito' || key==='precios-inmobiliaria' || key==='precios-etapa'){
     const data = D.mercado||[];
+    const fD = _mselGet('precios-distrito'), fI = _mselGet('precios-inmobiliaria'), fE = _mselGet('precios-etapa');
+    // podar de los otros 2 filtros las opciones que ya no calzan con lo recién elegido
+    if(key!=='precios-distrito'){
+      const validDistritos = new Set(data.filter(r=>(!fI.size||fI.has(r.inmobiliaria))&&(!fE.size||fE.has(r.fase_proyecto))).map(r=>r.distrito));
+      [...fD].forEach(d=>{ if(!validDistritos.has(d)) fD.delete(d); });
+    }
+    if(key!=='precios-inmobiliaria'){
+      const validInmob = new Set(data.filter(r=>(!fD.size||fD.has(r.distrito))&&(!fE.size||fE.has(r.fase_proyecto))).map(r=>r.inmobiliaria));
+      [...fI].forEach(i=>{ if(!validInmob.has(i)) fI.delete(i); });
+    }
+    if(key!=='precios-etapa'){
+      const validEtapas = new Set(data.filter(r=>(!fD.size||fD.has(r.distrito))&&(!fI.size||fI.has(r.inmobiliaria))).map(r=>r.fase_proyecto));
+      [...fE].forEach(e=>{ if(!validEtapas.has(e)) fE.delete(e); });
+    }
     const validos = new Set(data.filter(r=>
-      (!_mselGet('precios-distrito').size || _mselGet('precios-distrito').has(r.distrito)) &&
-      (!_mselGet('precios-inmobiliaria').size || _mselGet('precios-inmobiliaria').has(r.inmobiliaria))
+      (!fD.size || fD.has(r.distrito)) &&
+      (!fI.size || fI.has(r.inmobiliaria)) &&
+      (!fE.size || fE.has(r.fase_proyecto))
     ).map(r=>r.proyecto));
     [..._mselGet('precios-proyecto')].forEach(p=>{ if(!validos.has(p)) _mselGet('precios-proyecto').delete(p); });
     renderMercadoPrecios();
@@ -4018,11 +4045,12 @@ function limpiarFiltrosVentas(){
 function limpiarFiltrosPrecios(){
   _mselGet('precios-distrito').clear();
   _mselGet('precios-inmobiliaria').clear();
+  _mselGet('precios-etapa').clear();
   _mselGet('precios-proyecto').clear();
   const inf = document.getElementById('msel-precios-inmobiliaria-filter'); if(inf) inf.value='';
   const pf = document.getElementById('msel-precios-proyecto-filter'); if(pf) pf.value='';
   _preciosPeriodoMeses = 6;
-  const per = document.getElementById('precios-periodo'); if(per) per.value = '6';
+  const lbl = document.getElementById('precios-periodo-label'); if(lbl) lbl.textContent = 'Últimos 6 meses';
   renderMercadoPrecios();
 }
 
@@ -4415,6 +4443,13 @@ const PRECIOS_BUCKETS = [[30,50],[50,60],[60,70],[70,80],[80,90]];
 // misma familia de colores que el mapa de Competencia (SECTOR_COLORS), sin ámbar ni rojo
 const PRECIOS_DORM_COLORS = {1:'#2f6df6', 2:'#19b36b', 3:'#7b5bd6'};
 let _preciosPeriodoMeses = 6; // null = todo el histórico
+function _setPreciosPeriodo(n){
+  _preciosPeriodoMeses = n==='todo' ? null : n;
+  const lbl = document.getElementById('precios-periodo-label');
+  if(lbl) lbl.textContent = n==='todo' ? 'Todo el histórico' : `Últimos ${n} meses`;
+  const panel = document.getElementById('msel-precios-periodo-panel'); if(panel) panel.style.display='none';
+  renderMercadoPrecios();
+}
 function _isoMenosMeses(n){
   const d = new Date();
   d.setMonth(d.getMonth() - n);
@@ -4434,31 +4469,44 @@ function renderMercadoPrecios(){
   const dataProy = D.mercado||[], dataVentas = D.mercadoVentas||[];
   if(!dataProy.length || !dataVentas.length){ wrap.innerHTML = '<div class="loading">Cargando...</div>'; return; }
 
-  const distritos = [...new Set(dataProy.map(r=>r.distrito).filter(Boolean))].sort();
-  _mselBuildList('precios-distrito', distritos, _mselGet('precios-distrito'));
-  const inmobiliarias = [...new Set(dataProy.map(r=>r.inmobiliaria).filter(Boolean))].sort();
-  _mselBuildList('precios-inmobiliaria', inmobiliarias, _mselGet('precios-inmobiliaria'));
+  // Distrito, Inmobiliaria y Etapa se acotan entre sí (cada uno solo muestra opciones
+  // compatibles con lo que ya está elegido en los otros dos); Proyecto se acota por los 3.
+  const fD = _mselGet('precios-distrito'), fI = _mselGet('precios-inmobiliaria'), fE = _mselGet('precios-etapa');
+  const distritos = [...new Set(dataProy.filter(r=>
+    (!fI.size || fI.has(r.inmobiliaria)) && (!fE.size || fE.has(r.fase_proyecto))
+  ).map(r=>r.distrito).filter(Boolean))].sort();
+  _mselBuildList('precios-distrito', distritos, fD);
+  const inmobiliarias = [...new Set(dataProy.filter(r=>
+    (!fD.size || fD.has(r.distrito)) && (!fE.size || fE.has(r.fase_proyecto))
+  ).map(r=>r.inmobiliaria).filter(Boolean))].sort();
+  _mselBuildList('precios-inmobiliaria', inmobiliarias, fI);
+  const etapas = [...new Set(dataProy.filter(r=>
+    (!fD.size || fD.has(r.distrito)) && (!fI.size || fI.has(r.inmobiliaria))
+  ).map(r=>r.fase_proyecto).filter(Boolean))].sort();
+  _mselBuildList('precios-etapa', etapas, fE);
   const dataPorFiltroSuperior = dataProy.filter(r=>
-    (!_mselGet('precios-distrito').size || _mselGet('precios-distrito').has(r.distrito)) &&
-    (!_mselGet('precios-inmobiliaria').size || _mselGet('precios-inmobiliaria').has(r.inmobiliaria))
+    (!fD.size || fD.has(r.distrito)) &&
+    (!fI.size || fI.has(r.inmobiliaria)) &&
+    (!fE.size || fE.has(r.fase_proyecto))
   );
   const proyectosDisponibles = [...new Set(dataPorFiltroSuperior.map(r=>r.proyecto).filter(Boolean))].sort();
   _mselBuildList('precios-proyecto', proyectosDisponibles, _mselGet('precios-proyecto'));
   _mselUpdateLabel('precios-distrito', _mselGet('precios-distrito'), 'Todos los distritos');
   _mselUpdateLabel('precios-inmobiliaria', _mselGet('precios-inmobiliaria'), 'Todas las inmobiliarias');
+  _mselUpdateLabel('precios-etapa', _mselGet('precios-etapa'), 'Todas las etapas');
   _mselUpdateLabel('precios-proyecto', _mselGet('precios-proyecto'), 'Elige proyectos a comparar');
 
   let proyectos;
   if(_mselGet('precios-proyecto').size){
     proyectos = proyectosDisponibles.filter(p=>_mselGet('precios-proyecto').has(p));
-  } else if(_mselGet('precios-distrito').size || _mselGet('precios-inmobiliaria').size){
+  } else if(_mselGet('precios-distrito').size || _mselGet('precios-inmobiliaria').size || _mselGet('precios-etapa').size){
     proyectos = proyectosDisponibles;
   } else {
     proyectos = [];
   }
 
   if(!proyectos.length){
-    wrap.innerHTML = '<div style="padding:44px 20px;text-align:center;color:var(--ink-4);font-size:13px">Elige uno o más proyectos (o filtra por distrito / inmobiliaria) para comparar precios.</div>';
+    wrap.innerHTML = '<div style="padding:44px 20px;text-align:center;color:var(--ink-4);font-size:13px">Elige uno o más proyectos (o filtra por distrito / inmobiliaria / etapa) para comparar precios.</div>';
     if(legend) legend.innerHTML = '';
     return;
   }
