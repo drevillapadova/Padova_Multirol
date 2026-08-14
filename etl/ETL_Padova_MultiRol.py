@@ -327,7 +327,7 @@ COLS_PROSPECTOS = [
 COLS_VISITAS = [
     'Proyecto','Etapa','TipoInmueble','NombresTitular','NroDocTitular',
     'CorreoElectronico','Distrito_Procedencia','ComoSeEntero','Vendedor',
-    'FechaVisita','FechaCitado','Descrip_UltimaAccion','VisitaUnicaxMesProyecto',
+    'FechaVisita','Fecha_CitaProspecto','Descrip_UltimaAccion','VisitaUnicaxMesProyecto',
 ]
 
 
