@@ -717,6 +717,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
@@ -1052,6 +1053,10 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
               </div>
             </div>
             <button class="btn-clear-fecha" title="Limpiar filtro" onclick="limpiarFiltroTipologia()">✕</button>
+            <button type="button" class="chip-sel" style="cursor:pointer;border:none;margin-left:auto" onclick="_exportarTablaExcel('#mkt-tipologia-wrap table', 'ventas_competencia')">
+              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">⬇</span>
+              <span>Descargar Excel</span>
+            </button>
           </div>
           <div id="mkt-tipologia-wrap" style="overflow-x:auto;max-width:100%;padding:0 18px 18px;box-sizing:border-box"></div>
         </div>
@@ -1113,6 +1118,10 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
             </div>
           </div>
           <button class="btn-clear-fecha" title="Limpiar filtros" onclick="limpiarFiltrosPrecios()" style="align-self:center">✕</button>
+          <button type="button" class="chip-sel" style="cursor:pointer;border:none;margin-left:auto" onclick="_exportarTablaExcel('#mkt-precios-wrap table', 'precios_competencia')">
+            <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">⬇</span>
+            <span>Descargar Excel</span>
+          </button>
         </div>
       </div>
       <div style="padding:0 20px 20px">
@@ -3972,6 +3981,21 @@ function _puntoEnPoligono(lat, lng, poligono){
 
 function _zonaSetLabel(txt){
   const lbl = document.getElementById('dibujar-zona-label'); if(lbl) lbl.textContent = txt;
+}
+
+// ── Descargar a Excel la tabla tal cual se ve en pantalla (respeta los filtros
+// que tengas puestos) — lee directo el <table> ya renderizado. ──
+function _exportarTablaExcel(tableSelector, nombreArchivo){
+  const table = document.querySelector(tableSelector);
+  if(!table || !table.rows.length){
+    alert('No hay datos para exportar todavía. Elige algún filtro primero.');
+    return;
+  }
+  const ws = XLSX.utils.table_to_sheet(table);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Datos');
+  const fecha = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `${nombreArchivo}_${fecha}.xlsx`);
 }
 
 function toggleDibujarZona(){
