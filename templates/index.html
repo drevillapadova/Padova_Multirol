@@ -3903,7 +3903,10 @@ const SECTOR_COLORS = {
 };
 const SECTOR_COLOR_DEFAULT = '#94a3b8';
 let _mercadoMap = null, _mercadoLayer = null;
-const _mselState = {}; // { key: Set } — un Set independiente por cada dropdown (distrito, proyecto, ventas-distrito, ventas-proyecto)
+// { stateKey: Set } — distrito/inmobiliaria/proyecto son compartidos por las 3 secciones
+// de Estudio de Mercado (varios dropdowns en pantalla pueden apuntar al mismo Set);
+// precios-etapa, tipologia-dorm, etc. siguen siendo propios de su sección.
+const _mselState = {};
 function _mselGet(key){ if(!_mselState[key]) _mselState[key] = new Set(); return _mselState[key]; }
 
 function setMercadoTab(tab, el){
@@ -3940,59 +3943,48 @@ document.addEventListener('click', e=>{
   }
 });
 
+// Vuelve a pintar las 3 secciones de Estudio de Mercado que dependen de
+// distrito/inmobiliaria/proyecto (compartidos), cada una solo si ya tiene datos cargados.
+function _renderMercadoCompartidas(){
+  renderMercadoMapa();
+  if(D.mercadoVentas && D.mercadoVentas.length){ renderMercadoVentas(); renderMercadoTipologia(); }
+  if(D.mercado && D.mercado.length && D.mercadoVentas && D.mercadoVentas.length) renderMercadoPrecios();
+}
+
 function mselToggleValue(key, val, checked){
   const set = _mselGet(key);
   if(checked) set.add(val); else set.delete(val);
 
   if(key==='distrito' || key==='inmobiliaria'){
+    // Distrito e Inmobiliaria son compartidos entre Mapa/Ventas/Precios: recortar
+    // Proyecto (también compartido) a lo que siga siendo válido en cascada.
     const data = D.mercado||[];
     const validos = new Set(data.filter(r=>
       (!_mselGet('distrito').size || _mselGet('distrito').has(r.distrito)) &&
       (!_mselGet('inmobiliaria').size || _mselGet('inmobiliaria').has(r.inmobiliaria))
     ).map(r=>r.proyecto));
     [..._mselGet('proyecto')].forEach(p=>{ if(!validos.has(p)) _mselGet('proyecto').delete(p); });
-    renderMercadoMapa();
+    _renderMercadoCompartidas();
   } else if(key==='proyecto'){
-    renderMercadoMapa();
-  } else if(key==='ventas-distrito' || key==='ventas-inmobiliaria'){
-    const data = D.mercadoVentas||[];
-    const validos = new Set(data.filter(r=>
-      (!_mselGet('ventas-distrito').size || _mselGet('ventas-distrito').has(r.distrito)) &&
-      (!_mselGet('ventas-inmobiliaria').size || _mselGet('ventas-inmobiliaria').has(r.inmobiliaria))
-    ).map(r=>r.proyecto));
-    [..._mselGet('ventas-proyecto')].forEach(p=>{ if(!validos.has(p)) _mselGet('ventas-proyecto').delete(p); });
-    renderMercadoVentas();
-    renderMercadoTipologia();
-  } else if(key==='ventas-proyecto'){
-    renderMercadoVentas();
-    renderMercadoTipologia();
+    _renderMercadoCompartidas();
   } else if(key==='tipologia-dorm'){
     renderMercadoTipologia();
-  } else if(key==='precios-distrito' || key==='precios-inmobiliaria' || key==='precios-etapa'){
+  } else if(key==='precios-etapa'){
+    // Etapa es propia de Precios, pero cruza con Distrito/Inmobiliaria (compartidos)
+    // y con Proyecto (compartido): se podan entre sí igual que antes.
     const data = D.mercado||[];
-    const fD = _mselGet('precios-distrito'), fI = _mselGet('precios-inmobiliaria'), fE = _mselGet('precios-etapa');
-    // podar de los otros 2 filtros las opciones que ya no calzan con lo recién elegido
-    if(key!=='precios-distrito'){
-      const validDistritos = new Set(data.filter(r=>(!fI.size||fI.has(r.inmobiliaria))&&(!fE.size||fE.has(r.fase_proyecto))).map(r=>r.distrito));
-      [...fD].forEach(d=>{ if(!validDistritos.has(d)) fD.delete(d); });
-    }
-    if(key!=='precios-inmobiliaria'){
-      const validInmob = new Set(data.filter(r=>(!fD.size||fD.has(r.distrito))&&(!fE.size||fE.has(r.fase_proyecto))).map(r=>r.inmobiliaria));
-      [...fI].forEach(i=>{ if(!validInmob.has(i)) fI.delete(i); });
-    }
-    if(key!=='precios-etapa'){
-      const validEtapas = new Set(data.filter(r=>(!fD.size||fD.has(r.distrito))&&(!fI.size||fI.has(r.inmobiliaria))).map(r=>r.fase_proyecto));
-      [...fE].forEach(e=>{ if(!validEtapas.has(e)) fE.delete(e); });
-    }
+    const fD = _mselGet('distrito'), fI = _mselGet('inmobiliaria'), fE = _mselGet('precios-etapa');
+    const validDistritos = new Set(data.filter(r=>(!fI.size||fI.has(r.inmobiliaria))&&(!fE.size||fE.has(r.fase_proyecto))).map(r=>r.distrito));
+    [...fD].forEach(d=>{ if(!validDistritos.has(d)) fD.delete(d); });
+    const validInmob = new Set(data.filter(r=>(!fD.size||fD.has(r.distrito))&&(!fE.size||fE.has(r.fase_proyecto))).map(r=>r.inmobiliaria));
+    [...fI].forEach(i=>{ if(!validInmob.has(i)) fI.delete(i); });
     const validos = new Set(data.filter(r=>
       (!fD.size || fD.has(r.distrito)) &&
       (!fI.size || fI.has(r.inmobiliaria)) &&
       (!fE.size || fE.has(r.fase_proyecto))
     ).map(r=>r.proyecto));
-    [..._mselGet('precios-proyecto')].forEach(p=>{ if(!validos.has(p)) _mselGet('precios-proyecto').delete(p); });
-    renderMercadoPrecios();
-  } else if(key==='precios-proyecto'){
-    renderMercadoPrecios();
+    [..._mselGet('proyecto')].forEach(p=>{ if(!validos.has(p)) _mselGet('proyecto').delete(p); });
+    _renderMercadoCompartidas();
   }
 }
 
@@ -4003,13 +3995,18 @@ function mselFilterList(key){
   });
 }
 
-function _mselBuildList(key, options, selectedSet){
-  const list = document.getElementById('msel-'+key+'-list');
+function _mselBuildList(domKey, options, selectedSet, stateKey){
+  // domKey: id del dropdown en pantalla (uno por sección). stateKey: Set que en
+  // realidad se actualiza al tildar (compartido entre secciones para distrito/
+  // inmobiliaria/proyecto). Si no se pasa stateKey, es el mismo domKey (caso de
+  // los filtros que siguen siendo propios de una sola sección).
+  stateKey = stateKey || domKey;
+  const list = document.getElementById('msel-'+domKey+'-list');
   if(!list) return;
   list.innerHTML = options.map(opt=>{
     const esc = String(opt).replace(/"/g,'&quot;');
     return `<label class="msel-item" data-val="${esc}">
-      <input type="checkbox" ${selectedSet.has(opt)?'checked':''} onchange="mselToggleValue('${key}', this.closest('.msel-item').dataset.val, this.checked)">
+      <input type="checkbox" ${selectedSet.has(opt)?'checked':''} onchange="mselToggleValue('${stateKey}', this.closest('.msel-item').dataset.val, this.checked)">
       <span>${esc}</span>
     </label>`;
   }).join('') || '<div style="padding:8px;color:var(--ink-4);font-size:12px">Sin resultados</div>';
@@ -4022,36 +4019,36 @@ function _mselUpdateLabel(key, selectedSet, defaultTxt){
   lbl.textContent = n ? `${n} seleccionado${n>1?'s':''}` : defaultTxt;
 }
 
-function limpiarFiltrosMercado(){
+// Distrito/Inmobiliaria/Proyecto son compartidos entre las 3 secciones de Estudio
+// de Mercado: "Limpiar" en cualquiera de ellas limpia el mismo estado en las 3.
+function _limpiarFiltrosCompartidos(){
   _mselGet('distrito').clear();
   _mselGet('inmobiliaria').clear();
   _mselGet('proyecto').clear();
+  ['msel-inmobiliaria-filter','msel-proyecto-filter',
+   'msel-ventas-inmobiliaria-filter','msel-ventas-proyecto-filter',
+   'msel-precios-inmobiliaria-filter','msel-precios-proyecto-filter'].forEach(id=>{
+    const el = document.getElementById(id); if(el) el.value='';
+  });
+}
+
+function limpiarFiltrosMercado(){
+  _limpiarFiltrosCompartidos();
   const buscar = document.getElementById('mkt-mercado-buscar'); if(buscar) buscar.value='';
-  const inf = document.getElementById('msel-inmobiliaria-filter'); if(inf) inf.value='';
-  const pf = document.getElementById('msel-proyecto-filter'); if(pf) pf.value='';
-  renderMercadoMapa();
+  _renderMercadoCompartidas();
 }
 
 function limpiarFiltrosVentas(){
-  _mselGet('ventas-distrito').clear();
-  _mselGet('ventas-inmobiliaria').clear();
-  _mselGet('ventas-proyecto').clear();
-  const inf = document.getElementById('msel-ventas-inmobiliaria-filter'); if(inf) inf.value='';
-  const pf = document.getElementById('msel-ventas-proyecto-filter'); if(pf) pf.value='';
-  renderMercadoVentas();
-  if(typeof renderMercadoTipologia!=='undefined') renderMercadoTipologia();
+  _limpiarFiltrosCompartidos();
+  _renderMercadoCompartidas();
 }
 
 function limpiarFiltrosPrecios(){
-  _mselGet('precios-distrito').clear();
-  _mselGet('precios-inmobiliaria').clear();
+  _limpiarFiltrosCompartidos();
   _mselGet('precios-etapa').clear();
-  _mselGet('precios-proyecto').clear();
-  const inf = document.getElementById('msel-precios-inmobiliaria-filter'); if(inf) inf.value='';
-  const pf = document.getElementById('msel-precios-proyecto-filter'); if(pf) pf.value='';
   _preciosPeriodoMeses = 6;
   const lbl = document.getElementById('precios-periodo-label'); if(lbl) lbl.textContent = 'Últimos 6 meses';
-  renderMercadoPrecios();
+  _renderMercadoCompartidas();
 }
 
 // Zoom de referencia: al que un popup se ve a tamaño normal (escala 1).
@@ -4193,25 +4190,25 @@ function renderMercadoVentas(){
   const subEl = document.getElementById('mkt-ventas-sub');
   if(!data.length){ if(subEl) subEl.textContent = 'Cargando...'; return; }
 
-  // Distritos e inmobiliarias: todos. Proyectos: en cascada según lo elegido arriba.
+  // Distrito/Inmobiliaria/Proyecto son compartidos con Mapa de Competencia y Precios.
   const distritos = [...new Set(data.map(r=>r.distrito).filter(Boolean))].sort();
-  _mselBuildList('ventas-distrito', distritos, _mselGet('ventas-distrito'));
+  _mselBuildList('ventas-distrito', distritos, _mselGet('distrito'), 'distrito');
   const inmobiliarias = [...new Set(data.map(r=>r.inmobiliaria).filter(Boolean))].sort();
-  _mselBuildList('ventas-inmobiliaria', inmobiliarias, _mselGet('ventas-inmobiliaria'));
+  _mselBuildList('ventas-inmobiliaria', inmobiliarias, _mselGet('inmobiliaria'), 'inmobiliaria');
   const dataPorFiltroSuperior = data.filter(r=>
-    (!_mselGet('ventas-distrito').size || _mselGet('ventas-distrito').has(r.distrito)) &&
-    (!_mselGet('ventas-inmobiliaria').size || _mselGet('ventas-inmobiliaria').has(r.inmobiliaria))
+    (!_mselGet('distrito').size || _mselGet('distrito').has(r.distrito)) &&
+    (!_mselGet('inmobiliaria').size || _mselGet('inmobiliaria').has(r.inmobiliaria))
   );
   const proyectos = [...new Set(dataPorFiltroSuperior.map(r=>r.proyecto).filter(Boolean))].sort();
-  _mselBuildList('ventas-proyecto', proyectos, _mselGet('ventas-proyecto'));
-  _mselUpdateLabel('ventas-distrito', _mselGet('ventas-distrito'), 'Todos los distritos');
-  _mselUpdateLabel('ventas-inmobiliaria', _mselGet('ventas-inmobiliaria'), 'Todas las inmobiliarias');
-  _mselUpdateLabel('ventas-proyecto', _mselGet('ventas-proyecto'), 'Todos los proyectos');
+  _mselBuildList('ventas-proyecto', proyectos, _mselGet('proyecto'), 'proyecto');
+  _mselUpdateLabel('ventas-distrito', _mselGet('distrito'), 'Todos los distritos');
+  _mselUpdateLabel('ventas-inmobiliaria', _mselGet('inmobiliaria'), 'Todas las inmobiliarias');
+  _mselUpdateLabel('ventas-proyecto', _mselGet('proyecto'), 'Todos los proyectos');
 
   let filtrado = data;
-  if(_mselGet('ventas-distrito').size) filtrado = filtrado.filter(r=>_mselGet('ventas-distrito').has(r.distrito));
-  if(_mselGet('ventas-inmobiliaria').size) filtrado = filtrado.filter(r=>_mselGet('ventas-inmobiliaria').has(r.inmobiliaria));
-  if(_mselGet('ventas-proyecto').size) filtrado = filtrado.filter(r=>_mselGet('ventas-proyecto').has(r.proyecto));
+  if(_mselGet('distrito').size) filtrado = filtrado.filter(r=>_mselGet('distrito').has(r.distrito));
+  if(_mselGet('inmobiliaria').size) filtrado = filtrado.filter(r=>_mselGet('inmobiliaria').has(r.inmobiliaria));
+  if(_mselGet('proyecto').size) filtrado = filtrado.filter(r=>_mselGet('proyecto').has(r.proyecto));
 
   if(subEl) subEl.textContent = `Actualizado: ${D.updatedAt} · ${filtrado.length.toLocaleString('es-PE')} ventas registradas`;
 
@@ -4279,9 +4276,9 @@ function renderMercadoTipologia(){
   _mselBuildList('tipologia-dorm', dormOpciones, _mselGet('tipologia-dorm'));
   _mselUpdateLabel('tipologia-dorm', _mselGet('tipologia-dorm'), 'Todas');
   const filtroDorm = _mselGet('tipologia-dorm');
-  const filtroDistrito = _mselGet('ventas-distrito');
-  const filtroInmobiliaria = _mselGet('ventas-inmobiliaria');
-  const filtroProyecto = _mselGet('ventas-proyecto');
+  const filtroDistrito = _mselGet('distrito');
+  const filtroInmobiliaria = _mselGet('inmobiliaria');
+  const filtroProyecto = _mselGet('proyecto');
 
   // Igual que Precios Competencia: no se calcula nada pesado hasta que elijas algún filtro.
   if(!filtroDorm.size && !filtroDistrito.size && !filtroInmobiliaria.size && !filtroProyecto.size){
@@ -4469,17 +4466,18 @@ function renderMercadoPrecios(){
   const dataProy = D.mercado||[], dataVentas = D.mercadoVentas||[];
   if(!dataProy.length || !dataVentas.length){ wrap.innerHTML = '<div class="loading">Cargando...</div>'; return; }
 
-  // Distrito, Inmobiliaria y Etapa se acotan entre sí (cada uno solo muestra opciones
-  // compatibles con lo que ya está elegido en los otros dos); Proyecto se acota por los 3.
-  const fD = _mselGet('precios-distrito'), fI = _mselGet('precios-inmobiliaria'), fE = _mselGet('precios-etapa');
+  // Distrito e Inmobiliaria son compartidos con Mapa de Competencia y Ventas Competencia.
+  // Etapa es propia de esta sección. Los 3 se acotan entre sí; Proyecto (también
+  // compartido) se acota por los 3.
+  const fD = _mselGet('distrito'), fI = _mselGet('inmobiliaria'), fE = _mselGet('precios-etapa');
   const distritos = [...new Set(dataProy.filter(r=>
     (!fI.size || fI.has(r.inmobiliaria)) && (!fE.size || fE.has(r.fase_proyecto))
   ).map(r=>r.distrito).filter(Boolean))].sort();
-  _mselBuildList('precios-distrito', distritos, fD);
+  _mselBuildList('precios-distrito', distritos, fD, 'distrito');
   const inmobiliarias = [...new Set(dataProy.filter(r=>
     (!fD.size || fD.has(r.distrito)) && (!fE.size || fE.has(r.fase_proyecto))
   ).map(r=>r.inmobiliaria).filter(Boolean))].sort();
-  _mselBuildList('precios-inmobiliaria', inmobiliarias, fI);
+  _mselBuildList('precios-inmobiliaria', inmobiliarias, fI, 'inmobiliaria');
   const etapas = [...new Set(dataProy.filter(r=>
     (!fD.size || fD.has(r.distrito)) && (!fI.size || fI.has(r.inmobiliaria))
   ).map(r=>r.fase_proyecto).filter(Boolean))].sort();
@@ -4490,16 +4488,16 @@ function renderMercadoPrecios(){
     (!fE.size || fE.has(r.fase_proyecto))
   );
   const proyectosDisponibles = [...new Set(dataPorFiltroSuperior.map(r=>r.proyecto).filter(Boolean))].sort();
-  _mselBuildList('precios-proyecto', proyectosDisponibles, _mselGet('precios-proyecto'));
-  _mselUpdateLabel('precios-distrito', _mselGet('precios-distrito'), 'Todos los distritos');
-  _mselUpdateLabel('precios-inmobiliaria', _mselGet('precios-inmobiliaria'), 'Todas las inmobiliarias');
+  _mselBuildList('precios-proyecto', proyectosDisponibles, _mselGet('proyecto'), 'proyecto');
+  _mselUpdateLabel('precios-distrito', _mselGet('distrito'), 'Todos los distritos');
+  _mselUpdateLabel('precios-inmobiliaria', _mselGet('inmobiliaria'), 'Todas las inmobiliarias');
   _mselUpdateLabel('precios-etapa', _mselGet('precios-etapa'), 'Todas las etapas');
-  _mselUpdateLabel('precios-proyecto', _mselGet('precios-proyecto'), 'Elige proyectos a comparar');
+  _mselUpdateLabel('precios-proyecto', _mselGet('proyecto'), 'Elige proyectos a comparar');
 
   let proyectos;
-  if(_mselGet('precios-proyecto').size){
-    proyectos = proyectosDisponibles.filter(p=>_mselGet('precios-proyecto').has(p));
-  } else if(_mselGet('precios-distrito').size || _mselGet('precios-inmobiliaria').size || _mselGet('precios-etapa').size){
+  if(_mselGet('proyecto').size){
+    proyectos = proyectosDisponibles.filter(p=>_mselGet('proyecto').has(p));
+  } else if(_mselGet('distrito').size || _mselGet('inmobiliaria').size || _mselGet('precios-etapa').size){
     proyectos = proyectosDisponibles;
   } else {
     proyectos = [];
