@@ -2235,11 +2235,18 @@ function _renderFlCrossTable(prosp){
   const colDim = availDims.find(d=>d.val===_flCrossCols)||availDims[1];
   const _MES_ORDER=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Setiembre','Octubre','Noviembre','Diciembre'];
   const _mesIdx=v=>_MES_ORDER.findIndex(m=>m.toLowerCase()===String(v).toLowerCase());
+  // "Sin motivo" = leads todavía abiertos (sin Motivo_Cerrado_Actual): si el
+  // cruce usa la dimensión Motivo Cerrado, se excluyen — no son leads cerrados.
+  const motivoDim = availDims.find(d=>d.val==='motivo');
+  const prospData = (motivoDim && (rowDim.val==='motivo' || colDim.val==='motivo'))
+    ? prosp.filter(r=>motivoDim.fn(r)!=='Sin motivo')
+    : prosp;
+
   // Acumular sobre TODAS las categorías primero (sin recortar), para no perder
   // registros del total al agrupar filas/columnas de baja frecuencia en "Otros".
   const rawData = {};
   const rowTotals = {}, colTotals = {};
-  prosp.forEach(r=>{
+  prospData.forEach(r=>{
     const rk = rowDim.fn(r)||'—';
     const ck = colDim.fn(r)||'—';
     if(!rawData[rk]) rawData[rk]={};
