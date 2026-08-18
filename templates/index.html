@@ -1653,6 +1653,10 @@ function renderDirector(){
   });
   const mesEntries=Object.entries(mesMapa).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,12);
   const totales=mesEntries.reduce((a,[,d])=>({n:a.n+d.n,monto:a.monto+d.monto}),{n:0,monto:0});
+  {
+    const _allM2Meses=mesEntries.flatMap(([,d])=>d.m2s||[]);
+    totales.pm2=_allM2Meses.length?Math.round(_allM2Meses.reduce((a,b)=>a+b,0)/_allM2Meses.length):null;
+  }
   const mesRows=mesEntries.map(([,d])=>{
     const m2avg=d.m2s.length?Math.round(d.m2s.reduce((a,b)=>a+b,0)/d.m2s.length):null;
     return`<tr>
@@ -1778,6 +1782,7 @@ function renderDirector(){
           +'<span style="font-size:11px;font-weight:500;color:'+barCol+';min-width:32px;text-align:left">'+(r.cumplPct!==null?r.cumplPct+'%':'—')+'</span>'
         +'</div></td>'
         +'<td style="'+_tdC+';font-weight:'+(isTotal?'700':'500')+';color:var(--ink)">'+(r.monto?fMFull(r.monto):'—')+'</td>'
+        +'<td style="'+_tdC+';font-weight:'+(isTotal?'700':'500')+';color:var(--ink-3)">'+(r.pm2?'S/ '+fN(r.pm2):'—')+'</td>'
         +'<td style="'+_tdC+';font-weight:'+(isTotal?'700':'500')+';color:var(--brand)">'+r.seps+'</td>'
         +'</tr>';
     };
@@ -1789,21 +1794,25 @@ function renderDirector(){
         const cumplPct=metaP.uni?Math.round(pV.length/metaP.uni*100):null;
         const montoP=pV.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
         const sepsP=(D.stock||[]).filter(r=>matchProj(r.Proyecto,p)&&_matchTipo(r,_tipo)&&r.FechaSepDefinitiva&&inPeriodFn(r.FechaSepDefinitiva));
-        return{p,n:pV.length,meta:metaP.uni,cumplPct,monto:montoP,seps:sepsP.length};
+        const m2sP=pV.map(r=>stockM2[String(r.Proyecto||'').toUpperCase()+'||'+String(r.NroInmueble||'').trim()]).filter(Boolean);
+        const pm2P=m2sP.length?Math.round(m2sP.reduce((a,b)=>a+b,0)/m2sP.length):null;
+        return{p,n:pV.length,meta:metaP.uni,cumplPct,monto:montoP,seps:sepsP.length,pm2:pm2P,_m2s:m2sP};
       });
-      const tot={p:'TOTAL',n:rows.reduce((a,r)=>a+r.n,0),meta:rows.reduce((a,r)=>a+(r.meta||0),0),monto:rows.reduce((a,r)=>a+r.monto,0),seps:rows.reduce((a,r)=>a+r.seps,0)};
+      const allM2=rows.flatMap(r=>r._m2s);
+      const tot={p:'TOTAL',n:rows.reduce((a,r)=>a+r.n,0),meta:rows.reduce((a,r)=>a+(r.meta||0),0),monto:rows.reduce((a,r)=>a+r.monto,0),seps:rows.reduce((a,r)=>a+r.seps,0),pm2:allM2.length?Math.round(allM2.reduce((a,b)=>a+b,0)/allM2.length):null};
       tot.cumplPct=tot.meta?Math.round(tot.n/tot.meta*100):null;
       return{rows,tot};
     };
 
     const _buildProjTable=(rows,tot)=>'<div style="overflow-x:auto"><table class="tbl" style="width:100%;table-layout:fixed;border-collapse:collapse">'
-      +'<colgroup><col style="width:26%"><col style="width:13%"><col style="width:10%"><col style="width:18%"><col style="width:20%"><col style="width:13%"></colgroup>'
+      +'<colgroup><col style="width:22%"><col style="width:11%"><col style="width:9%"><col style="width:16%"><col style="width:17%"><col style="width:14%"><col style="width:11%"></colgroup>'
       +'<thead><tr>'
         +'<th style="'+_thL+'">PROYECTO</th>'
         +'<th style="'+_thS+'">VENDIDAS</th>'
         +'<th style="'+_thS+'">META</th>'
         +'<th style="'+_thS+'">AVANCE</th>'
         +'<th style="'+_thS+'">MONTO</th>'
+        +'<th style="'+_thS+'">PM2</th>'
         +'<th style="'+_thS+'">SEPS.</th>'
       +'</tr></thead>'
       +'<tbody>'+rows.map(_projRowHTML).join('')+_projRowHTML(tot)+'</tbody>'
@@ -1828,11 +1837,18 @@ function renderDirector(){
     const mesRowsA=_buildMesRows(mesEntries);
     const mesRowsB=_dirComp?_buildMesRows(mesEntries_B):'';
 
+    const _mesTotalRow=tot=>'<tr style="font-weight:700;border-top:2px solid var(--line);background:var(--panel)">'
+      +'<td style="text-align:left;padding:9px 12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12px;color:var(--ink)">TOTAL</td>'
+      +'<td style="text-align:center;padding:9px 12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12px;color:var(--ink)">'+tot.n+'</td>'
+      +'<td style="text-align:center;padding:9px 12px;font-family:var(--mono);font-size:12px;color:var(--ink)">'+fFull(tot.monto)+'</td>'
+      +'<td style="text-align:center;padding:9px 12px;font-family:var(--mono);font-size:12px;color:var(--ink-3)">'+(tot.pm2?'S/ '+fN(tot.pm2):'—')+'</td>'
+      +'</tr>';
+
     const _mesTable=(rows,tot,lbl)=>'<div class="card">'
       +'<div class="card-hd"><div><h3>Ventas por mes</h3><p>'+lbl+' · '+tot.n+' und. · '+fM(tot.monto)+'</p></div></div>'
       +'<div style="overflow-x:auto"><table class="tbl" style="width:100%">'
         +'<thead><tr><th style="'+_thM+';text-align:left">MES</th><th style="'+_thM+'">UNID.</th><th style="'+_thM+'">MONTO</th><th style="'+_thM+'">PRECIO/m²</th></tr></thead>'
-        +'<tbody>'+rows+'</tbody>'
+        +'<tbody>'+rows+_mesTotalRow(tot)+'</tbody>'
       +'</table></div>'
       +'</div>';
 
