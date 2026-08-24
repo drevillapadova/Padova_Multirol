@@ -2446,6 +2446,7 @@ function renderFunnelMkt(){
     if(from||to) vi=vi.filter(r=>_matchRange(r.FechaVisita, from, to));
     if(_flExcludeExt) vi=vi.filter(r=>!_isProper(r.ComoSeEntero));
     let sp=(D.stock||[]).filter(r=>String(r.FechaSepDefinitiva||'').trim()&&String(r.FechaSepDefinitiva||'')!=='nan');
+    sp=sp.filter(r=>normStr(r.TipoInmueble||'').includes('departamento')); // igual que Ventas: solo Departamento, no estacionamiento/depósito/etc.
     if(proj) sp=sp.filter(r=>matchProj(r.Proyecto, proj));
     if(from||to) sp=sp.filter(r=>_matchRange(r.FechaSepDefinitiva, from, to));
     if(_flExcludeExt) sp=sp.filter(r=>!_isProper(r.ComoSeEntero));
@@ -3156,13 +3157,20 @@ function renderAdmVentas(){
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:26px">
     <div class="card">
-      <div class="card-hd"><div><h3>Proyección de cobros — por mes</h3><p>Suma mensual de Flujo de Caja (Enero 2025 – Diciembre 2027) · USD a S/ referencial ×${FX_FC}</p></div></div>
-      <div style="height:260px;padding:8px 16px 16px"><canvas id="adm-fc-chart-mes"></canvas></div>
+      <div class="card-hd"><div><h3>Proyección de cobros — por mes</h3><p>Suma mensual de Flujo de Caja · USD a S/ referencial ×${FX_FC} · <b style="color:var(--brand)">clic en el gráfico para ver el detalle por mes</b></p></div></div>
+      <div style="height:260px;padding:8px 16px 16px;cursor:pointer" title="Clic para ver/ocultar el detalle por mes"><canvas id="adm-fc-chart-mes"></canvas></div>
     </div>
     <div class="card">
       <div class="card-hd"><div><h3>Proyección mensual — por proyecto</h3><p>Mismo periodo, apilado por proyecto</p></div></div>
       <div style="height:260px;padding:8px 16px 16px"><canvas id="adm-fc-chart-proy"></canvas></div>
     </div>
+  </div>
+  <div class="card" id="adm-fc-tabla-card" style="margin-bottom:26px;display:none">
+    <div class="card-hd" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+      <div><h3>Proyección de cobros — detalle por mes</h3><p>Cada moneda en su columna (sin convertir) · <b>Programados</b> = operaciones con monto ese mes (Flujo de Caja) · <b>Reales</b> = desembolsos ya recibidos (Saldo Financiar en Ingreso x Depósito)</p></div>
+      <button onclick="toggleProyeccionTabla(false)" title="Cerrar" style="background:transparent;border:none;color:var(--ink-4);font-size:16px;cursor:pointer;line-height:1;padding:2px 6px;flex-shrink:0">✕</button>
+    </div>
+    <div id="adm-fc-tabla-wrap" style="overflow:auto;max-height:520px"></div>
   </div>
   <div class="section-title"><h2>Cobranza mensual — real vs. proyectada</h2><div class="hint">Pasado = depósitos reales (Ingreso x Depósito) · Futuro = proyección (Flujo de Caja)</div></div>
   <div class="card" style="margin-bottom:26px">
@@ -3181,15 +3189,162 @@ function renderAdmVentas(){
   </div>`;
   renderMondayCobros();
   renderFlujoCajaCharts(fc, FX_FC);
+  renderProyeccionTabla(fc, ingDep);
   renderCobranzaRealChart(fc, ingDep, FX_FC);
 }
 
-function renderFlujoCajaCharts(fc, FX){
-  const MESES_FC = [];
+// Meses de Flujo de Caja (Ene 2025 – Dic 2027) recortados al filtro de fechas de
+// Adm. de Ventas. Cada fila de Flujo de Caja reparte sus montos en columnas
+// mensuales, así que el filtro acota los MESES mostrados, no las filas.
+const _FC_MESES_TXT = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Setiembre','Octubre','Novienbre','Diciembre'];
+const _FC_MM_CORTO  = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
+function _mesesFlujoCaja(){
+  const desde = (document.getElementById('adm-date-desde')?.value||'').slice(0,7);
+  const hasta = (document.getElementById('adm-date-hasta')?.value||'').slice(0,7);
+  const out = [];
   ['2025','2026','2027'].forEach(y=>{
-    ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Setiembre','Octubre','Novienbre','Diciembre'].forEach(m=>MESES_FC.push(m+'_'+y));
+    _FC_MESES_TXT.forEach((m,i)=>{
+      const ym = y+'-'+String(i+1).padStart(2,'0');
+      if(desde && ym < desde) return;
+      if(hasta && ym > hasta) return;
+      out.push({ col:m+'_'+y, label:_FC_MM_CORTO[i]+' '+y, labelLargo:m+' '+y, ym });
+    });
   });
-  const mesLabels = MESES_FC.map(c=>c.replace('_',' '));
+  return out;
+}
+
+// La tabla de detalle arranca oculta y se muestra/oculta al hacer clic en el
+// gráfico "Proyección de cobros — por mes" (el estado sobrevive a los re-render).
+let _admProyTablaVisible = false;
+function toggleProyeccionTabla(forzar){
+  _admProyTablaVisible = (forzar===undefined) ? !_admProyTablaVisible : !!forzar;
+  const card = document.getElementById('adm-fc-tabla-card');
+  if(card){
+    card.style.display = _admProyTablaVisible ? '' : 'none';
+    if(_admProyTablaVisible) card.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+}
+
+// Tabla mensual de la proyección de cobros (mismos datos que el gráfico de barras):
+// una fila por mes, cada moneda en su columna (sin convertir), con el monto
+// separado por tipo de financiamiento (CD = Crédito Directo, HIP = Hipotecario)
+// y la cantidad de desembolsos programados vs. ya efectuados.
+function renderProyeccionTabla(fc, ingDep){
+  const wrap = document.getElementById('adm-fc-tabla-wrap');
+  const card = document.getElementById('adm-fc-tabla-card');
+  if(card) card.style.display = _admProyTablaVisible ? '' : 'none';
+  if(!wrap) return;
+  if(!fc.length){ wrap.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink-4);font-size:13px">Sin datos de Flujo de Caja</div>'; return; }
+
+  const meses = _mesesFlujoCaja();
+  if(!meses.length){ wrap.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink-4);font-size:13px">El rango de fechas elegido no incluye ningún mes de la proyección (Ene 2025 – Dic 2027)</div>'; return; }
+
+  const _esUSD = r => String(r.Tipo_Moneda||'').toUpperCase().includes('DOLAR');
+  const _n = v => { const x=parseFloat(v); return isNaN(x)?0:x; };
+  // CD = Crédito Directo · HIP = Crédito Hipotecario · el resto (Fovipol, Contado,
+  // Fovimar, Ahorro) va a "Otros" para que CD + HIP + Otros cuadre con el total.
+  const _grupoFin = r => {
+    const t = normStr(r.TipoFinanciamiento||'');
+    if(t.includes('directo'))     return 'cd';
+    if(t.includes('hipotecario')) return 'hip';
+    return 'otros';
+  };
+  const grupos = { cd:{S:[],D:[]}, hip:{S:[],D:[]}, otros:{S:[],D:[]} };
+  fc.forEach(r=>{ grupos[_grupoFin(r)][_esUSD(r)?'D':'S'].push(r); });
+
+  // Desembolsos ya efectuados: en Ingreso x Depósito, un "desembolso" es el
+  // Saldo Financiar (cuando la entidad libera el crédito), no los pagos del cliente.
+  const desembReales = {};
+  (ingDep||[]).forEach(r=>{
+    if(!normStr(r.Tipo_Cuota||'').includes('saldo financiar')) return;
+    const ym = String(r.Fecha_Pago||r.Fecha_Programada||'').trim().slice(0,7);
+    if(/^\d{4}-\d{2}$/.test(ym)) desembReales[ym] = (desembReales[ym]||0)+1;
+  });
+
+  const hoyYM = new Date().toISOString().slice(0,7);
+  const fSol = n => n ? 'S/ '+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+  const fUsd = n => n ? '$ '+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+  const suma = (arr,col) => arr.reduce((s,r)=>s+_n(r[col]),0);
+
+  const filas = meses.map(m=>{
+    const cantProg = fc.filter(r=>_n(r[m.col])>0).length;
+    return {
+      ...m,
+      cantProg,
+      cantReal: desembReales[m.ym]||0,
+      cdS:  suma(grupos.cd.S,  m.col), cdD:  suma(grupos.cd.D,  m.col),
+      hipS: suma(grupos.hip.S, m.col), hipD: suma(grupos.hip.D, m.col),
+      otrS: suma(grupos.otros.S, m.col), otrD: suma(grupos.otros.D, m.col),
+      esPasado: m.ym < hoyYM,
+      esActual: m.ym === hoyYM,
+    };
+  });
+  const T = k => filas.reduce((s,f)=>s+f[k],0);
+  const _mono = 'text-align:right;font-family:var(--mono);font-size:12px';
+
+  const rowsHtml = filas.map(f=>{
+    const estilo = f.esActual ? 'background:var(--brand-soft);font-weight:600'
+                 : (f.esPasado ? 'color:var(--ink-3)' : '');
+    return `<tr style="${estilo}">
+      <td style="text-align:left;white-space:nowrap">${f.label}${f.esActual?' <span style="font-size:10px;color:var(--brand)">· mes actual</span>':''}</td>
+      <td style="text-align:center">${f.cantProg||'—'}</td>
+      <td style="text-align:center;color:${f.cantReal?'var(--ok)':'var(--ink-4)'};font-weight:${f.cantReal?'600':'400'}">${f.cantReal||'—'}</td>
+      <td style="${_mono}">${fSol(f.cdS)}</td>
+      <td style="${_mono}">${fUsd(f.cdD)}</td>
+      <td style="${_mono}">${fSol(f.hipS)}</td>
+      <td style="${_mono}">${fUsd(f.hipD)}</td>
+      <td style="${_mono};color:var(--ink-3)">${fSol(f.otrS)}</td>
+      <td style="${_mono};color:var(--ink-3)">${fUsd(f.otrD)}</td>
+      <td style="${_mono};font-weight:600;background:var(--brand-soft);color:var(--brand)">${fSol(f.cdS+f.hipS+f.otrS)}</td>
+      <td style="${_mono};font-weight:600;background:var(--brand-soft);color:var(--brand)">${fUsd(f.cdD+f.hipD+f.otrD)}</td>
+    </tr>`;
+  }).join('');
+
+  const _thG = 'text-align:center;border-bottom:1px solid var(--line-2)';
+  wrap.innerHTML = `<table class="tbl" style="width:100%;min-width:1080px">
+    <thead style="position:sticky;top:0;z-index:2;background:var(--panel)">
+      <tr>
+        <th rowspan="2" style="text-align:left;vertical-align:bottom">Mes</th>
+        <th colspan="2" style="${_thG}">Desembolsos</th>
+        <th colspan="2" style="${_thG}">Crédito Directo (CD)</th>
+        <th colspan="2" style="${_thG}">Hipotecario (HIP)</th>
+        <th colspan="2" style="${_thG}">Otros financ.</th>
+        <th colspan="2" style="${_thG};background:var(--brand-soft);color:var(--brand)">Total</th>
+      </tr>
+      <tr>
+        <th style="text-align:center;font-size:9.5px">Program.</th>
+        <th style="text-align:center;font-size:9.5px">Reales</th>
+        <th style="text-align:right;font-size:9.5px">S/</th>
+        <th style="text-align:right;font-size:9.5px">$</th>
+        <th style="text-align:right;font-size:9.5px">S/</th>
+        <th style="text-align:right;font-size:9.5px">$</th>
+        <th style="text-align:right;font-size:9.5px">S/</th>
+        <th style="text-align:right;font-size:9.5px">$</th>
+        <th style="text-align:right;font-size:9.5px;background:var(--brand-soft);color:var(--brand)">S/</th>
+        <th style="text-align:right;font-size:9.5px;background:var(--brand-soft);color:var(--brand)">$</th>
+      </tr>
+    </thead>
+    <tbody>${rowsHtml}</tbody>
+    <tfoot><tr style="font-weight:700;border-top:2px solid var(--line-2);background:var(--bg)">
+      <td style="text-align:left;text-transform:uppercase;letter-spacing:.03em">Total</td>
+      <td style="text-align:center">${T('cantProg')}</td>
+      <td style="text-align:center;color:var(--ok)">${T('cantReal')}</td>
+      <td style="${_mono}">${fSol(T('cdS'))}</td>
+      <td style="${_mono}">${fUsd(T('cdD'))}</td>
+      <td style="${_mono}">${fSol(T('hipS'))}</td>
+      <td style="${_mono}">${fUsd(T('hipD'))}</td>
+      <td style="${_mono};color:var(--ink-3)">${fSol(T('otrS'))}</td>
+      <td style="${_mono};color:var(--ink-3)">${fUsd(T('otrD'))}</td>
+      <td style="${_mono};background:var(--brand-soft);color:var(--brand)">${fSol(T('cdS')+T('hipS')+T('otrS'))}</td>
+      <td style="${_mono};background:var(--brand-soft);color:var(--brand)">${fUsd(T('cdD')+T('hipD')+T('otrD'))}</td>
+    </tr></tfoot>
+  </table>`;
+}
+
+function renderFlujoCajaCharts(fc, FX){
+  const mesesFC = _mesesFlujoCaja();
+  const MESES_FC = mesesFC.map(m=>m.col);
+  const mesLabels = mesesFC.map(m=>m.labelLargo);
   const _convMes = (r,col) => {
     const n = parseFloat(r[col]);
     if(isNaN(n)) return 0;
@@ -3204,10 +3359,18 @@ function renderFlujoCajaCharts(fc, FX){
       type:'bar',
       data:{ labels:mesLabels, datasets:[{ label:'Proyección de cobro (S/ equiv.)', data:mesData, backgroundColor:'rgba(96,165,250,0.75)', borderRadius:4, borderSkipped:false }]},
       options:{ responsive:true, maintainAspectRatio:false,
+        onClick: () => toggleProyeccionTabla(),
         plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>'S/ '+fN(c.raw)}} },
         scales:{ y:{beginAtZero:true,ticks:{callback:v=>fN(v)}}, x:{ticks:{font:{size:9},maxRotation:60}} }
       }
     });
+    // el onClick de Chart.js solo cubre el área del gráfico; con esto el clic
+    // funciona en cualquier parte del recuadro (márgenes y ejes incluidos)
+    const box = ctxMes.parentElement;
+    if(box && !box.dataset.toggleBound){
+      box.dataset.toggleBound = '1';
+      box.addEventListener('click', e=>{ if(e.target===box) toggleProyeccionTabla(); });
+    }
   }
 
   if(window._admFcChartProy) window._admFcChartProy.destroy();
@@ -3238,10 +3401,7 @@ function renderCobranzaRealChart(fc, ingDep, FX){
   const ctx = document.getElementById('adm-fc-chart-real');
   if(!ctx) return;
 
-  const MESES = [];
-  ['2025','2026','2027'].forEach(y=>{
-    ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Setiembre','Octubre','Novienbre','Diciembre'].forEach((m,i)=>MESES.push({label:m+' '+y, ym:y+'-'+String(i+1).padStart(2,'0'), col:m+'_'+y}));
-  });
+  const MESES = _mesesFlujoCaja().map(m=>({ label:m.labelLargo, ym:m.ym, col:m.col }));
 
   // Moneda por unidad, tomada de Flujo de Caja (Proyecto|NroInmueble_1 → Tipo_Moneda)
   const monedaByUnidad = {};
@@ -4693,6 +4853,14 @@ function _isoMenosMeses(n){
   d.setMonth(d.getMonth() - n);
   return d.toISOString().slice(0,10);
 }
+// Últimos n meses calendario COMPLETOS, sin el mes actual (igual que el heatmap
+// de Ventas Competencia): [desde, hasta) — "hasta" es el 1er día del mes actual (exclusivo).
+function _rangoMesesCompletos(n){
+  const hoy = new Date();
+  const desde = new Date(hoy.getFullYear(), hoy.getMonth()-n, 1);
+  const hasta = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+  return { desde: desde.toISOString().slice(0,10), hasta: hasta.toISOString().slice(0,10) };
+}
 // meses transcurridos entre una fecha ISO 'YYYY-MM-DD' y hoy (para la velocidad cuando el periodo es "todo")
 function _preciosMesesDesde(fechaIso){
   const [y,m] = fechaIso.split('-').map(Number);
@@ -4758,8 +4926,10 @@ function renderMercadoPrecios(){
   }
 
   const periodoMeses = _preciosPeriodoMeses; // null = todo el histórico
-  const cutoff = periodoMeses ? _isoMenosMeses(periodoMeses) : null;
-  const enVentana = v => !cutoff || v.fecha_venta >= cutoff;
+  // Igual que en Ventas Competencia: "últimos N meses" = N meses calendario
+  // COMPLETOS, sin contar el mes actual (que va a mitad y no es comparable).
+  const rangoPeriodo = periodoMeses ? _rangoMesesCompletos(periodoMeses) : null;
+  const enVentana = v => !rangoPeriodo || (v.fecha_venta >= rangoPeriodo.desde && v.fecha_venta < rangoPeriodo.hasta);
   const etiquetaPeriodo = periodoMeses ? `últimos ${periodoMeses} meses` : 'todo el histórico';
   const fSol = n => n ? 'S/ '+Math.round(n).toLocaleString('es-PE') : '—';
 
