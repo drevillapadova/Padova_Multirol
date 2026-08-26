@@ -2396,6 +2396,13 @@ const FL_DIM_OPTS = [
   {val:'motivo',    lbl:'Motivo Cerrado',   stages:['leads','contactados'],            fn: r=>String(r.Motivo_Cerrado_Actual||r.MotivoCierre||'Sin motivo').trim()},
 ];
 
+const FL_CHAT_SUGGESTIONS = [
+  '¿Por qué cayó la conversión esta semana?',
+  '¿Qué canal me está trayendo mejores leads?',
+  'Dame un plan para bajar el dropout en Contactados → Citas',
+  'Compara este mes con el anterior',
+];
+
 let _flCrossRows = 'subestado';
 let _flCrossCols = 'canal';
 let _flCrossStage = 'leads';
@@ -2411,7 +2418,6 @@ let _flDateFrom2 = '';
 let _flDateTo2 = '';
 let _flLastAnalysisHTML = null;
 let _flChatHistory=[];
-let _flChatContext='';
 
 // Reconstruye una burbuja de chat como string, para repoblar #fl-chat-msgs
 // cuando el usuario vuelve a la pestaña IA (el tab se re-renderiza desde cero).
@@ -2484,6 +2490,34 @@ async function _flMarketingSnapshot(proj, from, to){
   const {lb,visF:vi,sp,ve}=s;
   const conv=(n,d)=>d?Math.round(n/d*1000)/10:0;
 
+  // Tendencia mes a mes (leads/visitas/separaciones/ventas) — reutilizada tanto para
+  // el total del snapshot como, cuando el filtro es "Todos", para cada proyecto abajo
+  // (así se pueden responder preguntas cruzadas tipo "separaciones de Helio en agosto").
+  const _MES_ORDER=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Setiembre','Octubre','Noviembre','Diciembre'];
+  const _mesCount=rows=>{const m={};rows.forEach(r=>{const mo=_extractMes(r);const k=mo?MES_ES[mo]||mo:null;if(k)m[k]=(m[k]||0)+1;});return m;};
+  const _flEvoMensual=periodo=>{
+    const mLeads=_mesCount(periodo.lb), mVis=_mesCount(periodo.visF), mSep=_mesCount(periodo.sp), mVenta=_mesCount(periodo.ve);
+    const mesesSet=new Set([...Object.keys(mLeads),...Object.keys(mVis),...Object.keys(mSep),...Object.keys(mVenta)]);
+    return [...mesesSet].sort((a,b)=>_MES_ORDER.indexOf(a)-_MES_ORDER.indexOf(b))
+      .map(mes=>({mes, leads:mLeads[mes]||0, visitas:mVis[mes]||0, separaciones:mSep[mes]||0, ventas:mVenta[mes]||0}));
+  };
+
+  // Si el filtro está en "Todos los proyectos", el snapshot queda agregado y no
+  // alcanza para responder preguntas sobre un proyecto puntual (ej. "ventas de Sunny"
+  // o "separaciones de Helio en agosto"). Este desglose por proyecto (con su propia
+  // evolución mensual) lo cubre sin que el usuario tenga que cambiar el filtro.
+  let porProyecto=null;
+  if(!proj){
+    const projList=[...document.querySelectorAll('#fl-proj option')].map(o=>o.value).filter(Boolean);
+    porProyecto=projList.map(p=>{
+      const dp=_flCalcPeriodo(p, from, to);
+      return {
+        proyecto:p, leads:dp.leadsTotal, visitas:dp.visitasN, separaciones:dp.separacionesN, ventas:dp.ventasN,
+        evolucion_mensual:_flEvoMensual(dp),
+      };
+    });
+  }
+
   const ventaPorCanal={};
   ve.forEach(r=>{const c=String(r.ComoSeEntero||'Sin canal').trim();ventaPorCanal[c]=(ventaPorCanal[c]||0)+1;});
   const canales=_flTopBreakdown(lb, r=>String(r.ComoSeEntero||'Sin canal').trim(), 6)
@@ -2502,6 +2536,15 @@ async function _flMarketingSnapshot(proj, from, to){
   const motivosCierre=_flTopBreakdown(cerrados, r=>String(r.Motivo_Cerrado_Actual||r.MotivoCierre||'Sin motivo').trim(), 5)
     .map(m=>({motivo:m.label, leads:m.count}));
 
+  // Pestaña Calidad & Canales
+  const nivelInteres=_flTopBreakdown(s.pr, r=>String(r.NivelInteres||'Sin clasificar').trim().toUpperCase(), 6)
+    .map(n=>({nivel:n.label, leads:n.count}));
+  const subEstados=_flTopBreakdown(s.pr, r=>String(r.SubEstado||'Sin estado').trim(), 8)
+    .map(se=>({sub_estado:se.label, leads:se.count}));
+
+  // Pestaña Evolución: tendencia mes a mes (leads/visitas/separaciones/ventas)
+  const evolucionMensual=_flEvoMensual(s);
+
   const dropout=[
     {etapa:'Leads → Contactados', perdido:s.leadsTotal-s.prospectos, base:s.leadsTotal},
     {etapa:'Contactados → Citas', perdido:s.prospectos-s.citasN, base:s.prospectos},
@@ -2511,6 +2554,11 @@ async function _flMarketingSnapshot(proj, from, to){
   ].filter(d=>d.base>0).map(d=>({...d, dropout_pct:Math.round(d.perdido/d.base*100)}));
 
   const snapshot={
+    proyecto_filtrado: proj || 'Todos',
+    nota_alcance: proj
+      ? `Todo este JSON (funnel, canales_top, evolucion_mensual, etc.) ya está filtrado al proyecto ${proj}. No hay desglose por otro proyecto.`
+      : 'Los campos de nivel superior (funnel, canales_top, evolucion_mensual, etc.) son AGREGADOS de TODOS los proyectos juntos. Para una cifra de un proyecto específico (ej. "separaciones de Helio en agosto"), usa SIEMPRE el array por_proyecto: cada entrada ahí trae su propia evolucion_mensual ya filtrada a ese proyecto. Nunca reportes una cifra del nivel superior como si fuera de un proyecto específico.',
+    nota_alcance_producto: 'Las cifras de "separaciones" y "ventas" en todo este JSON ya incluyen SOLO unidades tipo Departamento (estacionamientos, depósitos y otros tipos ya están excluidos del conteo, no hace falta filtrarlos de nuevo).',
     funnel:{
       leads_totales:s.leadsTotal, leads_con_dni:s.leadsDNI, leads_digitales:s.leadsDigital,
       contactados:s.prospectos, citas:s.citasN, visitas:s.visitasN, separaciones:s.separacionesN, ventas:s.ventasN,
@@ -2523,7 +2571,11 @@ async function _flMarketingSnapshot(proj, from, to){
     distritos_top: distritos,
     financiamiento_top: financiamiento,
     motivos_cierre_top: motivosCierre,
+    nivel_interes_top: nivelInteres,
+    sub_estado_top: subEstados,
+    evolucion_mensual: evolucionMensual,
   };
+  if(porProyecto) snapshot.por_proyecto = porProyecto;
 
   // Meta Ads: solo disponible con un proyecto específico seleccionado (no "Todos").
   if(proj){
@@ -2550,6 +2602,37 @@ async function _flMarketingSnapshot(proj, from, to){
   }
 
   return snapshot;
+}
+
+function _flFmtDate(d){if(!d)return'';const[y,m,dd]=d.split('-');const MM=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];return dd+' '+MM[+m]+' '+y;}
+function _flPeriodLabel(f,t){return f&&t?_flFmtDate(f)+' – '+_flFmtDate(t):f?'Desde '+_flFmtDate(f):t?'Hasta '+_flFmtDate(t):'Todo el histórico';}
+
+let _flLastAnalysisText = null;      // texto plano (markdown) del último "Analizar ahora" de esta sesión
+let _flLastAnalysisPeriodo = null;   // período con el que se generó ese análisis
+let _flChatCtxSignature = null;      // proyecto+fechas+comparación con las que se armó el cache de abajo
+let _flChatCtxActual = null;
+let _flChatCtxAnterior = null;
+
+// Único punto que arma el "panorama completo de Marketing" (5 pestañas) para IA:
+// lo usan tanto "Analizar ahora" como el chat, así ambos ven exactamente los mismos
+// datos. Cachea por firma de proyecto/fechas/comparación: si el usuario no tocó los
+// filtros desde el último mensaje, reutiliza el snapshot en vez de recalcularlo
+// (evita repetir el fetch a Meta Ads en cada pregunta del chat).
+async function _flGetChatContext(){
+  const proj = document.getElementById('fl-proj')?.value||'';
+  const sig = [proj, _flDateFrom||'', _flDateTo||'', _flComp?1:0, _flComp?_flDateFrom2||'':'', _flComp?_flDateTo2||'':''].join('|');
+  if(sig!==_flChatCtxSignature){
+    _flChatCtxActual = await _flMarketingSnapshot(proj, _flDateFrom, _flDateTo);
+    _flChatCtxAnterior = (_flComp&&(_flDateFrom2||_flDateTo2)) ? await _flMarketingSnapshot(proj, _flDateFrom2, _flDateTo2) : null;
+    _flChatCtxSignature = sig;
+  }
+  return {
+    proyecto: proj||'Todos',
+    periodoA: _flPeriodLabel(_flDateFrom,_flDateTo),
+    periodoB: _flComp?_flPeriodLabel(_flDateFrom2,_flDateTo2):null,
+    datosActual: _flChatCtxActual,
+    datosAnterior: _flChatCtxAnterior,
+  };
 }
 
 function setFlTab(tab, el){
@@ -3006,7 +3089,6 @@ function renderFunnelMkt(){
         <div class="sub" style="margin-top:6px;font-size:11.5px;color:var(--ink-3)">${detail}</div>
       </div>`;
     }
-    _flChatContext=`Proyecto: ${proj||'Todos'} | Período: ${lblA}\nLeads únicos: ${leadsTotal} | Con DNI: ${leadsDNI} | Digitales: ${leadsDigital}\nContactados: ${prospectos} (${pct(prospectos,leadsTotal||1)}) | Visitas: ${visitasN} | Separaciones: ${separacionesN} | Ventas: ${ventasN}\nTasa conversión global: ${convGlobal}% | Tiempo resp. mediana: ${trFmt(medTR)}\nCanal líder: ${canalTop[0]} (${canalTop[1]} leads) | Asesor destacado: ${asesorTop[0]}\nCuello de botella: ${cuello?cuello.lbl+' ('+pct(cuello.lost,cuello.base)+' dropout)':'—'}`;
     document.getElementById('fl-content').innerHTML=`
     <div class="section-title"><h2>Insights automáticos</h2><div class="hint">${lblA}</div></div>
     <div class="kpi-row kpi-3" style="margin-bottom:16px">
@@ -3031,7 +3113,10 @@ function renderFunnelMkt(){
     <div class="card" style="margin-bottom:16px">
       <div class="card-hd"><div><h3>💬 Chat con IA</h3><p>Pregunta lo que quieras sobre los datos del funnel</p></div></div>
       <div id="fl-chat-msgs" style="padding:12px 18px;display:flex;flex-direction:column;gap:10px;max-height:340px;overflow-y:auto;min-height:60px">${_flChatHistory.map(m=>_flChatBubbleHTML(m.role,m.content)).join('')}</div>
-      <div style="padding:10px 16px 14px;display:flex;gap:8px;border-top:1px solid var(--line)">
+      <div style="padding:10px 16px 0;display:flex;gap:7px;flex-wrap:wrap;border-top:1px solid var(--line)">
+        ${FL_CHAT_SUGGESTIONS.map(q=>`<button class="chip" style="font-size:11.5px;padding:6px 12px;background:var(--bg);color:var(--ink-2);border-color:var(--line)" onclick='enviarChatFunnel(${JSON.stringify(q)})'>${_escapeHtml(q)}</button>`).join('')}
+      </div>
+      <div style="padding:10px 16px 14px;display:flex;gap:8px">
         <input id="fl-chat-input" type="text" placeholder="Ej: ¿cuál es la mayor oportunidad de mejora?" style="flex:1;padding:9px 12px;border:1px solid var(--line);border-radius:7px;font-size:13px;outline:none;background:var(--bg);color:var(--ink)" onkeydown="if(event.key==='Enter')enviarChatFunnel()">
         <button onclick="enviarChatFunnel()" style="padding:9px 16px;background:#a78bfa;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer">Enviar</button>
       </div>
@@ -3046,34 +3131,31 @@ async function generarAnalisisFunnel(){
   const resEl=document.getElementById('fl-ia-result');
   if(!resEl)return;
   resEl.innerHTML='<span style="color:var(--ink-4)">Generando análisis...</span>';
-  const proj=document.getElementById('fl-proj')?.value||'';
-  const _fmt=d=>{if(!d)return'';const[y,m,dd]=d.split('-');const MM=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];return dd+' '+MM[+m]+' '+y;};
-  const _lbl=(f,t)=>f&&t?_fmt(f)+' – '+_fmt(t):f?'Desde '+_fmt(f):t?'Hasta '+_fmt(t):'Todo el histórico';
-  const periodoA=_lbl(_flDateFrom,_flDateTo);
-  const periodoB=_flComp?_lbl(_flDateFrom2,_flDateTo2):null;
-
   try{
-    const datosActual=await _flMarketingSnapshot(proj, _flDateFrom, _flDateTo);
-    const datosAnterior=(_flComp&&(_flDateFrom2||_flDateTo2))?await _flMarketingSnapshot(proj, _flDateFrom2, _flDateTo2):null;
+    const ctx=await _flGetChatContext();
     const payload={
-      panel:'funnel', proyecto:proj||'Todos',
-      periodo_a:periodoA, periodo_b:periodoB,
-      datos_actual:datosActual, datos_anterior:datosAnterior,
+      panel:'funnel', proyecto:ctx.proyecto,
+      periodo_a:ctx.periodoA, periodo_b:ctx.periodoB,
+      datos_actual:ctx.datosActual, datos_anterior:ctx.datosAnterior,
     };
     const r=await fetch('/api/analizar_ia',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const j=await r.json();
-    _flLastAnalysisHTML=`<div class="ia-md">${_mdRender(j.analisis||j.error||'Sin respuesta')}</div>`;
+    const texto=j.analisis||j.error||'Sin respuesta';
+    // Se guarda el texto plano (markdown) para poder mandarlo como contexto al chat
+    // cuando el usuario pregunte algo tipo "explícame más sobre la alerta X".
+    if(j.analisis){ _flLastAnalysisText=texto; _flLastAnalysisPeriodo=ctx.periodoA; }
+    _flLastAnalysisHTML=`<div class="ia-md">${_mdRender(texto)}</div>`;
     resEl.innerHTML=_flLastAnalysisHTML;
   }catch(e){resEl.innerHTML='<span style="color:var(--bad)">Error al conectar con el servidor</span>';}
 }
 
-async function enviarChatFunnel(){
+async function enviarChatFunnel(preset){
   const input=document.getElementById('fl-chat-input');
   const msgs=document.getElementById('fl-chat-msgs');
-  if(!input||!msgs)return;
-  const q=input.value.trim();
+  if(!msgs)return;
+  const q=(typeof preset==='string'?preset:(input?.value||'')).trim();
   if(!q)return;
-  input.value='';
+  if(input) input.value='';
   const addMsg=(role,txt)=>{
     const div=document.createElement('div');
     div.style.cssText='display:flex;gap:8px;align-items:flex-start';
@@ -3082,22 +3164,31 @@ async function enviarChatFunnel(){
     avatar.style.background=role==='user'?'#e0e7ff':'#f5f3ff';
     avatar.textContent=role==='user'?'👤':'✦';
     const bubble=document.createElement('div');
-    bubble.style.cssText='flex:1;padding:10px 13px;border-radius:10px;font-size:13px;line-height:1.6;white-space:pre-wrap';
+    bubble.style.cssText='flex:1;padding:10px 13px;border-radius:10px;font-size:13px;line-height:1.6';
     bubble.style.background=role==='user'?'#f1f5f9':'#f5f3ff';
     bubble.style.color=role==='user'?'var(--ink)':'#5b21b6';
-    bubble.textContent=txt;
+    if(role==='user'){ bubble.style.whiteSpace='pre-wrap'; bubble.textContent=txt; }
+    else { bubble.innerHTML=`<div class="ia-md ia-chat-bubble">${_mdRender(txt)}</div>`; }
     div.appendChild(avatar);div.appendChild(bubble);
     msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;
     return bubble;
   };
   addMsg('user',q);
-  const thinkingBubble=addMsg('assistant','...');
+  const thinkingBubble=addMsg('assistant','Pensando…');
   _flChatHistory.push({role:'user',content:q});
   try{
-    const r=await fetch('/api/chat_ia',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({context:_flChatContext,history:_flChatHistory.slice(0,-1),question:q})});
+    const ctx=await _flGetChatContext();
+    const payload={
+      proyecto:ctx.proyecto, periodo_a:ctx.periodoA, periodo_b:ctx.periodoB,
+      datos_actual:ctx.datosActual, datos_anterior:ctx.datosAnterior,
+      analisis_previo:_flLastAnalysisText||null, analisis_previo_periodo:_flLastAnalysisPeriodo||null,
+      history:_flChatHistory.slice(0,-1), question:q,
+    };
+    const r=await fetch('/api/chat_ia',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const j=await r.json();
     const reply=j.reply||j.error||'Sin respuesta';
-    thinkingBubble.textContent=reply;
+    thinkingBubble.innerHTML=`<div class="ia-md ia-chat-bubble">${_mdRender(reply)}</div>`;
+    msgs.scrollTop=msgs.scrollHeight;
     _flChatHistory.push({role:'assistant',content:reply});
   }catch(e){thinkingBubble.textContent='Error al conectar con el servidor';thinkingBubble.style.color='var(--bad)';}
 }

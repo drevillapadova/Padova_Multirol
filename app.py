@@ -1101,7 +1101,7 @@ Máximo 3 acciones, cada una con:
 - Quién debería ejecutarlo si el dato lo permite (ej. asesor, canal)
 - Impacto esperado si se corrige
 
-Sé directo, usa los números reales, nunca inventes causas sin dato que las respalde. Si falta información para confirmar una hipótesis, dilo explícitamente en vez de asumir. Máximo 350 palabras total."""
+Sé directo, usa los números reales, nunca inventes causas sin dato que las respalde. Si falta información para confirmar una hipótesis, dilo explícitamente en vez de asumir. Cada fila de datos (ej. un mes en evolucion_mensual, o una entrada de por_proyecto) tiene varios campos numéricos seguidos (leads, visitas, separaciones, ventas): antes de citar un número, verifica el NOMBRE exacto del campo — nunca lo asumas por su posición en la fila. Máximo 350 palabras total."""
         else:
             comp_txt = ""
             if periodo_b and ventas_b is not None:
@@ -1123,7 +1123,10 @@ Sé directo y práctico. Máximo 150 palabras."""
 
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY",""))
         msg = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            # El panel funnel maneja JSON denso (varios campos numéricos por fila,
+            # ej. leads/visitas/separaciones/ventas) donde Haiku puede confundir
+            # columnas adyacentes; Sonnet es más confiable citando el campo correcto.
+            model="claude-sonnet-5" if panel == "funnel" else "claude-haiku-4-5-20251001",
             max_tokens=1600 if panel == "funnel" else 500,
             messages=[{"role":"user","content":prompt}]
         )
@@ -1136,25 +1139,58 @@ Sé directo y práctico. Máximo 150 palabras."""
 def api_chat_ia():
     try:
         import anthropic
-        data     = request.get_json(force=True)
-        context  = data.get("context", "")
+        data       = request.get_json(force=True)
+        proyecto   = data.get("proyecto", "Todos")
+        periodo_a  = data.get("periodo_a", "")
+        periodo_b  = data.get("periodo_b")
+        datos_actual   = data.get("datos_actual")
+        datos_anterior = data.get("datos_anterior")
+        analisis_previo          = data.get("analisis_previo")
+        analisis_previo_periodo  = data.get("analisis_previo_periodo")
         history  = data.get("history", [])
         question = data.get("question", "")
 
-        system = f"""Eres un analista de marketing inmobiliario experto. El usuario te hace preguntas sobre los datos de su funnel de conversión.
+        # Compatibilidad con el formato viejo (contexto en texto plano)
+        context_legacy = data.get("context", "")
+        if not datos_actual and context_legacy:
+            datos_actual = {"resumen": context_legacy}
 
-CONTEXTO DE LOS DATOS ACTUALES:
-{context}
+        tiene_comparacion = bool(periodo_b) and bool(datos_anterior)
 
-Responde en español, de forma concisa y práctica. Cuando des números, sé preciso. Si no tienes suficientes datos para responder algo, dilo claramente."""
+        datos_actual_json = json.dumps(datos_actual or {}, ensure_ascii=False, indent=2)
+        bloque_anterior = (
+            f"\n\nDATOS DEL PERÍODO ANTERIOR ({periodo_b}):\n"
+            f"{json.dumps(datos_anterior, ensure_ascii=False, indent=2)}"
+            if tiene_comparacion else ""
+        )
+        bloque_analisis_previo = (
+            f"\n\nANÁLISIS PREVIO GENERADO EN ESTA SESIÓN (período: {analisis_previo_periodo or periodo_a}):\n"
+            f"{analisis_previo}"
+            if analisis_previo else ""
+        )
 
-        messages = [{"role": h["role"], "content": h["content"]} for h in history[-10:]]
+        system = f"""Eres el mismo consultor senior de marketing y ventas inmobiliario. Responde la pregunta del usuario usando SOLO los datos reales del contexto que tienes (las 5 pestañas + comparación si existe). Si el usuario pregunta algo que los datos no pueden responder, dilo explícitamente en vez de inventar. Da respuestas concretas con números, no genéricas. Si es relevante, sugiere una acción concreta al final. Responde en español, directo, sin relleno.
+
+Antes de citar una cifra, ubica exactamente en qué nivel del JSON está (agregado de "Todos los proyectos" vs. una entrada específica dentro de por_proyecto) y usa ese número tal cual — nunca mezcles el agregado de todos los proyectos con el de un proyecto puntual, y nunca repitas un número distinto al que diste antes para la misma pregunta sin explicar por qué cambió.
+
+Cada fila de datos (ej. un mes en evolucion_mensual) tiene varios campos numéricos seguidos (leads, visitas, separaciones, ventas): antes de responder, verifica el NOMBRE exacto del campo que te preguntan y usa su valor — nunca asumas un número por su posición en la fila ni por cercanía con otro campo.
+
+Proyecto: {proyecto} | Período: {periodo_a}
+
+DATOS DEL PERÍODO ACTUAL ({periodo_a}):
+{datos_actual_json}{bloque_anterior}{bloque_analisis_previo}"""
+
+        # Historial completo de la sesión (tope alto solo como salvaguarda ante
+        # una conversación anormalmente larga, no como recorte funcional).
+        messages = [{"role": h["role"], "content": h["content"]} for h in history[-40:]]
         messages.append({"role": "user", "content": question})
 
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY",""))
         msg = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=400,
+            # Mismo motivo que en /api/analizar_ia: el JSON trae varios campos
+            # numéricos por fila y Sonnet es más confiable citando el correcto.
+            model="claude-sonnet-5",
+            max_tokens=700,
             system=system,
             messages=messages
         )
