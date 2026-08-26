@@ -1122,7 +1122,7 @@ Entrega:
 Sé directo y práctico. Máximo 150 palabras."""
 
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY",""))
-        msg = client.messages.create(
+        create_kwargs = dict(
             # El panel funnel maneja JSON denso (varios campos numéricos por fila,
             # ej. leads/visitas/separaciones/ventas) donde Haiku puede confundir
             # columnas adyacentes; Sonnet es más confiable citando el campo correcto.
@@ -1130,6 +1130,9 @@ Sé directo y práctico. Máximo 150 palabras."""
             max_tokens=1600 if panel == "funnel" else 500,
             messages=[{"role":"user","content":prompt}]
         )
+        if panel == "funnel":
+            create_kwargs["output_config"] = {"effort": "medium"}
+        msg = client.messages.create(**create_kwargs)
         return jsonify({"analisis": msg.content[0].text})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -1192,7 +1195,8 @@ DATOS DEL PERÍODO ACTUAL ({periodo_a}):
             model="claude-sonnet-5",
             max_tokens=700,
             system=system,
-            messages=messages
+            messages=messages,
+            output_config={"effort": "medium"},
         )
         return jsonify({"reply": msg.content[0].text})
     except Exception as e:
