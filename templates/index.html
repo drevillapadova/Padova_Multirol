@@ -577,6 +577,24 @@ html.dark .msel-item:hover{background:#1e293b}
 .ventasproy-tabla td.vp-rowlbl,.ventasproy-tabla th.vp-rowlbl{position:sticky;left:0;z-index:2;background:var(--panel);text-align:left;font-weight:600;color:var(--ink);border-right:1px solid var(--line)}
 .ventasproy-tabla tr.vp-total-propio td,.ventasproy-tabla tr.vp-total-propio td.vp-rowlbl{font-style:italic;font-weight:700}
 .ventasproy-tabla tr.vp-total-general td,.ventasproy-tabla tr.vp-total-general td.vp-rowlbl{background:var(--ok-soft);color:var(--ok);font-weight:700}
+
+/* ── Análisis IA: markdown renderizado (antes salía en crudo con ## y ** ) ── */
+.ia-md{font-size:13px;line-height:1.7;color:var(--ink)}
+.ia-md h1,.ia-md h2,.ia-md h3{margin:18px 0 8px;font-weight:700;color:var(--ink);line-height:1.35}
+.ia-md h1:first-child,.ia-md h2:first-child,.ia-md h3:first-child{margin-top:0}
+.ia-md h1{font-size:16px}
+.ia-md h2{font-size:14.5px;padding-bottom:6px;border-bottom:1px solid var(--line-2)}
+.ia-md h3{font-size:13.5px}
+.ia-md p{margin:0 0 10px}
+.ia-md ul,.ia-md ol{margin:0 0 12px;padding-left:20px}
+.ia-md li{margin-bottom:5px}
+.ia-md li>ul,.ia-md li>ol{margin-top:5px}
+.ia-md strong{font-weight:700;color:var(--ink)}
+.ia-md code{background:var(--bg);padding:1px 5px;border-radius:4px;font-family:var(--mono);font-size:12px}
+.ia-md hr{border:none;border-top:1px solid var(--line-2);margin:14px 0}
+.ia-md blockquote{margin:0 0 10px;padding:6px 12px;border-left:3px solid var(--brand-soft);color:var(--ink-3)}
+.ia-md a{color:var(--brand)}
+.ia-chat-bubble.ia-md{font-size:13px;line-height:1.6}
 </style>
 
 <!-- ── FUNNEL MARKETING: design tokens ─────────────────────────────────── -->
@@ -719,6 +737,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
@@ -1173,6 +1192,15 @@ const pct = (a,b) => b ? Math.round(a/b*100)+'%' : '0%';
 const fM  = n => { const v=Number(n||0); return v>=1000000?'S/ '+(v/1000000).toFixed(1)+'M':v>=1000?'S/ '+(v/1000).toFixed(0)+'k':fS(v); };
 const fMFull = n => 'S/ '+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const normStr = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+
+// ── Análisis IA: el texto que devuelve Claude viene en markdown (##, **, listas...),
+// esto lo convierte a HTML de verdad para que no salga "en crudo" en pantalla.
+const _escapeHtml = s => String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function _mdRender(texto){
+  if(!texto) return '';
+  try{ return marked.parse(String(texto), { breaks:true }); }
+  catch(e){ return `<p>${_escapeHtml(texto)}</p>`; }
+}
 const _matchTipo=(r,tipo)=>{
   if(!tipo) return true;
   if(tipo==='comercio') return normStr(r.Modelo||'').includes('comercio');
@@ -2208,7 +2236,7 @@ async function generarAnalisisIA(panel){
   try{
     const r=await fetch('/api/analizar_ia',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const j=await r.json();
-    resEl.innerHTML=`<div style="white-space:pre-wrap;font-size:13px;line-height:1.6;color:var(--ink)">${j.analisis||j.error||'Sin respuesta'}</div>`;
+    resEl.innerHTML=`<div class="ia-md">${_mdRender(j.analisis||j.error||'Sin respuesta')}</div>`;
   }catch(e){resEl.innerHTML='<span style="color:var(--bad)">Error al conectar con el servidor</span>';}
 }
 
@@ -2388,13 +2416,19 @@ let _flChatContext='';
 // Reconstruye una burbuja de chat como string, para repoblar #fl-chat-msgs
 // cuando el usuario vuelve a la pestaña IA (el tab se re-renderiza desde cero).
 function _flChatBubbleHTML(role, txt){
-  const bg = role==='user' ? '#e0e7ff' : '#f5f3ff';
-  const icon = role==='user' ? '👤' : '✦';
-  const bubbleBg = role==='user' ? '#f1f5f9' : '#f5f3ff';
-  const color = role==='user' ? 'var(--ink)' : '#5b21b6';
+  const esUsuario = role==='user';
+  const bg = esUsuario ? '#e0e7ff' : '#f5f3ff';
+  const icon = esUsuario ? '👤' : '✦';
+  const bubbleBg = esUsuario ? '#f1f5f9' : '#f5f3ff';
+  const color = esUsuario ? 'var(--ink)' : '#5b21b6';
+  // Lo que escribe el usuario se muestra tal cual (texto plano, escapado);
+  // la respuesta de la IA viene en markdown y sí se renderiza como HTML.
+  const contenido = esUsuario
+    ? `<div style="white-space:pre-wrap">${_escapeHtml(txt)}</div>`
+    : `<div class="ia-md ia-chat-bubble">${_mdRender(txt)}</div>`;
   return `<div style="display:flex;gap:8px;align-items:flex-start">
     <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-top:2px;background:${bg}">${icon}</div>
-    <div style="flex:1;padding:10px 13px;border-radius:10px;font-size:13px;line-height:1.6;white-space:pre-wrap;background:${bubbleBg};color:${color}">${txt}</div>
+    <div style="flex:1;padding:10px 13px;border-radius:10px;font-size:13px;line-height:1.6;background:${bubbleBg};color:${color}">${contenido}</div>
   </div>`;
 }
 
@@ -2986,12 +3020,6 @@ function renderFunnelMkt(){
       ${insightCard('⚠️','Mayor cuello de botella',cuello?cuello.lbl:'—',cuello?pct(cuello.lost,cuello.base)+' de dropout en esta etapa':'Sin datos','var(--bad)')}
     </div>
     <div class="card" style="margin-bottom:16px">
-      <div class="card-hd"><div><h3>Dropout por etapa</h3><p>% de leads que no avanzan a la siguiente etapa</p></div></div>
-      <div style="padding:14px 18px 18px;display:flex;flex-direction:column;gap:12px">
-        ${dropout.map(d=>{const pctD=Math.round(d.lost/d.base*100);const col=pctD>=80?'var(--bad)':pctD>=50?'var(--warn)':'var(--ok)';return `<div style="display:grid;grid-template-columns:200px 1fr 80px;gap:12px;align-items:center"><span style="font-size:12px;font-weight:600;color:var(--ink)">${d.lbl}</span><div style="height:10px;background:#f1f5f9;border-radius:99px;overflow:hidden"><div style="height:100%;width:${pctD}%;background:${col};border-radius:99px"></div></div><span style="font-family:var(--mono);font-size:12px;color:${col};font-weight:700;text-align:right">${pctD}% pierde</span></div>`;}).join('')||'<div style="color:var(--ink-4);font-size:12px">Sin datos</div>'}
-      </div>
-    </div>
-    <div class="card" style="margin-bottom:16px">
       <div class="card-hd">
         <div><h3>✦ Análisis IA</h3><p>Observaciones y recomendaciones generadas por Claude</p></div>
         <button class="chip" style="font-size:13px;padding:8px 16px;background:#f5f3ff;color:#a78bfa;border-color:#a78bfa" onclick="generarAnalisisFunnel()">✦ Analizar ahora</button>
@@ -3034,7 +3062,7 @@ async function generarAnalisisFunnel(){
     };
     const r=await fetch('/api/analizar_ia',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const j=await r.json();
-    _flLastAnalysisHTML=`<div style="white-space:pre-wrap;font-size:13px;line-height:1.7;color:var(--ink)">${j.analisis||j.error||'Sin respuesta'}</div>`;
+    _flLastAnalysisHTML=`<div class="ia-md">${_mdRender(j.analisis||j.error||'Sin respuesta')}</div>`;
     resEl.innerHTML=_flLastAnalysisHTML;
   }catch(e){resEl.innerHTML='<span style="color:var(--bad)">Error al conectar con el servidor</span>';}
 }
