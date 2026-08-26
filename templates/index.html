@@ -2381,6 +2381,142 @@ let _flDateFrom = '';
 let _flDateTo = '';
 let _flDateFrom2 = '';
 let _flDateTo2 = '';
+let _flLastAnalysisHTML = null;
+let _flChatHistory=[];
+let _flChatContext='';
+
+// Reconstruye una burbuja de chat como string, para repoblar #fl-chat-msgs
+// cuando el usuario vuelve a la pestaña IA (el tab se re-renderiza desde cero).
+function _flChatBubbleHTML(role, txt){
+  const bg = role==='user' ? '#e0e7ff' : '#f5f3ff';
+  const icon = role==='user' ? '👤' : '✦';
+  const bubbleBg = role==='user' ? '#f1f5f9' : '#f5f3ff';
+  const color = role==='user' ? 'var(--ink)' : '#5b21b6';
+  return `<div style="display:flex;gap:8px;align-items:flex-start">
+    <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-top:2px;background:${bg}">${icon}</div>
+    <div style="flex:1;padding:10px 13px;border-radius:10px;font-size:13px;line-height:1.6;white-space:pre-wrap;background:${bubbleBg};color:${color}">${txt}</div>
+  </div>`;
+}
+
+// Recalcula todas las métricas del funnel de Marketing para un proyecto/rango de fechas dado.
+// Extraída de renderFunnelMkt para poder reutilizarse desde el análisis IA (que necesita
+// las mismas cifras que ve el usuario en pantalla, incluyendo el período B de comparación).
+function _flCalcPeriodo(proj, from, to){
+  let pr=D.prospectos||[];
+  if(proj) pr=pr.filter(r=>matchProj(r.Proyecto, proj));
+  if(from||to) pr=pr.filter(r=>_matchDateRange(r.FechaRegistro, from, to));
+  if(_flExcludeExt) pr=pr.filter(r=>!_isProper(r.ComoSeEntero));
+  const lb=pr.filter(r=>String(r.LeadUnicoxMesProyecto||'').toUpperCase()==='SI');
+  let vi=(D.visitas||[]).filter(r=>String(r.VisitaUnicaxMesProyecto||'').toUpperCase()==='SI');
+  if(proj) vi=vi.filter(r=>matchProj(r.Proyecto, proj));
+  if(from||to) vi=vi.filter(r=>_matchDateRange(r.FechaVisita, from, to));
+  if(_flExcludeExt) vi=vi.filter(r=>!_isProper(r.ComoSeEntero));
+  let sp=(D.stock||[]).filter(r=>String(r.FechaSepDefinitiva||'').trim()&&String(r.FechaSepDefinitiva||'')!=='nan');
+  sp=sp.filter(r=>normStr(r.TipoInmueble||'').includes('departamento')); // igual que Ventas: solo Departamento, no estacionamiento/depósito/etc.
+  if(proj) sp=sp.filter(r=>matchProj(r.Proyecto, proj));
+  if(from||to) sp=sp.filter(r=>_matchDateRange(r.FechaSepDefinitiva, from, to));
+  if(_flExcludeExt) sp=sp.filter(r=>!_isProper(r.ComoSeEntero));
+  let ve=(D.ventas||[]).filter(r=>normStr(r.TipoInmueble||'').includes('departamento'));
+  if(proj) ve=ve.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
+  if(from||to) ve=ve.filter(r=>_matchDateRange(r.FechaVenta||r.FechaEntrega_Minuta||'', from, to));
+  if(_flExcludeExt) ve=ve.filter(r=>!_isProper(r.ComoSeEntero));
+  const trV=lb.map(r=>parseFloat(r.TiempoRespuesta_min||'')).filter(v=>!isNaN(v)&&v>=0).sort((a,b)=>a-b);
+  const _validDate=v=>{const s=String(v||'').trim();return s&&s!=='nan'&&s!=='None'&&s!=='-'&&s!=='';};
+  return {
+    lb, pr, visF:vi, sp, ve,
+    leadsTotal:lb.length,
+    leadsDNI:lb.filter(r=>{const d=String(r.NroDocumento||'').trim();return d&&d!=='nan'&&d!=='None'&&d!=='0';}).length,
+    leadsDigital:lb.filter(r=>_isDigital(r.ComoSeEntero)).length,
+    prospectos:lb.filter(r=>normStr(r.SubEstado||'').includes('contactado')).length,
+    citasN:lb.filter(r=>_validDate(r.FechaCitado)).length,
+    visitasN:vi.length, separacionesN:sp.length, ventasN:ve.length,
+    medTR:trV.length?trV[Math.floor(trV.length/2)]:null,
+  };
+}
+
+// Top-N categorías por conteo, agrupando el resto sería excesivo aquí: solo se usa
+// para snapshots compactos que se mandan a la IA, no para render de tablas.
+function _flTopBreakdown(rows, keyFn, limit){
+  const m={};
+  rows.forEach(r=>{const k=keyFn(r)||'Sin dato';m[k]=(m[k]||0)+1;});
+  return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,limit||6).map(([label,count])=>({label,count}));
+}
+
+// Construye el JSON "panorama completo de Marketing" que se manda al análisis IA:
+// funnel + tasas de conversión + dropout por etapa + cruces (canal, asesor, distrito,
+// financiamiento, motivo de cierre) + Meta Ads (gasto/CPL por campaña) si hay proyecto único.
+async function _flMarketingSnapshot(proj, from, to){
+  const s=_flCalcPeriodo(proj, from, to);
+  const {lb,visF:vi,sp,ve}=s;
+  const conv=(n,d)=>d?Math.round(n/d*1000)/10:0;
+
+  const ventaPorCanal={};
+  ve.forEach(r=>{const c=String(r.ComoSeEntero||'Sin canal').trim();ventaPorCanal[c]=(ventaPorCanal[c]||0)+1;});
+  const canales=_flTopBreakdown(lb, r=>String(r.ComoSeEntero||'Sin canal').trim(), 6)
+    .map(c=>({canal:c.label, leads:c.count, ventas:ventaPorCanal[c.label]||0, conversion_pct:conv(ventaPorCanal[c.label]||0, c.count)}));
+
+  const asesores=_flTopBreakdown(lb, r=>toShort(String(r.Responsable||r.Asesor||'Sin asesor').trim()), 6)
+    .map(a=>({asesor:a.label, leads:a.count}));
+
+  const distritos=_flTopBreakdown(vi, r=>String(r.Distrito_Procedencia||r.Distrito||'Sin distrito').trim(), 5)
+    .map(d=>({distrito:d.label, visitas:d.count}));
+
+  const financiamiento=_flTopBreakdown(sp, r=>String(r.TipoFinanciamiento||'Sin dato').trim(), 5)
+    .map(f=>({tipo:f.label, separaciones:f.count}));
+
+  const cerrados=lb.filter(r=>{const m=String(r.Motivo_Cerrado_Actual||r.MotivoCierre||'').trim();return m&&m!=='Sin motivo';});
+  const motivosCierre=_flTopBreakdown(cerrados, r=>String(r.Motivo_Cerrado_Actual||r.MotivoCierre||'Sin motivo').trim(), 5)
+    .map(m=>({motivo:m.label, leads:m.count}));
+
+  const dropout=[
+    {etapa:'Leads → Contactados', perdido:s.leadsTotal-s.prospectos, base:s.leadsTotal},
+    {etapa:'Contactados → Citas', perdido:s.prospectos-s.citasN, base:s.prospectos},
+    {etapa:'Citas → Visitas', perdido:s.citasN-s.visitasN, base:s.citasN},
+    {etapa:'Visitas → Separaciones', perdido:s.visitasN-s.separacionesN, base:s.visitasN},
+    {etapa:'Separaciones → Ventas', perdido:s.separacionesN-s.ventasN, base:s.ventasN},
+  ].filter(d=>d.base>0).map(d=>({...d, dropout_pct:Math.round(d.perdido/d.base*100)}));
+
+  const snapshot={
+    funnel:{
+      leads_totales:s.leadsTotal, leads_con_dni:s.leadsDNI, leads_digitales:s.leadsDigital,
+      contactados:s.prospectos, citas:s.citasN, visitas:s.visitasN, separaciones:s.separacionesN, ventas:s.ventasN,
+    },
+    tasa_conversion_global_pct: conv(s.ventasN, s.leadsTotal),
+    tiempo_respuesta_mediana_min: s.medTR,
+    dropout_por_etapa: dropout,
+    canales_top: canales,
+    asesores_top: asesores,
+    distritos_top: distritos,
+    financiamiento_top: financiamiento,
+    motivos_cierre_top: motivosCierre,
+  };
+
+  // Meta Ads: solo disponible con un proyecto específico seleccionado (no "Todos").
+  if(proj){
+    try{
+      const qs=new URLSearchParams();
+      if(from) qs.set('desde', from);
+      if(to) qs.set('hasta', to);
+      const key=(from||'')+'::'+(to||'');
+      if(!window._metaAdsCache) window._metaAdsCache={};
+      let j=window._metaAdsCache[key];
+      if(!j){
+        j=await fetch(API+'/api/meta_ads?'+qs.toString()).then(r=>r.json());
+        window._metaAdsCache[key]=j;
+      }
+      const row=(j.data||[]).find(p=>matchProj(p.label, proj));
+      if(row&&!row.error){
+        snapshot.meta_ads={
+          gasto_total_usd: row.gasto,
+          campanas: (row.campanas||[]).slice().sort((a,b)=>(b.gasto||0)-(a.gasto||0)).slice(0,6)
+            .map(c=>({nombre:c.nombre, estado:c.estado, gasto_usd:c.gasto, resultados:c.resultados, cpl_usd:c.cpl})),
+        };
+      }
+    }catch(e){ /* Meta Ads es contexto opcional: si falla, el análisis sigue sin ese bloque */ }
+  }
+
+  return snapshot;
+}
 
 function setFlTab(tab, el){
   _flTab = tab;
@@ -2435,41 +2571,8 @@ function renderFunnelMkt(){
     return (!from||d>=from)&&(!to||d<=to);
   }
 
-  function _calcPeriodo(from, to){
-    let pr=D.prospectos||[];
-    if(proj) pr=pr.filter(r=>matchProj(r.Proyecto, proj));
-    if(from||to) pr=pr.filter(r=>_matchRange(r.FechaRegistro, from, to));
-    if(_flExcludeExt) pr=pr.filter(r=>!_isProper(r.ComoSeEntero));
-    const lb=pr.filter(r=>String(r.LeadUnicoxMesProyecto||'').toUpperCase()==='SI');
-    let vi=(D.visitas||[]).filter(r=>String(r.VisitaUnicaxMesProyecto||'').toUpperCase()==='SI');
-    if(proj) vi=vi.filter(r=>matchProj(r.Proyecto, proj));
-    if(from||to) vi=vi.filter(r=>_matchRange(r.FechaVisita, from, to));
-    if(_flExcludeExt) vi=vi.filter(r=>!_isProper(r.ComoSeEntero));
-    let sp=(D.stock||[]).filter(r=>String(r.FechaSepDefinitiva||'').trim()&&String(r.FechaSepDefinitiva||'')!=='nan');
-    sp=sp.filter(r=>normStr(r.TipoInmueble||'').includes('departamento')); // igual que Ventas: solo Departamento, no estacionamiento/depósito/etc.
-    if(proj) sp=sp.filter(r=>matchProj(r.Proyecto, proj));
-    if(from||to) sp=sp.filter(r=>_matchRange(r.FechaSepDefinitiva, from, to));
-    if(_flExcludeExt) sp=sp.filter(r=>!_isProper(r.ComoSeEntero));
-    let ve=(D.ventas||[]).filter(r=>normStr(r.TipoInmueble||'').includes('departamento'));
-    if(proj) ve=ve.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
-    if(from||to) ve=ve.filter(r=>_matchRange(r.FechaVenta||r.FechaEntrega_Minuta||'', from, to));
-    if(_flExcludeExt) ve=ve.filter(r=>!_isProper(r.ComoSeEntero));
-    const trV=lb.map(r=>parseFloat(r.TiempoRespuesta_min||'')).filter(v=>!isNaN(v)&&v>=0).sort((a,b)=>a-b);
-    const _validDate=v=>{const s=String(v||'').trim();return s&&s!=='nan'&&s!=='None'&&s!=='-'&&s!=='';};
-    return {
-      lb, pr, visF:vi, sp, ve,
-      leadsTotal:lb.length,
-      leadsDNI:lb.filter(r=>{const d=String(r.NroDocumento||'').trim();return d&&d!=='nan'&&d!=='None'&&d!=='0';}).length,
-      leadsDigital:lb.filter(r=>_isDigital(r.ComoSeEntero)).length,
-      prospectos:lb.filter(r=>normStr(r.SubEstado||'').includes('contactado')).length,
-      citasN:lb.filter(r=>_validDate(r.FechaCitado)).length,
-      visitasN:vi.length, separacionesN:sp.length, ventasN:ve.length,
-      medTR:trV.length?trV[Math.floor(trV.length/2)]:null,
-    };
-  }
-
-  const A = _calcPeriodo(_flDateFrom, _flDateTo);
-  const B = _flComp ? _calcPeriodo(_flDateFrom2, _flDateTo2) : null;
+  const A = _flCalcPeriodo(proj, _flDateFrom, _flDateTo);
+  const B = _flComp ? _flCalcPeriodo(proj, _flDateFrom2, _flDateTo2) : null;
   const {lb:leadBase, pr:prospBase, visF, sp:sepBase, ve:ventaBase, leadsTotal, leadsDNI, leadsDigital, prospectos, citasN, visitasN, separacionesN, ventasN, medTR} = A;
   const trFmt = v => v!=null?(v<60?Math.round(v)+'min':Math.round(v/60)+'h '+Math.round(v%60)+'min'):'—';
   const COLORS=['#60a5fa','#34d399','#a78bfa','#fbbf24','#fb923c','#f472b6','#f87171'];
@@ -2894,46 +2997,45 @@ function renderFunnelMkt(){
         <button class="chip" style="font-size:13px;padding:8px 16px;background:#f5f3ff;color:#a78bfa;border-color:#a78bfa" onclick="generarAnalisisFunnel()">✦ Analizar ahora</button>
       </div>
       <div id="fl-ia-result" style="padding:16px 18px;color:var(--ink-3);font-size:13px;min-height:60px;line-height:1.7">
-        Haz clic en "Analizar ahora" para generar el análisis del período seleccionado.
+        ${_flLastAnalysisHTML!=null?_flLastAnalysisHTML:'Haz clic en "Analizar ahora" para generar el análisis del período seleccionado.'}
       </div>
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-hd"><div><h3>💬 Chat con IA</h3><p>Pregunta lo que quieras sobre los datos del funnel</p></div></div>
-      <div id="fl-chat-msgs" style="padding:12px 18px;display:flex;flex-direction:column;gap:10px;max-height:340px;overflow-y:auto;min-height:60px"></div>
+      <div id="fl-chat-msgs" style="padding:12px 18px;display:flex;flex-direction:column;gap:10px;max-height:340px;overflow-y:auto;min-height:60px">${_flChatHistory.map(m=>_flChatBubbleHTML(m.role,m.content)).join('')}</div>
       <div style="padding:10px 16px 14px;display:flex;gap:8px;border-top:1px solid var(--line)">
         <input id="fl-chat-input" type="text" placeholder="Ej: ¿cuál es la mayor oportunidad de mejora?" style="flex:1;padding:9px 12px;border:1px solid var(--line);border-radius:7px;font-size:13px;outline:none;background:var(--bg);color:var(--ink)" onkeydown="if(event.key==='Enter')enviarChatFunnel()">
         <button onclick="enviarChatFunnel()" style="padding:9px 16px;background:#a78bfa;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer">Enviar</button>
       </div>
     </div>`;
+    const _chatMsgsEl=document.getElementById('fl-chat-msgs');
+    if(_chatMsgsEl) _chatMsgsEl.scrollTop=_chatMsgsEl.scrollHeight;
     return;
   }
 }
-
-let _flChatHistory=[];
-let _flChatContext='';
 
 async function generarAnalisisFunnel(){
   const resEl=document.getElementById('fl-ia-result');
   if(!resEl)return;
   resEl.innerHTML='<span style="color:var(--ink-4)">Generando análisis...</span>';
-  const proj=document.getElementById('fl-proj')?.value||'Todos';
-  const cMap={};(D.prospectos||[]).filter(r=>String(r.LeadUnicoxMesProyecto||'').toUpperCase()==='SI').forEach(r=>{const c=String(r.ComoSeEntero||'Sin canal').trim();cMap[c]=(cMap[c]||0)+1;});
-  const cTop=Object.entries(cMap).sort((a,b)=>b[1]-a[1])[0]||['—',0];
-  const aMap={};(D.prospectos||[]).filter(r=>String(r.LeadUnicoxMesProyecto||'').toUpperCase()==='SI').forEach(r=>{const a=toShort(String(r.Responsable||r.Asesor||'Sin asesor').trim());aMap[a]=(aMap[a]||0)+1;});
-  const aTop=Object.entries(aMap).sort((a,b)=>b[1]-a[1])[0]||['—',0];
-  const kpis=document.querySelectorAll('#fl-content .kpi .val');
-  const vals=[...kpis].map(el=>parseInt(el.textContent.replace(/\D/g,''))||0);
-  const payload={
-    panel:'funnel', proyecto:proj,
-    periodo_a:_flChatContext.split('\n')[0]?.split('Período: ')[1]||'',
-    leads_total:vals[0]||0, leads_dni:vals[1]||0, leads_digital:vals[2]||0,
-    prospectos:vals[4]||0, visitas:vals[5]||0, separaciones:vals[6]||0, ventas:vals[7]||0,
-    canal_top:cTop[0], asesor_top:aTop[0],
-  };
+  const proj=document.getElementById('fl-proj')?.value||'';
+  const _fmt=d=>{if(!d)return'';const[y,m,dd]=d.split('-');const MM=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];return dd+' '+MM[+m]+' '+y;};
+  const _lbl=(f,t)=>f&&t?_fmt(f)+' – '+_fmt(t):f?'Desde '+_fmt(f):t?'Hasta '+_fmt(t):'Todo el histórico';
+  const periodoA=_lbl(_flDateFrom,_flDateTo);
+  const periodoB=_flComp?_lbl(_flDateFrom2,_flDateTo2):null;
+
   try{
+    const datosActual=await _flMarketingSnapshot(proj, _flDateFrom, _flDateTo);
+    const datosAnterior=(_flComp&&(_flDateFrom2||_flDateTo2))?await _flMarketingSnapshot(proj, _flDateFrom2, _flDateTo2):null;
+    const payload={
+      panel:'funnel', proyecto:proj||'Todos',
+      periodo_a:periodoA, periodo_b:periodoB,
+      datos_actual:datosActual, datos_anterior:datosAnterior,
+    };
     const r=await fetch('/api/analizar_ia',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const j=await r.json();
-    resEl.innerHTML=`<div style="white-space:pre-wrap;font-size:13px;line-height:1.7;color:var(--ink)">${j.analisis||j.error||'Sin respuesta'}</div>`;
+    _flLastAnalysisHTML=`<div style="white-space:pre-wrap;font-size:13px;line-height:1.7;color:var(--ink)">${j.analisis||j.error||'Sin respuesta'}</div>`;
+    resEl.innerHTML=_flLastAnalysisHTML;
   }catch(e){resEl.innerHTML='<span style="color:var(--bad)">Error al conectar con el servidor</span>';}
 }
 
