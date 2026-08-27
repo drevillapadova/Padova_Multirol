@@ -1028,6 +1028,15 @@ def api_refresh():
     return jsonify({"ok": True, "updated_at": _cache["updated_at"]})
 
 
+def _extraer_texto(msg):
+    # Con Sonnet 5 (y en general con thinking activo) content[0] suele ser un
+    # ThinkingBlock, no el TextBlock con la respuesta final — hay que buscarlo.
+    for block in msg.content:
+        if block.type == "text":
+            return block.text
+    return ""
+
+
 @app.route("/api/analizar_ia", methods=["POST"])
 def api_analizar_ia():
     try:
@@ -1133,7 +1142,7 @@ Sé directo y práctico. Máximo 150 palabras."""
         if panel == "funnel":
             create_kwargs["output_config"] = {"effort": "medium"}
         msg = client.messages.create(**create_kwargs)
-        return jsonify({"analisis": msg.content[0].text})
+        return jsonify({"analisis": _extraer_texto(msg)})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -1198,7 +1207,7 @@ DATOS DEL PERÍODO ACTUAL ({periodo_a}):
             messages=messages,
             output_config={"effort": "medium"},
         )
-        return jsonify({"reply": msg.content[0].text})
+        return jsonify({"reply": _extraer_texto(msg)})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
