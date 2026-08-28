@@ -1816,12 +1816,13 @@ function renderDirector(){
     };
 
     const _buildProjRows=(ventasArr,inPeriodFn,nMeses)=>{
+      const sepsUnicas=_flSeparacionesUnicas(D.stock||[]);
       const rows=SHOW_PROJS.map(p=>{
         const pV=ventasArr.filter(r=>matchProj(r.Proyecto,p)&&_matchTipo(r,_tipo));
         const metaP=calcMeta(p,_tipo);
         const cumplPct=metaP.uni?Math.round(pV.length/metaP.uni*100):null;
         const montoP=pV.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
-        const sepsP=(D.stock||[]).filter(r=>matchProj(r.Proyecto,p)&&_matchTipo(r,_tipo)&&r.FechaSepDefinitiva&&inPeriodFn(r.FechaSepDefinitiva));
+        const sepsP=sepsUnicas.filter(r=>matchProj(r.Proyecto,p)&&_matchTipo(r,_tipo)&&inPeriodFn(r.FechaSepDefinitiva));
         const m2sP=pV.map(r=>stockM2[String(r.Proyecto||'').toUpperCase()+'||'+String(r.NroInmueble||'').trim()]).filter(Boolean);
         const pm2P=m2sP.length?Math.round(m2sP.reduce((a,b)=>a+b,0)/m2sP.length):null;
         return{p,n:pV.length,meta:metaP.uni,cumplPct,monto:montoP,seps:sepsP.length,pm2:pm2P,_m2s:m2sP};
@@ -1963,6 +1964,7 @@ function renderDirector(){
     // ── Heatmap: conversión visita→sep por proyecto y mes ──
     const hmMonths=visMonths;
     const hmLabels=visLabels;
+    const hmSepsUnicas=_flSeparacionesUnicas(D.stock||[]);
     const hmRows=SHOW_PROJS.map(p=>{
       const cells=hmMonths.map(k=>{
         const[ky,km]=k.split('-').map(Number);
@@ -1971,9 +1973,8 @@ function renderDirector(){
           const d=parseDate(r.FechaVisita||'');if(!d)return false;
           return d.getFullYear()===ky&&d.getMonth()+1===km;
         }).length;
-        const sep=(D.stock||[]).filter(r=>{
+        const sep=hmSepsUnicas.filter(r=>{
           if(!matchProj(r.Proyecto,p))return false;
-          if(!r.FechaSepDefinitiva)return false;
           const d=parseDate(r.FechaSepDefinitiva);if(!d)return false;
           return d.getFullYear()===ky&&d.getMonth()+1===km;
         }).length;
@@ -2438,6 +2439,36 @@ function _flChatBubbleHTML(role, txt){
   </div>`;
 }
 
+// Una unidad de D.stock puede tener varias filas a lo largo de su historia. Si el
+// MISMO cliente separó, se le devolvió (Estado=DEVUELTA) y volvió a separar/vender
+// la MISMA unidad dentro del MISMO mes, es 1 sola operación, no 2 — se queda solo
+// la fila más reciente de ese grupo. Si el cliente es distinto (aunque caiga en el
+// mismo mes) o la re-separación fue en otro mes, cada fila se sigue contando aparte:
+// son leads/operaciones genuinamente distintas.
+function _flSeparacionesUnicas(stockRows){
+  const conFecha=(stockRows||[]).filter(r=>{
+    const f=String(r.FechaSepDefinitiva||'').trim();
+    return f && f!=='nan';
+  });
+  const clienteKey=r=>{
+    const doc=String(r.NroDocumento||'').trim();
+    if(doc && doc!=='nan' && doc!=='None' && doc!=='0') return doc;
+    return normStr(r.Nombres||'').trim();
+  };
+  const grupos=new Map();
+  conFecha.forEach((r,i)=>{
+    const iso=_toISODate(r.FechaSepDefinitiva);
+    // Sin fecha parseable no se puede agrupar por mes con certeza: se mantiene
+    // como fila propia (mismo comportamiento que antes de este dedup).
+    if(!iso){ grupos.set('__sinfecha__'+i, r); return; }
+    const unitKey=String(r.Proyecto||'').trim()+'|'+String(r.Edificio||'').trim()+'|'+String(r.TipoInmueble||'').trim()+'|'+String(r.NroInmuebleActual||'').trim();
+    const key=unitKey+'::'+iso.slice(0,7)+'::'+clienteKey(r);
+    const prev=grupos.get(key);
+    if(!prev || iso > _toISODate(prev.FechaSepDefinitiva)) grupos.set(key, r);
+  });
+  return [...grupos.values()];
+}
+
 // Recalcula todas las métricas del funnel de Marketing para un proyecto/rango de fechas dado.
 // Extraída de renderFunnelMkt para poder reutilizarse desde el análisis IA (que necesita
 // las mismas cifras que ve el usuario en pantalla, incluyendo el período B de comparación).
@@ -2451,7 +2482,7 @@ function _flCalcPeriodo(proj, from, to){
   if(proj) vi=vi.filter(r=>matchProj(r.Proyecto, proj));
   if(from||to) vi=vi.filter(r=>_matchDateRange(r.FechaVisita, from, to));
   if(_flExcludeExt) vi=vi.filter(r=>!_isProper(r.ComoSeEntero));
-  let sp=(D.stock||[]).filter(r=>String(r.FechaSepDefinitiva||'').trim()&&String(r.FechaSepDefinitiva||'')!=='nan');
+  let sp=_flSeparacionesUnicas(D.stock||[]);
   sp=sp.filter(r=>normStr(r.TipoInmueble||'').includes('departamento')); // igual que Ventas: solo Departamento, no estacionamiento/depósito/etc.
   if(proj) sp=sp.filter(r=>matchProj(r.Proyecto, proj));
   if(from||to) sp=sp.filter(r=>_matchDateRange(r.FechaSepDefinitiva, from, to));
@@ -2949,7 +2980,18 @@ function renderFunnelMkt(){
       } else { periods=_mks; }
     } else {
       periodMap = dayMap;
-      periods = allDates;
+      // Rellenar días sin actividad (mismo criterio que el relleno de meses arriba):
+      // sin esto, un día sin ningún lead/visita/etc. se saltaba en el eje X.
+      const _full=[];
+      const cur=new Date(allDates[0]+'T00:00:00');
+      const last=new Date(allDates[allDates.length-1]+'T00:00:00');
+      while(cur<=last){
+        const iso=cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0');
+        if(!periodMap[iso]) periodMap[iso]={};
+        _full.push(iso);
+        cur.setDate(cur.getDate()+1);
+      }
+      periods=_full;
     }
     const _lblGran = _isMonthly ? 'mensual' : 'diario';
     const _fmtPeriodo = d => {
