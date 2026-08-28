@@ -3267,6 +3267,9 @@ function renderAdmVentas(){
   let fc = D.flujoCaja||[];
   if(proj)  fc = fc.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
   if(_tipo) fc = fc.filter(r=>normStr(r.TipoInmueble_1||'').includes(_tipo));
+  // Un expediente sin FechaVenta (solo separado, aún no vendido) no cuenta en
+  // ninguna cifra de cobranza/proyección: no es una venta confirmada todavía.
+  fc = fc.filter(r=>{ const s=String(r.FechaVenta||'').trim(); return s && s!=='nan' && s!=='None'; });
   const _esUSD_fc = r => String(r.Tipo_Moneda||'').toUpperCase().includes('DOLAR');
   const _n_fc = v => { const n=parseFloat(v); return isNaN(n)?0:n; };
   const fUsd_fc = n => '$ '+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
