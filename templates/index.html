@@ -736,6 +736,13 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+<script>
+  // chartjs-plugin-datalabels se auto-registra global al cargarlo por <script>: sin esto,
+  // TODOS los gráficos de la app mostrarían etiquetas de datos por default. Se apaga acá
+  // y se prende explícitamente solo en el gráfico que lo necesita (Evolución de Marketing).
+  if(window.Chart && Chart.defaults && Chart.defaults.plugins){ Chart.defaults.plugins.datalabels = { display:false }; }
+</script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -2407,6 +2414,7 @@ const FL_CHAT_SUGGESTIONS = [
 let _flCrossRows = 'subestado';
 let _flCrossCols = 'canal';
 let _flCrossStage = 'leads';
+let _flEvoGranularidad = 'auto'; // 'auto' | 'dias' | 'mes' — granularidad del gráfico de Evolución
 let _flCrossSort = null;
 let _flCrossSortDir = 'desc';
 let _flComp = false;
@@ -2909,25 +2917,396 @@ function renderFunnelMkt(){
   if(_flTab==='evolucion'){
     const PROYECTOS_COLOR={'HELIO - SANTA BEATRIZ':'#60a5fa','SUNNY':'#34d399','LITORAL 900':'#fbbf24','LOMAS DE CARABAYLLO 4':'#a78bfa','LOMAS DE CARABAYLLO 5':'#f472b6','DOMINGO ORUE':'#fb923c'};
     const BRAND_COLORS=['#60a5fa','#34d399','#fbbf24','#a78bfa','#f472b6','#fb923c','#f87171','#38bdf8'];
+    const ETAPA_COLOR={leads:'#60a5fa',contactados:'#34d399',visita:'#fbbf24',separacion:'#a78bfa',venta:'#f87171'};
     const EVO_STAGES=[
-      {val:'leads',      lbl:'Todos los leads', data:leadBase, dateF:r=>_toISO(r.FechaRegistro)},
-      {val:'contactados',lbl:'Contactados',      data:leadBase.filter(r=>normStr(r.SubEstado||'').includes('contactad')), dateF:r=>_toISO(r.FechaRegistro)},
-      {val:'visita',     lbl:'Con visita',       data:visF,    dateF:r=>_toISO(r.FechaVisita)},
-      {val:'separacion', lbl:'Separados',        data:sepBase, dateF:r=>_toISO(r.FechaSepDefinitiva)},
-      {val:'venta',      lbl:'Vendidos',         data:ventaBase, dateF:r=>_toISO(r.FechaVenta||r.FechaEntrega_Minuta)},
+      {val:'leads',      lbl:'Leads',            data:leadBase, dataB:(B?.lb)||[], dateF:r=>_toISO(r.FechaRegistro)},
+      {val:'contactados',lbl:'Contactados',      data:leadBase.filter(r=>normStr(r.SubEstado||'').includes('contactad')), dataB:((B?.lb)||[]).filter(r=>normStr(r.SubEstado||'').includes('contactad')), dateF:r=>_toISO(r.FechaRegistro)},
+      {val:'visita',     lbl:'Con visita',       data:visF,    dataB:(B?.visF)||[], dateF:r=>_toISO(r.FechaVisita)},
+      {val:'separacion', lbl:'Separados',        data:sepBase, dataB:(B?.sp)||[], dateF:r=>_toISO(r.FechaSepDefinitiva)},
+      {val:'venta',      lbl:'Vendidos',         data:ventaBase, dataB:(B?.ve)||[], dateF:r=>_toISO(r.FechaVenta||r.FechaEntrega_Minuta)},
     ];
+    const esTodas = _flCrossStage==='todas';
     const evoStageOpt=EVO_STAGES.find(s=>s.val===_flCrossStage)||EVO_STAGES[0];
     const evoBase=evoStageOpt.data;
+    const evoBaseB=evoStageOpt.dataB;
     const _evoDateF=evoStageOpt.dateF;
     const _ffsE="font-family:'Plus Jakarta Sans',sans-serif";
+    const _evoTabBtn=(val,lbl,activo,setter)=>`<button onclick="${setter}='${val}';renderFunnelMkt()" style="${_ffsE};padding:4px 14px;border-radius:99px;font-size:10.5px;font-weight:700;cursor:pointer;letter-spacing:.03em;border:1.5px solid ${activo?'#3b82f6':'var(--line)'};background:${activo?'var(--brand-soft)':'transparent'};color:${activo?'var(--brand)':'var(--ink-3)'}">${lbl}</button>`;
     const evoStageSel=`<div style="display:flex;align-items:center;gap:6px;padding:10px 18px 0;flex-wrap:wrap">
       <span style="${_ffsE};font-size:10px;color:var(--ink-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Etapa:</span>
-      ${EVO_STAGES.map(s=>`<button onclick="_flCrossStage='${s.val}';renderFunnelMkt()" style="${_ffsE};padding:4px 14px;border-radius:99px;font-size:10.5px;font-weight:700;cursor:pointer;letter-spacing:.03em;border:1.5px solid ${_flCrossStage===s.val?'#3b82f6':'var(--line)'};background:${_flCrossStage===s.val?'var(--brand-soft)':'transparent'};color:${_flCrossStage===s.val?'var(--brand)':'var(--ink-3)'}">${s.lbl}</button>`).join('')}
+      ${EVO_STAGES.map(s=>_evoTabBtn(s.val,s.lbl,!esTodas&&_flCrossStage===s.val,'_flCrossStage')).join('')}
+      ${_evoTabBtn('todas','Todas las etapas',esTodas,'_flCrossStage')}
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;padding:8px 18px 0;flex-wrap:wrap">
+      <span style="${_ffsE};font-size:10px;color:var(--ink-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Vista:</span>
+      ${_evoTabBtn('auto','Auto',_flEvoGranularidad==='auto','_flEvoGranularidad')}
+      ${_evoTabBtn('dias','Días',_flEvoGranularidad==='dias','_flEvoGranularidad')}
+      ${_evoTabBtn('mes','Mes',_flEvoGranularidad==='mes','_flEvoGranularidad')}
     </div>`;
 
     const _isDark=document.documentElement.classList.contains('dark');
     const _gridC=_isDark?'rgba(51,65,85,.5)':'#F3F4F6';
     const _tickC=_isDark?'#94a3b8':'#6B7280';
+
+    // Cantidad de meses calendario que abarca un rango (inclusive): mismo mes = 1,
+    // mes siguiente = 2, etc. Se usa para decidir la granularidad del gráfico.
+    const _flMonthsSpan=(f,t)=>{
+      const[fy,fm]=f.slice(0,7).split('-').map(Number);
+      const[ty,tm]=t.slice(0,7).split('-').map(Number);
+      return (ty-fy)*12+(tm-fm)+1;
+    };
+    const EVO_DIAS_MAX_MESES=4; // hasta 4 meses de rango, se sigue mostrando por día
+
+    // Agrupa un dayMap {iso:{clave:n}} en días u meses (relleno de huecos incluido).
+    // Diario mientras el rango no supere EVO_DIAS_MAX_MESES, mensual si lo supera.
+    // Compartido por el modo "por proyecto" y el modo "todas las etapas" para no
+    // duplicar la lógica.
+    function _flFillPeriods(dayMap){
+      const dates=Object.keys(dayMap).sort();
+      if(!dates.length) return {periodMap:{}, periods:[], isMonthly:false, allDates:dates};
+      const isMonthly=_flEvoGranularidad==='dias' ? false
+        : _flEvoGranularidad==='mes' ? true
+        : _flMonthsSpan(dates[0], dates[dates.length-1])>EVO_DIAS_MAX_MESES;
+      let periodMap, periods;
+      if(isMonthly){
+        periodMap={};
+        dates.forEach(iso=>{
+          const mk=iso.slice(0,7);
+          if(!periodMap[mk]) periodMap[mk]={};
+          Object.entries(dayMap[iso]).forEach(([k,n])=>{ periodMap[mk][k]=(periodMap[mk][k]||0)+n; });
+        });
+        const _mks=Object.keys(periodMap).sort();
+        if(_mks.length>1){
+          const[fy,fm]=_mks[0].split('-').map(Number);
+          const[ly,lm]=_mks[_mks.length-1].split('-').map(Number);
+          const _full=[];let cy=fy,cm=fm;
+          while(cy<ly||(cy===ly&&cm<=lm)){
+            const mk=cy+'-'+String(cm).padStart(2,'0');
+            if(!periodMap[mk])periodMap[mk]={};
+            _full.push(mk);
+            cm++;if(cm>12){cm=1;cy++;}
+          }
+          periods=_full;
+        } else { periods=_mks; }
+      } else {
+        periodMap=dayMap;
+        const _full=[];
+        const cur=new Date(dates[0]+'T00:00:00');
+        const last=new Date(dates[dates.length-1]+'T00:00:00');
+        while(cur<=last){
+          const iso=cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0');
+          if(!periodMap[iso]) periodMap[iso]={};
+          _full.push(iso);
+          cur.setDate(cur.getDate()+1);
+        }
+        periods=_full;
+      }
+      return {periodMap, periods, isMonthly, allDates:dates};
+    }
+    const MM=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
+    const _fmtPeriodoGen=(d,isMonthly)=>{
+      if(isMonthly){ const[y,m]=d.split('-'); return MM[+m]+' '+y; }
+      const[y,m,dd]=d.split('-'); return dd+' '+MM[+m];
+    };
+
+    // Etiquetas de dato sobre las líneas del gráfico de Evolución: se ocultan solas
+    // cuando el total de "etiquetas a dibujar" (líneas × puntos) es demasiado alto
+    // (si no, se amontonan y no se ve nada), y se saltan los ceros para no ensuciar
+    // el gráfico. Un umbral combinado en vez de límites separados de líneas/puntos:
+    // así 3 meses con 5 etapas (15 etiquetas) sigue mostrando, aunque sean 5 líneas.
+    const EVO_MAX_ETIQUETAS=60;
+    const _flDataLabelsCfg=()=>({
+      display: ctx => {
+        const nSeries=ctx.chart.data.datasets.length;
+        const nPuntos=ctx.chart.data.labels.length;
+        if(nSeries*nPuntos>EVO_MAX_ETIQUETAS) return false;
+        const v=ctx.dataset.data[ctx.dataIndex];
+        return v!=null && v!==0;
+      },
+      color: ctx=>ctx.dataset.borderColor,
+      backgroundColor: _isDark?'rgba(15,23,42,.75)':'rgba(255,255,255,.85)',
+      borderRadius: 4,
+      padding: {top:2,bottom:2,left:5,right:5},
+      font: {family:"'Plus Jakarta Sans',sans-serif", size:10, weight:'700'},
+      anchor: 'end',
+      align: 'top',
+      offset: 4,
+      formatter: v=>fN(v),
+    });
+
+    // ── Modo "todas las etapas" (sin comparar): una línea por etapa del funnel,
+    // agregada según el filtro de proyecto activo (no desglosa por proyecto — con
+    // 5 etapas ya son 5 líneas, cruzarlo también por proyecto sería ilegible).
+    if(esTodas && !(_flComp && (_flDateFrom2||_flDateTo2))){
+      const dayMapTodas={};
+      EVO_STAGES.forEach(st=>{
+        st.data.forEach(r=>{
+          const iso=st.dateF(r); if(!iso) return;
+          if(!dayMapTodas[iso]) dayMapTodas[iso]={};
+          dayMapTodas[iso][st.val]=(dayMapTodas[iso][st.val]||0)+1;
+        });
+      });
+      const {periodMap, periods, isMonthly, allDates}=_flFillPeriods(dayMapTodas);
+      if(!allDates.length){
+        document.getElementById('fl-content').innerHTML=
+          '<div class="card" style="margin-bottom:12px;padding-bottom:10px">'+evoStageSel+'</div>'
+          +'<div class="card" style="margin-bottom:16px;padding:40px;text-align:center;color:var(--ink-4);font-size:13px">Sin datos para el período seleccionado</div>';
+        return;
+      }
+      const xLabelsT=periods.map(d=>isMonthly?_fmtPeriodoGen(d,true):(periods.length>90?d.slice(5).replace('-','/'):_fmtPeriodoGen(d,false)));
+      const datasetsT=EVO_STAGES.map(st=>({
+        label:st.lbl,
+        data:periods.map(d=>periodMap[d]?.[st.val]||0),
+        borderColor:ETAPA_COLOR[st.val],
+        backgroundColor:ETAPA_COLOR[st.val]+'22',
+        borderWidth:2, pointRadius:periods.length>60?0:3, pointHoverRadius:5, tension:0.35, fill:false,
+      }));
+      const legendT=EVO_STAGES.map(st=>{
+        const tot=periods.reduce((a,d)=>a+(periodMap[d]?.[st.val]||0),0);
+        return `<div style="display:flex;align-items:center;gap:5px;font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;color:var(--ink-2)">
+          <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${ETAPA_COLOR[st.val]};flex-shrink:0"></span>
+          <span style="flex:1;white-space:nowrap">${st.lbl}</span>
+          <span style="font-weight:700;color:var(--ink);font-family:var(--mono)">${fN(tot)}</span>
+        </div>`;
+      }).join('');
+
+      document.getElementById('fl-content').innerHTML=
+        '<div class="card" style="margin-bottom:12px;padding-bottom:10px">'+evoStageSel+'</div>'
+        +'<div class="card" style="margin-bottom:16px">'
+          +'<div class="card-hd">'
+            +'<div><h3>Evolución '+(isMonthly?'mensual':'diaria')+' · todas las etapas</h3><p>'+(lblA||'Todo el período')+' · '+(proj||'todos los proyectos')+'</p></div>'
+            +'<div style="display:flex;flex-direction:column;gap:5px;min-width:180px">'+legendT+'</div>'
+          +'</div>'
+          +'<div style="height:340px;padding:8px 16px 16px"><canvas id="fl-evo-chart"></canvas></div>'
+        +'</div>';
+
+      requestAnimationFrame(()=>{
+        const ctx=document.getElementById('fl-evo-chart');
+        if(!ctx) return;
+        if(window._flEvoChart) window._flEvoChart.destroy();
+        window._flEvoChart=new Chart(ctx,{
+          type:'line',
+          plugins:[ChartDataLabels],
+          data:{labels:xLabelsT, datasets:datasetsT},
+          options:{
+            responsive:true,maintainAspectRatio:false,
+            interaction:{mode:'index',intersect:false},
+            plugins:{
+              legend:{display:false},
+              datalabels:_flDataLabelsCfg(),
+              tooltip:{
+                titleFont:{family:"'Plus Jakarta Sans',sans-serif",size:11},
+                bodyFont:{family:"'Plus Jakarta Sans',sans-serif",size:11},
+                callbacks:{label:c=>' '+c.dataset.label+': '+fN(c.parsed.y)}
+              }
+            },
+            scales:{
+              x:{
+                grid:{color:_gridC},
+                ticks:{font:{family:"'Plus Jakarta Sans',sans-serif",size:10},color:_tickC,maxTicksLimit:allDates.length>60?12:allDates.length>30?8:allDates.length,maxRotation:0}
+              },
+              y:{
+                beginAtZero:true,
+                grid:{color:_gridC},
+                ticks:{font:{family:"'Plus Jakarta Sans',sans-serif",size:10},color:_tickC,precision:0}
+              }
+            }
+          }
+        });
+      });
+      return;
+    }
+
+    // ── Modo comparación: con "Comparar" activo, en vez de una línea por proyecto
+    // se muestran 2 líneas de tendencia (Período A vs Período B), alineadas por
+    // día/mes relativo desde el inicio de cada período (no por fecha calendario,
+    // que normalmente difiere entre A y B).
+    const modoComparar = _flComp && (_flDateFrom2 || _flDateTo2);
+    if(modoComparar){
+      // En modo "todas las etapas" los límites del período se calculan combinando
+      // las 5 etapas (no solo la que quedó seleccionada por defecto), para que las
+      // 10 líneas (5 etapas × A/B) compartan el mismo eje.
+      const isoA=esTodas
+        ? EVO_STAGES.flatMap(st=>st.data.map(st.dateF)).filter(Boolean).sort()
+        : evoBase.map(_evoDateF).filter(Boolean).sort();
+      const isoB=esTodas
+        ? EVO_STAGES.flatMap(st=>st.dataB.map(st.dateF)).filter(Boolean).sort()
+        : evoBaseB.map(_evoDateF).filter(Boolean).sort();
+      const fromA=_flDateFrom||isoA[0]||null, toA=_flDateTo||isoA[isoA.length-1]||null;
+      const fromB=_flDateFrom2||isoB[0]||null, toB=_flDateTo2||isoB[isoB.length-1]||null;
+
+      if(!fromA||!toA||!fromB||!toB){
+        document.getElementById('fl-content').innerHTML=
+          '<div class="card" style="margin-bottom:12px;padding-bottom:10px">'+evoStageSel+'</div>'
+          +'<div class="card" style="margin-bottom:16px;padding:40px;text-align:center;color:var(--ink-4);font-size:13px">Sin datos suficientes en alguno de los dos períodos para comparar</div>';
+        return;
+      }
+
+      // Mensual si CUALQUIERA de los 2 rangos supera EVO_DIAS_MAX_MESES, para que
+      // ambas líneas usen la misma granularidad (salvo que el usuario haya forzado
+      // días o mes con el botón de granularidad).
+      const cmpMonthly=_flEvoGranularidad==='dias' ? false
+        : _flEvoGranularidad==='mes' ? true
+        : (_flMonthsSpan(fromA,toA)>EVO_DIAS_MAX_MESES || _flMonthsSpan(fromB,toB)>EVO_DIAS_MAX_MESES);
+      const _diffDias=(f,t)=>Math.round((new Date(t+'T00:00:00')-new Date(f+'T00:00:00'))/86400000);
+      const _diffMeses=(f,t)=>{const[fy,fm]=f.slice(0,7).split('-').map(Number);const[ty,tm]=t.slice(0,7).split('-').map(Number);return(ty-fy)*12+(tm-fm);};
+
+      function _serieRelativa(rows, dateF, from){
+        const map={};
+        rows.forEach(r=>{
+          const iso=dateF(r); if(!iso) return;
+          const idx=cmpMonthly?_diffMeses(from,iso):_diffDias(from,iso);
+          if(idx<0) return;
+          map[idx]=(map[idx]||0)+1;
+        });
+        return map;
+      }
+      const mapA=_serieRelativa(evoBase, _evoDateF, fromA);
+      const mapB=_serieRelativa(evoBaseB, _evoDateF, fromB);
+      const lenA=(cmpMonthly?_diffMeses(fromA,toA):_diffDias(fromA,toA))+1;
+      const lenB=(cmpMonthly?_diffMeses(fromB,toB):_diffDias(fromB,toB))+1;
+      const nPuntos=Math.max(lenA,lenB);
+      const idxs=Array.from({length:nPuntos},(_,i)=>i);
+      const xLabelsCmp=idxs.map(i=>cmpMonthly?('Mes '+(i+1)):('Día '+(i+1)));
+
+      // ── "Todas las etapas" + comparar: 10 líneas (5 etapas × A/B) — color por
+      // etapa, sólida = Período A, punteada = Período B.
+      if(esTodas){
+        const datasetsTodasCmp=[];
+        EVO_STAGES.forEach(st=>{
+          const mA=_serieRelativa(st.data, st.dateF, fromA);
+          const mB=_serieRelativa(st.dataB, st.dateF, fromB);
+          const sA=idxs.map(i=>mA[i]||0), sB=idxs.map(i=>mB[i]||0);
+          datasetsTodasCmp.push({label:st.lbl+' · A', data:sA, borderColor:ETAPA_COLOR[st.val], backgroundColor:ETAPA_COLOR[st.val]+'15', borderWidth:2, pointRadius:nPuntos>60?0:2, pointHoverRadius:4, tension:0.35, fill:false});
+          datasetsTodasCmp.push({label:st.lbl+' · B', data:sB, borderColor:ETAPA_COLOR[st.val], backgroundColor:ETAPA_COLOR[st.val]+'15', borderWidth:2, borderDash:[6,4], pointRadius:nPuntos>60?0:2, pointHoverRadius:4, tension:0.35, fill:false});
+        });
+
+        const legendTodasCmp=EVO_STAGES.map(st=>`<div style="display:flex;align-items:center;gap:5px;font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;color:var(--ink-2)">
+          <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${ETAPA_COLOR[st.val]};flex-shrink:0"></span>
+          <span>${st.lbl}</span>
+        </div>`).join('');
+
+        document.getElementById('fl-content').innerHTML=
+          '<div class="card" style="margin-bottom:12px;padding-bottom:10px">'+evoStageSel+'</div>'
+          +'<div class="card" style="margin-bottom:16px">'
+            +'<div class="card-hd">'
+              +'<div><h3>Evolución '+(cmpMonthly?'mensual':'diaria')+' · todas las etapas</h3><p>Período A ('+lblA+', línea sólida) vs Período B ('+lblB+', línea punteada) · alineado por '+(cmpMonthly?'mes':'día')+' relativo</p></div>'
+              +'<div style="display:flex;flex-direction:column;gap:5px;min-width:150px">'+legendTodasCmp+'</div>'
+            +'</div>'
+            +'<div style="height:360px;padding:8px 16px 16px"><canvas id="fl-evo-chart"></canvas></div>'
+          +'</div>';
+
+        requestAnimationFrame(()=>{
+          const ctx=document.getElementById('fl-evo-chart');
+          if(!ctx) return;
+          if(window._flEvoChart) window._flEvoChart.destroy();
+          window._flEvoChart=new Chart(ctx,{
+            type:'line',
+            plugins:[ChartDataLabels],
+            data:{labels:xLabelsCmp, datasets:datasetsTodasCmp},
+            options:{
+              responsive:true,maintainAspectRatio:false,
+              interaction:{mode:'index',intersect:false},
+              plugins:{
+                legend:{display:false},
+                datalabels:_flDataLabelsCfg(),
+                tooltip:{
+                  titleFont:{family:"'Plus Jakarta Sans',sans-serif",size:11},
+                  bodyFont:{family:"'Plus Jakarta Sans',sans-serif",size:11},
+                  callbacks:{label:c=>' '+c.dataset.label+': '+fN(c.parsed.y)}
+                }
+              },
+              scales:{
+                x:{
+                  grid:{color:_gridC},
+                  ticks:{font:{family:"'Plus Jakarta Sans',sans-serif",size:10},color:_tickC,maxTicksLimit:nPuntos>60?12:nPuntos>30?8:nPuntos,maxRotation:0}
+                },
+                y:{
+                  beginAtZero:true,
+                  grid:{color:_gridC},
+                  ticks:{font:{family:"'Plus Jakarta Sans',sans-serif",size:10},color:_tickC,precision:0}
+                }
+              }
+            }
+          });
+        });
+        return;
+      }
+
+      const serieA=idxs.map(i=>mapA[i]||0);
+      const serieB=idxs.map(i=>mapB[i]||0);
+
+      const datasetsCmp=[
+        {label:'Período A · '+lblA, data:serieA, borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,0.08)', borderWidth:2, pointRadius:nPuntos>60?0:3, pointHoverRadius:5, tension:0.35, fill:false},
+        {label:'Período B · '+lblB, data:serieB, borderColor:'#a78bfa', backgroundColor:'rgba(167,139,250,0.08)', borderWidth:2, pointRadius:nPuntos>60?0:3, pointHoverRadius:5, tension:0.35, borderDash:[6,4], fill:false},
+      ];
+
+      const totA=serieA.reduce((a,b)=>a+b,0), totB=serieB.reduce((a,b)=>a+b,0);
+      const avgA=lenA?Math.round(totA/lenA*10)/10:0, avgB=lenB?Math.round(totB/lenB*10)/10:0;
+      const maxA=serieA.length?Math.max(...serieA):0, maxB=serieB.length?Math.max(...serieB):0;
+      const deltaTot=totA-totB, deltaPct=totB?Math.round(deltaTot/totB*1000)/10:null;
+      const deltaColor=deltaTot>0?'#34d399':deltaTot<0?'#f87171':'#94a3b8';
+      const deltaIcon=deltaTot>0?'↑':deltaTot<0?'↓':'→';
+
+      const legendCmp=`<div style="display:flex;flex-direction:column;gap:5px;font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;color:var(--ink-2)">
+        <div style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#3b82f6;flex-shrink:0"></span><span>Período A · ${fN(totA)}</span></div>
+        <div style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#a78bfa;flex-shrink:0"></span><span>Período B · ${fN(totB)}</span></div>
+      </div>`;
+
+      const _evoKpiCmp=(lbl,val,sub,col)=>`<div class="kpi"><div class="lbl">${lbl}</div><div class="val">${val}</div><div class="sub">${sub}</div></div>`;
+
+      document.getElementById('fl-content').innerHTML=
+        '<div class="card" style="margin-bottom:12px;padding-bottom:10px">'+evoStageSel+'</div>'
+        +'<div class="kpi-row kpi-4" style="margin-bottom:16px">'
+          +_evoKpiCmp(evoStageOpt.lbl, fN(totA)+' <span style="font-size:12px;color:var(--ink-3)">vs</span> '+fN(totB), 'total A vs B', '#3b82f6')
+          +_evoKpiCmp('Promedio '+(cmpMonthly?'mensual':'diario'), avgA+' <span style="font-size:12px;color:var(--ink-3)">vs</span> '+avgB, 'A vs B', '#14AFBE')
+          +_evoKpiCmp('Pico', fN(maxA)+' <span style="font-size:12px;color:var(--ink-3)">vs</span> '+fN(maxB), 'A vs B', '#F4A228')
+          +_evoKpiCmp('Diferencia total', `<span style="color:${deltaColor}">${deltaIcon} ${fN(Math.abs(deltaTot))}</span>`, (deltaPct!=null?(deltaPct>0?'+':'')+deltaPct+'% vs B':'A vs B'), deltaColor)
+        +'</div>'
+        +'<div class="card" style="margin-bottom:16px">'
+          +'<div class="card-hd">'
+            +'<div><h3>Evolución '+(cmpMonthly?'mensual':'diaria')+' · '+evoStageOpt.lbl+'</h3><p>Período A ('+lblA+') vs Período B ('+lblB+') · alineado por '+(cmpMonthly?'mes':'día')+' relativo</p></div>'
+            +legendCmp
+          +'</div>'
+          +'<div style="height:340px;padding:8px 16px 16px"><canvas id="fl-evo-chart"></canvas></div>'
+        +'</div>';
+
+      requestAnimationFrame(()=>{
+        const ctx=document.getElementById('fl-evo-chart');
+        if(!ctx) return;
+        if(window._flEvoChart) window._flEvoChart.destroy();
+        window._flEvoChart=new Chart(ctx,{
+          type:'line',
+          plugins:[ChartDataLabels],
+          data:{labels:xLabelsCmp, datasets:datasetsCmp},
+          options:{
+            responsive:true,maintainAspectRatio:false,
+            interaction:{mode:'index',intersect:false},
+            plugins:{
+              legend:{display:false},
+              datalabels:_flDataLabelsCfg(),
+              tooltip:{
+                titleFont:{family:"'Plus Jakarta Sans',sans-serif",size:11},
+                bodyFont:{family:"'Plus Jakarta Sans',sans-serif",size:11},
+                callbacks:{label:c=>' '+c.dataset.label+': '+fN(c.parsed.y)}
+              }
+            },
+            scales:{
+              x:{
+                grid:{color:_gridC},
+                ticks:{font:{family:"'Plus Jakarta Sans',sans-serif",size:10},color:_tickC,maxTicksLimit:nPuntos>60?12:nPuntos>30?8:nPuntos,maxRotation:0}
+              },
+              y:{
+                beginAtZero:true,
+                grid:{color:_gridC},
+                ticks:{font:{family:"'Plus Jakarta Sans',sans-serif",size:10},color:_tickC,precision:0}
+              }
+            }
+          }
+        });
+      });
+      return;
+    }
 
     // Agrupar por fecha y proyecto
     // Nota: si hay un proyecto seleccionado, evoBase ya viene filtrado por matchProj
@@ -2942,62 +3321,19 @@ function renderFunnelMkt(){
       dayMap[iso][p] = (dayMap[iso][p]||0)+1;
     });
 
-    const allDates = Object.keys(dayMap).sort();
     const allProyectos = proj ? [proj] : [...new Set(evoBase.map(r=>String(r.Proyecto||'Sin proyecto').trim()))].filter(Boolean).sort();
 
     // Si no hay datos suficientes mostrar mensaje
-    if(allDates.length===0){
+    if(Object.keys(dayMap).length===0){
       document.getElementById('fl-content').innerHTML=
         '<div class="card" style="margin-bottom:12px;padding-bottom:10px">'+evoStageSel+'</div>'
         +'<div class="card" style="margin-bottom:16px;padding:40px;text-align:center;color:var(--ink-4);font-size:13px">Sin datos para el período seleccionado</div>';
       return;
     }
 
-    // Granularidad: diaria si el rango cae en un solo mes calendario, mensual si abarca más de uno
-    const MM=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
-    const _isMonthly = allDates[0].slice(0,7) !== allDates[allDates.length-1].slice(0,7);
-    let periodMap, periods;
-    if(_isMonthly){
-      periodMap = {};
-      allDates.forEach(iso=>{
-        const mk = iso.slice(0,7);
-        if(!periodMap[mk]) periodMap[mk]={};
-        Object.entries(dayMap[iso]).forEach(([p,n])=>{ periodMap[mk][p]=(periodMap[mk][p]||0)+n; });
-      });
-      // Rellenar meses vacíos para que no haya saltos
-      const _mks=Object.keys(periodMap).sort();
-      if(_mks.length>1){
-        const [fy,fm]=_mks[0].split('-').map(Number);
-        const [ly,lm]=_mks[_mks.length-1].split('-').map(Number);
-        const _full=[];let cy=fy,cm=fm;
-        while(cy<ly||(cy===ly&&cm<=lm)){
-          const mk=cy+'-'+String(cm).padStart(2,'0');
-          if(!periodMap[mk])periodMap[mk]={};
-          _full.push(mk);
-          cm++;if(cm>12){cm=1;cy++;}
-        }
-        periods=_full;
-      } else { periods=_mks; }
-    } else {
-      periodMap = dayMap;
-      // Rellenar días sin actividad (mismo criterio que el relleno de meses arriba):
-      // sin esto, un día sin ningún lead/visita/etc. se saltaba en el eje X.
-      const _full=[];
-      const cur=new Date(allDates[0]+'T00:00:00');
-      const last=new Date(allDates[allDates.length-1]+'T00:00:00');
-      while(cur<=last){
-        const iso=cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0');
-        if(!periodMap[iso]) periodMap[iso]={};
-        _full.push(iso);
-        cur.setDate(cur.getDate()+1);
-      }
-      periods=_full;
-    }
+    const {periodMap, periods, isMonthly:_isMonthly, allDates}=_flFillPeriods(dayMap);
     const _lblGran = _isMonthly ? 'mensual' : 'diario';
-    const _fmtPeriodo = d => {
-      if(_isMonthly){ const[y,m]=d.split('-'); return MM[+m]+' '+y; }
-      const[y,m,dd]=d.split('-'); return dd+' '+MM[+m];
-    };
+    const _fmtPeriodo = d => _fmtPeriodoGen(d, _isMonthly);
 
     // Construir datasets Chart.js — una línea por proyecto
     const datasets = allProyectos.map((p,i)=>({
@@ -3077,12 +3413,14 @@ function renderFunnelMkt(){
       if(window._flEvoChart) window._flEvoChart.destroy();
       window._flEvoChart=new Chart(ctx,{
         type:'line',
+        plugins:[ChartDataLabels],
         data:{labels:xLabels, datasets},
         options:{
           responsive:true,maintainAspectRatio:false,
           interaction:{mode:'index',intersect:false},
           plugins:{
             legend:{display:false},
+            datalabels:_flDataLabelsCfg(),
             tooltip:{
               titleFont:{family:"'Plus Jakarta Sans',sans-serif",size:11},
               bodyFont:{family:"'Plus Jakarta Sans',sans-serif",size:11},
@@ -3097,7 +3435,7 @@ function renderFunnelMkt(){
             y:{
               beginAtZero:true,
               grid:{color:_gridC},
-              ticks:{font:{family:"'Plus Jakarta Sans',sans-serif",size:10},color:_tickC,stepSize:1}
+              ticks:{font:{family:"'Plus Jakarta Sans',sans-serif",size:10},color:_tickC,precision:0}
             }
           }
         }
