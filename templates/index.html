@@ -1287,6 +1287,22 @@ function matchProj(rProj, filterProj){
   if(rp==='LOMAS DE CARABAYLLO' && fp.startsWith('LOMAS DE CARABAYLLO')) return true;
   return false;
 }
+
+// m² efectivo de una unidad (r trae AreaTechada/AreaLibre, del stock): el área
+// libre pesa la mitad que la construida. AreaLibre nula/ausente cuenta como 0.
+function _m2Efectivo(r){
+  const construida=parseFloat(r?.AreaTechada||0);
+  const libre=parseFloat(r?.AreaLibre||0);
+  return (isNaN(construida)?0:construida) + (isNaN(libre)?0:libre)*0.5;
+}
+// Precio/m² ponderado de un grupo de unidades: NUNCA promediar los precio_m2
+// individuales — se pondera como sum(precio)/sum(m2_efectivo), para que las
+// unidades más caras/grandes pesen según su propio tamaño, no 1 voto cada una.
+function _precioM2Ponderado(pares){
+  let sumPrecio=0, sumM2=0;
+  (pares||[]).forEach(p=>{ if(p.precio>0 && p.m2>0){ sumPrecio+=p.precio; sumM2+=p.m2; } });
+  return sumM2>0 ? sumPrecio/sumM2 : null;
+}
 const toTitle=s=>s.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());
 const _NAME_ALIAS={'anthony junior':'Anthony Nolasco'};
 const toShort=s=>{const k=toTitle(s).split(' ').slice(0,2).join(' ');return _NAME_ALIAS[k.toLowerCase()]||k;};
@@ -1636,8 +1652,9 @@ function renderDirector(){
   const avanceMontoP=meta.monto?Math.min(Math.round(montoGlob/meta.monto*100),100):0;
   const mesesAct=Math.max(1,Object.keys((()=>{const m={};vGlob.forEach(r=>{const d=parseDate(r.FechaVenta||r.FechaEntrega_Minuta||'');if(d)m[d.getFullYear()+'-'+(d.getMonth()+1)]=1;});return m;})()).length);
   const vel=(vGlob.length/mesesAct).toFixed(1);
-  const m2Rows=sGlob.filter(r=>Number(r.PrecioM2||0)>0);
-  const avgM2=m2Rows.length?Math.round(m2Rows.reduce((a,r)=>a+Number(r.PrecioM2||0),0)/m2Rows.length):null;
+  const m2Pares=sGlob.map(r=>({precio:Number(r.PrecioLista||0), m2:_m2Efectivo(r)}));
+  const avgM2_=_precioM2Ponderado(m2Pares);
+  const avgM2=avgM2_!=null?Math.round(avgM2_):null;
 
   document.getElementById('dir-sub').textContent='Actualizado: '+D.updatedAt;
   document.getElementById('dir-kpis').innerHTML=
@@ -1669,38 +1686,31 @@ function renderDirector(){
   }):[];
 
   // Ventas por mes
-  const stockM2={};
+  const stockArea={};
   (D.stock||[]).forEach(r=>{
     const k=String(r.Proyecto||'').toUpperCase()+'||'+String(r.NroInmuebleActual||r.NroInmueble||'').trim();
-    if(Number(r.PrecioM2||0)>0) stockM2[k]=Number(r.PrecioM2);
+    if(!(k in stockArea)) stockArea[k]={AreaTechada:r.AreaTechada, AreaLibre:r.AreaLibre};
   });
   const mesMapa={};
   v.forEach(r=>{
     const d=parseDate(r.FechaVenta||r.FechaEntrega_Minuta||'');
     if(!d)return;
     const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    if(!mesMapa[k])mesMapa[k]={mes:MN[d.getMonth()+1]+' '+d.getFullYear(),n:0,monto:0,m2s:[]};
+    if(!mesMapa[k])mesMapa[k]={mes:MN[d.getMonth()+1]+' '+d.getFullYear(),n:0,monto:0,pares:[]};
     mesMapa[k].n++;
-    mesMapa[k].monto+=Number(r.PrecioVentaSoles||r.PrecioVenta||0);
+    const precioVenta=Number(r.PrecioVentaSoles||r.PrecioVenta||0);
+    mesMapa[k].monto+=precioVenta;
     const m2key=String(r.Proyecto||'').toUpperCase()+'||'+String(r.NroInmueble||'').trim();
-    const m2val=stockM2[m2key];
-    if(m2val) mesMapa[k].m2s.push(m2val);
+    const areaRow=stockArea[m2key];
+    if(areaRow && precioVenta>0) mesMapa[k].pares.push({precio:precioVenta, m2:_m2Efectivo(areaRow)});
   });
   const mesEntries=Object.entries(mesMapa).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,12);
   const totales=mesEntries.reduce((a,[,d])=>({n:a.n+d.n,monto:a.monto+d.monto}),{n:0,monto:0});
   {
-    const _allM2Meses=mesEntries.flatMap(([,d])=>d.m2s||[]);
-    totales.pm2=_allM2Meses.length?Math.round(_allM2Meses.reduce((a,b)=>a+b,0)/_allM2Meses.length):null;
+    const _allParesMeses=mesEntries.flatMap(([,d])=>d.pares||[]);
+    const _pm2=_precioM2Ponderado(_allParesMeses);
+    totales.pm2=_pm2!=null?Math.round(_pm2):null;
   }
-  const mesRows=mesEntries.map(([,d])=>{
-    const m2avg=d.m2s.length?Math.round(d.m2s.reduce((a,b)=>a+b,0)/d.m2s.length):null;
-    return`<tr>
-      <td style="text-align:center">${d.mes}</td>
-      <td style="text-align:center">${d.n}</td>
-      <td style="text-align:center;font-family:var(--mono);font-size:12px">${fFull(d.monto)}</td>
-      <td style="text-align:center;font-family:var(--mono);font-size:12px">${m2avg?'S/ '+fN(m2avg):'—'}</td>
-    </tr>`;
-  }).join('');
 
   // Tipologías desde stock — dormitorios + locales comerciales
   const byDorm=(lst,d)=>lst.filter(r=>{
@@ -1830,12 +1840,18 @@ function renderDirector(){
         const cumplPct=metaP.uni?Math.round(pV.length/metaP.uni*100):null;
         const montoP=pV.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
         const sepsP=sepsUnicas.filter(r=>matchProj(r.Proyecto,p)&&_matchTipo(r,_tipo)&&inPeriodFn(r.FechaSepDefinitiva));
-        const m2sP=pV.map(r=>stockM2[String(r.Proyecto||'').toUpperCase()+'||'+String(r.NroInmueble||'').trim()]).filter(Boolean);
-        const pm2P=m2sP.length?Math.round(m2sP.reduce((a,b)=>a+b,0)/m2sP.length):null;
-        return{p,n:pV.length,meta:metaP.uni,cumplPct,monto:montoP,seps:sepsP.length,pm2:pm2P,_m2s:m2sP};
+        const paresP=pV.map(r=>{
+          const precio=Number(r.PrecioVentaSoles||r.PrecioVenta||0);
+          const areaRow=stockArea[String(r.Proyecto||'').toUpperCase()+'||'+String(r.NroInmueble||'').trim()];
+          return areaRow&&precio>0?{precio, m2:_m2Efectivo(areaRow)}:null;
+        }).filter(Boolean);
+        const pm2P_=_precioM2Ponderado(paresP);
+        const pm2P=pm2P_!=null?Math.round(pm2P_):null;
+        return{p,n:pV.length,meta:metaP.uni,cumplPct,monto:montoP,seps:sepsP.length,pm2:pm2P,_pares:paresP};
       });
-      const allM2=rows.flatMap(r=>r._m2s);
-      const tot={p:'TOTAL',n:rows.reduce((a,r)=>a+r.n,0),meta:rows.reduce((a,r)=>a+(r.meta||0),0),monto:rows.reduce((a,r)=>a+r.monto,0),seps:rows.reduce((a,r)=>a+r.seps,0),pm2:allM2.length?Math.round(allM2.reduce((a,b)=>a+b,0)/allM2.length):null};
+      const allPares=rows.flatMap(r=>r._pares);
+      const _totPm2=_precioM2Ponderado(allPares);
+      const tot={p:'TOTAL',n:rows.reduce((a,r)=>a+r.n,0),meta:rows.reduce((a,r)=>a+(r.meta||0),0),monto:rows.reduce((a,r)=>a+r.monto,0),seps:rows.reduce((a,r)=>a+r.seps,0),pm2:_totPm2!=null?Math.round(_totPm2):null};
       tot.cumplPct=tot.meta?Math.round(tot.n/tot.meta*100):null;
       return{rows,tot};
     };
@@ -1858,7 +1874,8 @@ function renderDirector(){
     const _tdM='padding:9px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12px;border-bottom:1px solid var(--line-2);white-space:nowrap';
 
     const _buildMesRows=entries=>entries.map(([,d])=>{
-      const pm2=(d.m2s||[]).length?Math.round((d.m2s||[]).reduce((a,x)=>a+x,0)/(d.m2s||[]).length):null;
+      const _pm2=_precioM2Ponderado(d.pares||[]);
+      const pm2=_pm2!=null?Math.round(_pm2):null;
       return '<tr>'
         +'<td style="'+_tdM+';text-align:left;font-weight:500;color:var(--ink-2)">'+d.mes+'</td>'
         +'<td style="'+_tdM+';font-weight:500;color:var(--ink)">'+d.n+'</td>'
@@ -1943,8 +1960,10 @@ function renderDirector(){
 
     // ── Precio m² por proyecto (from stock) ──
     const pm2Projs=SHOW_PROJS.map(p=>{
-      const rows=(D.stock||[]).filter(r=>matchProj(r.Proyecto,p)&&_matchTipo(r,_tipo)&&Number(r.PrecioM2||0)>0);
-      const avg=rows.length?Math.round(rows.reduce((a,r)=>a+Number(r.PrecioM2||0),0)/rows.length):0;
+      const rows=(D.stock||[]).filter(r=>matchProj(r.Proyecto,p)&&_matchTipo(r,_tipo));
+      const pares=rows.map(r=>({precio:Number(r.PrecioLista||0), m2:_m2Efectivo(r)}));
+      const _avg=_precioM2Ponderado(pares);
+      const avg=_avg!=null?Math.round(_avg):0;
       return{p:p.replace('LOMAS DE CARABAYLLO','LOMAS').replace('HELIO - SANTA BEATRIZ','HELIO'),avg};
     }).filter(x=>x.avg>0).sort((a,b)=>b.avg-a.avg);
 
