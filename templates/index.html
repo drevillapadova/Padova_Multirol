@@ -3668,12 +3668,20 @@ function renderAdmVentas(){
     const nro=String(r.NroInmueble||'').trim();
     if(nro&&!ventasByNro[nro]) ventasByNro[nro]=r;
   });
+  // Un registro de Ingreso x Depósito puede cubrir un paquete de hasta 6 unidades
+  // en una sola orden (NroInmueble_1..6), con TotalMontoPagado ya sumado para todo
+  // el paquete — no solo para la unidad en NroInmueble_1. Si solo se indexa por
+  // NroInmueble_1, las demás unidades de esa misma orden (ej. un estacionamiento
+  // vendido junto con el departamento) nunca encuentran su pago y quedan como
+  // "0 pagado" aunque el paquete completo ya esté cancelado.
   const ingByNro={};
   ingDep.forEach(r=>{
-    const nro=String(r.NroInmueble_1||'').trim();
-    if(!nro) return;
     const paid=parseFloat(r.TotalMontoPagado||0);
-    if(!ingByNro[nro]||paid>parseFloat(ingByNro[nro].TotalMontoPagado||0)) ingByNro[nro]=r;
+    for(let i=1;i<=6;i++){
+      const nro=String(r['NroInmueble_'+i]||'').trim();
+      if(!nro) continue;
+      if(!ingByNro[nro]||paid>parseFloat(ingByNro[nro].TotalMontoPagado||0)) ingByNro[nro]=r;
+    }
   });
 
   // Detalle: iterar sobre vTodas para que cuadre con KPI "Ventas totales"
@@ -4034,8 +4042,12 @@ function renderCobranzaRealChart(fc, ingDep, FX){
     return String(r.Tipo_Moneda||'').toUpperCase().includes('DOLAR') ? n*FX : n;
   };
 
+  // El mes actual queda entre las dos series (ya no es "futuro" estricto, pero
+  // recién empieza y "real" casi siempre es 0 al inicio) — sin esto, ese mes no
+  // mostraba ninguna barra. Se incluye también en "proyectado" para que el mes en
+  // curso muestre lo cobrado real hasta hoy junto a lo proyectado para todo el mes.
   const dataReal = MESES.map(m => m.ym<=hoyYM ? (realByMonth[m.ym]||0) : null);
-  const dataProy = MESES.map(m => m.ym>hoyYM ? fc.reduce((s,r)=>s+_convCol(r,m.col),0) : null);
+  const dataProy = MESES.map(m => m.ym>=hoyYM ? fc.reduce((s,r)=>s+_convCol(r,m.col),0) : null);
 
   if(window._admCobranzaRealChart) window._admCobranzaRealChart.destroy();
   window._admCobranzaRealChart = new Chart(ctx, {
