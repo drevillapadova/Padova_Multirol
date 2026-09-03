@@ -167,6 +167,8 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 /* ── FINICO + DIS (admin ventas) ── */
 .finico{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:500;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif}
 .finico .dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.findet-clic{cursor:pointer}
+.findet-clic:hover{opacity:.6}
 .dis{padding:6px 18px 12px}
 .dis-row{display:grid;grid-template-columns:26px 1fr 100px 72px;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line-2)}
 .dis-row:last-child{border-bottom:none}
@@ -476,6 +478,19 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 .sp-res-box.r-pct.r-active .r-val{color:var(--brand)}
 .sp-modal-btn{width:100%;padding:11px;border-radius:9px;background:var(--ink);color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
 .sp-modal-btn:hover{opacity:.85}
+
+/* ── MODAL: DETALLE DE CUOTAS DEL MES (Cobranza) ── */
+.cob-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:700;align-items:center;justify-content:center;padding:20px}
+.cob-overlay.open{display:flex}
+.cob-mes-modal{background:var(--panel);border-radius:16px;padding:26px;width:960px;max-width:96vw;max-height:88vh;box-shadow:0 20px 60px rgba(0,0,0,.28);position:relative;display:flex;flex-direction:column}
+.cob-mes-x{position:absolute;top:16px;right:16px;background:none;border:none;cursor:pointer;font-size:16px;color:var(--ink-3);padding:5px 8px;border-radius:6px;line-height:1}
+.cob-mes-x:hover{background:var(--bg);color:var(--ink)}
+.cob-mes-title{font-size:18px;font-weight:700;letter-spacing:-.02em;margin:0 34px 18px 0;color:#0A1628;font-family:'Plus Jakarta Sans',sans-serif}
+.cob-mes-kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:18px;flex-shrink:0}
+.cob-mes-kpi{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.cob-mes-kpi .k-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-4);margin-bottom:6px;font-family:'Plus Jakarta Sans',sans-serif}
+.cob-mes-kpi .k-val{font-size:19px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-.01em}
+.cob-mes-tablewrap{overflow:auto;flex:1;min-height:0;border:1px solid var(--line-2);border-radius:10px}
 
 @media(max-width:1400px){.kpi-6{grid-template-columns:repeat(3,1fr)}.kpi-5{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:1200px){.grid-2,.grid-2-1,.grid-3{grid-template-columns:1fr}}
@@ -861,10 +876,6 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
       <input type="date" id="adm-date-hasta" onchange="renderAdmVentas()" style="border:none;background:transparent;font-size:12.5px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;outline:none;padding:2px 0">
     </div>
     <button onclick="document.getElementById('adm-date-desde').value='';document.getElementById('adm-date-hasta').value='';renderAdmVentas()" title="Limpiar fechas" style="background:transparent;border:none;color:var(--ink-4);font-size:14px;cursor:pointer;padding:0 4px;line-height:1">✕</button>
-  </div>
-  <div class="tab-bar" id="adm-tab-bar">
-    <button class="tab-btn active" onclick="setAdmTab('resumen',this)">Resumen</button>
-    <button class="tab-btn" onclick="setAdmTab('detalle',this)">Detalle</button>
   </div>
   <div id="adm-content"><div class="loading">Cargando...</div></div>
 </div>
@@ -1365,77 +1376,6 @@ function schedHtml(ventas){
   return `<div class="sched"><div class="sched-sum"><div><small>Total ventas</small><b>${fN(ventas.length)} und.</b></div><div><small>Monto total</small><b>${fM(tot)}</b></div><div><small>Ticket prom.</small><b>${ventas.length?fM(tot/ventas.length):'—'}</b></div></div>${items||'<div style="color:var(--ink-4);font-size:12px;padding:12px">Sin registros</div>'}</div>`;
 }
 
-function libStepsHtml(ventas, ingDep){
-  const STAGES=['Separación','Cuota Inicial','Saldo Financiar','Bono'];
-  const COLORS=['#fb923c','#60a5fa','#34d399','#a78bfa'];
-
-  // Tipo_Cuota → índice de stage (mayor = más avanzado)
-  const tcIdx=tc=>{
-    const t=String(tc||'').trim().toLowerCase();
-    if(t.includes('bono')) return 3;
-    if(t.includes('saldo financiar')||t.includes('saldo fin')) return 2;
-    if(t.includes('cuota')) return 1;
-    if(t.includes('separac')) return 0;
-    return -1;
-  };
-
-  // DNI → set de stages presentes en ingDep
-  const dniHas={};
-  ingDep.forEach(r=>{
-    const dni=String(r.Nro_Documento_Identidad||'').trim().toUpperCase();
-    if(!dni) return;
-    const idx=tcIdx(r.Tipo_Cuota);
-    if(idx===-1) return;
-    if(!dniHas[dni]) dniHas[dni]=new Set();
-    dniHas[dni].add(idx);
-  });
-
-  // Stage efectivo: requiere tener todos los anteriores (sep+cuota→desembolso, no solo saldo suelto)
-  const effectiveStage=has=>{
-    if(!has) return -1;
-    if(has.has(0)&&has.has(1)&&has.has(2)&&has.has(3)) return 3;
-    if(has.has(0)&&has.has(1)&&has.has(2)) return 2;
-    if(has.has(0)&&has.has(1)) return 1;
-    if(has.has(0)) return 0;
-    return -1;
-  };
-
-  // Contar DNIs de las ventas filtradas por stage efectivo (acumulativo: stage >= i)
-  const dniMaxStage={};
-  ventas.forEach(r=>{
-    const dni=String(r.NroDocumentoTitular||'').trim().toUpperCase();
-    if(!dni) return;
-    const s=effectiveStage(dniHas[dni]);
-    if(s!==-1) dniMaxStage[dni]=s;
-  });
-  const maxStageValues=Object.values(dniMaxStage);
-  const counts=STAGES.map((_,i)=>maxStageValues.filter(s=>s>=i).length);
-
-  const top=counts[0]||1;
-
-  // Ocultar Bono si tiene 0
-  const rows=STAGES.map((s,i)=>{
-    const n=counts[i];
-    if(!n&&i===3) return '';
-    const pct=Math.round(n/top*100);
-    const conv=i>0&&counts[i-1]?Math.round(n/counts[i-1]*100):100;
-    return `<div style="padding:10px 18px 6px;border-bottom:1px solid var(--border)">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
-        <div style="display:flex;align-items:center;gap:7px">
-          <span style="width:10px;height:10px;border-radius:2px;background:${COLORS[i]};flex-shrink:0;display:inline-block"></span>
-          <span style="font-size:12px;font-weight:600;color:var(--ink)">${s}</span>
-          ${i>0?`<span style="font-size:10px;color:var(--ink-4);margin-left:2px">▾ ${conv}% conv.</span>`:''}
-        </div>
-        <span style="font-family:var(--mono);font-size:15px;font-weight:600;color:var(--ink)">${n}</span>
-      </div>
-      <div style="display:flex;justify-content:center">
-        <div style="height:10px;width:${pct}%;background:${COLORS[i]};border-radius:3px;opacity:0.85;transition:width .3s"></div>
-      </div>
-    </div>`;
-  }).join('');
-
-  return rows||'<div style="padding:14px 18px;color:var(--ink-4);font-size:12px">Sin pagos registrados en ingreso depósito</div>';
-}
 
 function tRespuestaHtml(ventas){
   const times=ventas.map(r=>Number(r.T_Respuesta_min||r.TiempoRespuesta||0)).filter(v=>v>0);
@@ -1551,7 +1491,6 @@ async function loadAll(forzarRefresh){
     D.updatedAt  = fR.updated_at||vR.updated_at||'—';
     // también stock completo
     fetch(API+'/api/stock').then(r=>r.json()).then(s=>{D.stock=s.data||[];renderAll();}).catch(()=>renderAll());
-    fetch(API+'/api/monday_cobros').then(r=>r.json()).then(m=>{D.monday_cobros=m;renderAdmVentas();}).catch(()=>{});
     fetch(API+'/api/mercado').then(r=>r.json()).then(m=>{D.mercado=m.data||[];if(typeof renderMercadoMapa!=='undefined')renderMercadoMapa();if(typeof renderMercadoPrecios!=='undefined')renderMercadoPrecios();if(typeof renderMercadoTipologia!=='undefined')renderMercadoTipologia();}).catch(()=>{});
     fetch(API+'/api/mercado_ventas').then(r=>r.json()).then(m=>{D.mercadoVentas=m.data||[];if(typeof renderMercadoVentas!=='undefined')renderMercadoVentas();if(typeof renderMercadoPrecios!=='undefined')renderMercadoPrecios();if(typeof renderMercadoTipologia!=='undefined')renderMercadoTipologia();}).catch(()=>{});
     _schedNextRefresh();
@@ -1603,14 +1542,6 @@ function filtrarVentasRango(prefix,sfx=''){
 
 let _dirTab='resumen';
 let _dirComp=false;
-let _admTab='resumen';
-
-function setAdmTab(tab,el){
-  _admTab=tab;
-  document.querySelectorAll('#adm-tab-bar .tab-btn').forEach(b=>b.classList.remove('active'));
-  el.classList.add('active');
-  renderAdmVentas();
-}
 
 function setDirTab(tab,el){
   _dirTab=tab;
@@ -3605,7 +3536,8 @@ function renderAdmVentas(){
   if(_tipo) sep = sep.filter(r=>_matchTipo(r,_tipo));
   const monto = v.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
 
-  // Cobros desde ingreso_deposito (usado por "Seguimiento de liberación de dinero")
+  // Ingreso x Depósito: pagos ya recibidos, usado en la tabla detalle, la
+  // proyección de cobros, y el gráfico real vs. proyectada.
   let ingDep = D.ingresoDeposito||[];
   if(proj) ingDep = ingDep.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
   if(_tipo) ingDep = ingDep.filter(r=>normStr(r.TipoInmueble_1||'').includes(_tipo));
@@ -3623,6 +3555,11 @@ function renderAdmVentas(){
   // ── Cobranza real desde Flujo de Caja (1 fila = 1 transacción, moneda por fila) ──
   let fc = D.flujoCaja||[];
   if(proj)  fc = fc.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
+  // Antes de aplicar el filtro de tipo por fila: una fila de Flujo de Caja puede
+  // empaquetar hasta 6 unidades (NroInmueble_1..6/TipoInmueble_1..6, ej. 2
+  // departamentos en la misma orden) bajo un solo saldo. Se guarda sin el filtro
+  // de tipo aquí para poder contar unidades por slot más abajo, no solo por fila.
+  const fcProjFiltrado = fc;
   if(_tipo) fc = fc.filter(r=>normStr(r.TipoInmueble_1||'').includes(_tipo));
   // Un expediente sin FechaVenta (solo separado, aún no vendido) no cuenta en
   // ninguna cifra de cobranza/proyección: no es una venta confirmada todavía.
@@ -3637,13 +3574,39 @@ function renderAdmVentas(){
   const pendienteS_fc = fc.filter(r=>!_esUSD_fc(r)).reduce((a,r)=>a+_n_fc(r.Saldo_Por_Cobrar),0);
   const pendienteD_fc = fc.filter(r=> _esUSD_fc(r)).reduce((a,r)=>a+_n_fc(r.Saldo_Por_Cobrar),0);
 
+  // Unidades (no filas), no solo el monto — pedido en la reunión con Camila/Mariana:
+  // "¿en cuántas unidades?" para cobrado y pendiente, separado por moneda igual que
+  // el monto. Cada slot NroInmueble_N/TipoInmueble_N de una fila cuenta como su
+  // propia unidad — comparte el estado de pago (Saldo_Por_Cobrar) de esa fila —
+  // para que una orden con 2 departamentos cuente 2, no 1 (que era el desfase
+  // "225 ventas vs 224 cobrado+pendiente" con Helio).
+  const _pagada = r => _n_fc(r.Saldo_Por_Cobrar)<=0.01;
+  const _contarUnidadesRow = (r, tipoFiltro) => {
+    let n=0;
+    for(let i=1;i<=6;i++){
+      const nro=String(r['NroInmueble_'+i]||'').trim();
+      if(!nro) continue;
+      if(tipoFiltro && !normStr(r['TipoInmueble_'+i]||'').includes(tipoFiltro)) continue;
+      n++;
+    }
+    return n;
+  };
+  const _contarUnidadesFC = (rows, tipoFiltro, predFila) =>
+    rows.reduce((n,r)=> predFila(r) ? n+_contarUnidadesRow(r, tipoFiltro) : n, 0);
+  const fcParaConteo = fcProjFiltrado.filter(r=>{ const s=String(r.FechaVenta||'').trim(); return s && s!=='nan' && s!=='None'; });
+  const unidCobradasS    = _contarUnidadesFC(fcParaConteo, _tipo, r=>!_esUSD_fc(r) &&  _pagada(r));
+  const unidCobradasD    = _contarUnidadesFC(fcParaConteo, _tipo, r=> _esUSD_fc(r) &&  _pagada(r));
+  const unidPendientesS  = _contarUnidadesFC(fcParaConteo, _tipo, r=>!_esUSD_fc(r) && !_pagada(r));
+  const unidPendientesD  = _contarUnidadesFC(fcParaConteo, _tipo, r=> _esUSD_fc(r) && !_pagada(r));
+
   // Estado por tipo de financiamiento (Flujo de Caja)
   const finMapFC = {};
   fc.forEach(r=>{
     const tipo = String(r.TipoFinanciamiento||'').trim() || 'Sin dato';
     if(!finMapFC[tipo]) finMapFC[tipo] = {clientesCobrados:0, clientesPendientes:0, cobS:0, cobD:0, penS:0, penD:0};
     const saldo = _n_fc(r.Saldo_Por_Cobrar);
-    if(saldo<=0.01) finMapFC[tipo].clientesCobrados++; else finMapFC[tipo].clientesPendientes++;
+    const nUnid = _contarUnidadesRow(r, _tipo);
+    if(saldo<=0.01) finMapFC[tipo].clientesCobrados+=nUnid; else finMapFC[tipo].clientesPendientes+=nUnid;
     if(_esUSD_fc(r)){
       finMapFC[tipo].cobD += _n_fc(r.Pagos_Recibido);
       finMapFC[tipo].penD += saldo;
@@ -3652,6 +3615,10 @@ function renderAdmVentas(){
       finMapFC[tipo].penS += saldo;
     }
   });
+  // Se guarda en window para que el clic en "Cobrado completo"/"Pendientes" de
+  // la tabla (un <span> con onclick embebido en un string HTML) pueda acceder a
+  // este mismo fc filtrado sin tener que serializarlo en el propio atributo.
+  window._admFcParaFinanciamiento = fc;
   const FIN_COLORS=['#60a5fa','#a78bfa','#fbbf24','#f87171','#34d399','#38bdf8','#fb923c'];
   const _blendFC = d => d.cobS + d.cobD*FX_FC + d.penS + d.penD*FX_FC;
   const finRows=Object.entries(finMapFC).sort((a,b)=>_blendFC(b[1])-_blendFC(a[1])).map(([tipo,d],i)=>{
@@ -3659,10 +3626,14 @@ function renderAdmVentas(){
     const cob   = d.cobS + d.cobD*FX_FC;
     const pctAv = total ? Math.min(Math.round(cob/total*100),100) : 0;
     const prog  = `<div class="prog"><div class="t"><i class="ok" style="width:${pctAv}%"></i></div><span class="pctxt">${pctAv}%</span></div>`;
+    const _tipoJs = JSON.stringify(tipo);
+    const _numClic = (n, estado) => n
+      ? `<span class="findet-clic" onclick='_abrirModalFinanciamiento(window._admFcParaFinanciamiento, ${_tipoJs}, "${estado}", ${FX_FC})'>${n}</span>`
+      : n;
     return`<tr>
       <td><span class="finico"><span class="dot" style="background:${FIN_COLORS[i%FIN_COLORS.length]}"></span>${tipo}</span></td>
-      <td style="text-align:center">${d.clientesCobrados}</td>
-      <td style="text-align:center">${d.clientesPendientes}</td>
+      <td style="text-align:center">${_numClic(d.clientesCobrados,'cobrado')}</td>
+      <td style="text-align:center">${_numClic(d.clientesPendientes,'pendiente')}</td>
       <td style="text-align:center">${d.cobS?fFull(d.cobS):'—'}</td>
       <td style="text-align:center">${d.penS?fFull(d.penS):'—'}</td>
       <td style="text-align:center">${d.cobD?fUsd_fc(d.cobD):'—'}</td>
@@ -3673,95 +3644,22 @@ function renderAdmVentas(){
 
   const totBlendFC = cobradoS_fc + cobradoD_fc*FX_FC + pendienteS_fc + pendienteD_fc*FX_FC;
   const totPctFC   = totBlendFC ? Math.min(Math.round((cobradoS_fc+cobradoD_fc*FX_FC)/totBlendFC*100),100) : 0;
-  const totClientesCobrados    = fc.filter(r=>_n_fc(r.Saldo_Por_Cobrar)<=0.01).length;
-  const totClientesPendientes  = fc.length - totClientesCobrados;
-
-  // ── Tabla detalle clientes: cruce ingDep × ventas × stock ──
-  const stockMonedaByDNI={};
-  (D.stock||[]).forEach(r=>{
-    const dni=normDNI(String(r.NroDocumento||'').trim());
-    if(dni&&r.Moneda) stockMonedaByDNI[dni]=String(r.Moneda||'').trim();
-  });
-  const ventasByNro={};
-  vTodas.forEach(r=>{
-    const nro=String(r.NroInmueble||'').trim();
-    if(nro&&!ventasByNro[nro]) ventasByNro[nro]=r;
-  });
-  // Un registro de Ingreso x Depósito puede cubrir un paquete de hasta 6 unidades
-  // en una sola orden (NroInmueble_1..6), con TotalMontoPagado ya sumado para todo
-  // el paquete — no solo para la unidad en NroInmueble_1. Si solo se indexa por
-  // NroInmueble_1, las demás unidades de esa misma orden (ej. un estacionamiento
-  // vendido junto con el departamento) nunca encuentran su pago y quedan como
-  // "0 pagado" aunque el paquete completo ya esté cancelado.
-  const ingByNro={};
-  ingDep.forEach(r=>{
-    const paid=parseFloat(r.TotalMontoPagado||0);
-    for(let i=1;i<=6;i++){
-      const nro=String(r['NroInmueble_'+i]||'').trim();
-      if(!nro) continue;
-      if(!ingByNro[nro]||paid>parseFloat(ingByNro[nro].TotalMontoPagado||0)) ingByNro[nro]=r;
-    }
-  });
-
-  // Detalle: iterar sobre vTodas para que cuadre con KPI "Ventas totales"
-  const detRows=vTodas.slice().sort((a,b)=>String(a.NombresTitular||'').localeCompare(String(b.NombresTitular||''))).map(r=>{
-    const nro=String(r.NroInmueble||'').trim();
-    const dni=normDNI(String(r.NroDocumentoTitular||''));
-    const moneda=stockMonedaByDNI[dni]||String(r.TipoMoneda||'').toUpperCase();
-    const esDolar=moneda.includes('DOLAR')||moneda==='USD'||moneda==='$';
-    const montoVenta=parseFloat(r.PrecioVenta||0);
-    const ingR=ingByNro[nro];
-    const montoPagado=ingR?parseFloat(ingR.TotalMontoPagado||0):0;
-    const porPagar=Math.max(0,montoVenta-montoPagado);
-    const cur=esDolar?'$':'S/';
-    const fC=n=>`${cur} ${Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-    const fechaV=String(r.FechaVenta||'').substring(0,10)||'—';
-    return`<tr>
-      <td style="font-size:12px">${String(r.NombresTitular||'—')}</td>
-      <td style="text-align:center;font-family:var(--mono)">${nro||'—'}</td>
-      <td style="text-align:center;font-size:12px">${fechaV}</td>
-      <td style="text-align:right;font-family:var(--mono);font-size:12px">${montoVenta?fC(montoVenta):'—'}</td>
-      <td style="text-align:center;font-size:11px;font-weight:700;color:${esDolar?'#f59e0b':'var(--brand)'}">${esDolar?'USD':'SOL'}</td>
-      <td style="text-align:right;font-family:var(--mono);font-size:12px">${montoPagado?fC(montoPagado):'—'}</td>
-      <td style="text-align:right;font-family:var(--mono);font-size:12px;font-weight:600;color:${porPagar>0?'var(--bad)':'var(--ok)'}">${fC(porPagar)}</td>
-    </tr>`;
-  }).join('');
+  const totClientesCobrados    = _contarUnidadesFC(fcParaConteo, _tipo, r=>_pagada(r));
+  const totClientesPendientes  = _contarUnidadesFC(fcParaConteo, _tipo, r=>!_pagada(r));
 
   document.getElementById('adm-kpis').innerHTML=`
     ${kpi('Ventas totales',`${fN(vTodas.length)} <span class="unit">und.</span>`,'Escrituras firmadas acumuladas')}
     ${kpi('Monto de ventas',fFull(montoTotal),'Acumulado · todas las ventas')}
-    ${kpi('Cobrado S/',cobradoS_fc?fFull(cobradoS_fc):'—','Pagos recibidos · Flujo de Caja')}
-    ${kpi('Cobrado $',cobradoD_fc?fUsd_fc(cobradoD_fc):'—','Pagos recibidos · Flujo de Caja')}
-    ${kpi('Pendiente S/',pendienteS_fc?fFull(pendienteS_fc):'—','Saldo por cobrar · Flujo de Caja')}
-    ${kpi('Pendiente $',pendienteD_fc?fUsd_fc(pendienteD_fc):'—','Saldo por cobrar · Flujo de Caja')}
+    ${kpi('Cobrado S/',cobradoS_fc?fFull(cobradoS_fc):'—',`${fN(unidCobradasS)} unidades cobradas`)}
+    ${kpi('Cobrado $',cobradoD_fc?fUsd_fc(cobradoD_fc):'—',`${fN(unidCobradasD)} unidades cobradas`)}
+    ${kpi('Pendiente S/',pendienteS_fc?fFull(pendienteS_fc):'—',`${fN(unidPendientesS)} unidades por cobrar`)}
+    ${kpi('Pendiente $',pendienteD_fc?fUsd_fc(pendienteD_fc):'—',`${fN(unidPendientesD)} unidades por cobrar`)}
   `;
-
-  if(_admTab==='detalle'){
-    document.getElementById('adm-content').innerHTML=`
-    <div class="card" style="margin-top:16px">
-      <div class="card-hd"><div><h3>Estado de cobranza por cliente</h3><p>Moneda cruzada con stock por DNI · ${vTodas.length} registros — coincide con Ventas totales</p></div></div>
-      <div style="overflow-y:auto;max-height:800px">
-        <table class="tbl" style="table-layout:fixed;width:100%">
-          <thead style="position:sticky;top:0;background:var(--panel);z-index:2"><tr>
-            <th style="width:25%">Cliente</th>
-            <th style="text-align:center;width:10%">N° Dpto.</th>
-            <th style="text-align:center;width:12%">Fecha Venta</th>
-            <th style="text-align:right;width:14%">Monto Venta</th>
-            <th style="text-align:center;width:8%">Moneda</th>
-            <th style="text-align:right;width:14%">Monto Pagado</th>
-            <th style="text-align:right;width:17%">Por Pagar</th>
-          </tr></thead>
-          <tbody>${detRows||'<tr><td colspan="7" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos</td></tr>'}</tbody>
-        </table>
-      </div>
-    </div>`;
-    return;
-  }
 
   document.getElementById('adm-content').innerHTML = `
   <div class="section-title"><h2>Estado por tipo de financiamiento</h2><div class="hint">Clientes · cobrado vs. pendiente por moneda · Flujo de Caja</div></div>
   <div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>Distribución por financiamiento</h3><p>Cobrado/Pendiente = Pagos_Recibido / Saldo_Por_Cobrar de Flujo de Caja, por moneda nativa</p></div></div>
+    <div class="card-hd"><div><h3>Distribución por financiamiento</h3><p>Cobrado/Pendiente = Pagos_Recibido / Saldo_Por_Cobrar de Flujo de Caja, por moneda nativa · <b style="color:var(--brand)">clic en un número para ver el detalle</b></p></div></div>
     <table class="tbl" style="table-layout:fixed;width:100%">
       <thead><tr>
         <th style="width:19%">Financiamiento</th>
@@ -3788,8 +3686,11 @@ function renderAdmVentas(){
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:26px">
     <div class="card">
-      <div class="card-hd"><div><h3>Proyección de cobros — por mes</h3><p>Suma mensual de Flujo de Caja · USD a S/ referencial ×${FX_FC} · <b style="color:var(--brand)">clic en el gráfico para ver el detalle por mes</b></p></div></div>
-      <div style="height:260px;padding:8px 16px 16px;cursor:pointer" title="Clic para ver/ocultar el detalle por mes"><canvas id="adm-fc-chart-mes"></canvas></div>
+      <div class="card-hd">
+        <div><h3>Proyección de cobros — por mes</h3><p>Suma mensual de Flujo de Caja · USD a S/ referencial ×${FX_FC}</p></div>
+        <button class="chip" onclick="toggleProyeccionTabla()" style="font-size:12px;padding:6px 14px;flex-shrink:0">Detalle</button>
+      </div>
+      <div style="height:260px;padding:8px 16px 16px"><canvas id="adm-fc-chart-mes"></canvas></div>
     </div>
     <div class="card">
       <div class="card-hd"><div><h3>Proyección mensual — por proyecto</h3><p>Mismo periodo, apilado por proyecto</p></div></div>
@@ -3808,17 +3709,7 @@ function renderAdmVentas(){
     <div class="card-hd"><div><h3>Cobrado real (hasta hoy) + proyectado (a futuro)</h3><p>Por mes · USD a S/ referencial ×${FX_FC}</p></div></div>
     <div style="height:280px;padding:8px 16px 16px"><canvas id="adm-fc-chart-real"></canvas></div>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
-    <div>
-      <div class="section-title" style="margin-top:0"><h2>Gestión de Cobros</h2><div class="hint">Desembolsos bancarios · Monday.com</div></div>
-      <div id="monday-cobros-wrap"><div style="padding:20px;color:var(--ink-4);font-size:13px">Cargando datos de Monday...</div></div>
-    </div>
-    <div>
-      <div class="section-title" style="margin-top:0"><h2>Seguimiento de liberación de dinero</h2><div class="hint">Etapas del proceso bancario hasta el abono al proyecto</div></div>
-      <div class="card"><div class="card-hd"><div><h3>Expedientes en trámite</h3><p>Etapa más avanzada por expediente · según Tipo_Cuota en ingreso depósito</p></div></div>${libStepsHtml(v,ingDep)}</div>
-    </div>
-  </div>`;
-  renderMondayCobros();
+  `;
   renderFlujoCajaCharts(fc, FX_FC);
   renderProyeccionTabla(fc, ingDep);
   renderCobranzaRealChart(fc, ingDep, FX_FC);
@@ -3986,22 +3877,19 @@ function renderFlujoCajaCharts(fc, FX){
   const ctxMes = document.getElementById('adm-fc-chart-mes');
   if(ctxMes){
     const mesData = MESES_FC.map(col => fc.reduce((s,r)=>s+_convMes(r,col),0));
+    ctxMes.style.cursor='pointer';
     window._admFcChartMes = new Chart(ctxMes, {
       type:'bar',
       data:{ labels:mesLabels, datasets:[{ label:'Proyección de cobro (S/ equiv.)', data:mesData, backgroundColor:'rgba(96,165,250,0.75)', borderRadius:4, borderSkipped:false }]},
       options:{ responsive:true, maintainAspectRatio:false,
-        onClick: () => toggleProyeccionTabla(),
+        onClick: (evt, elements) => {
+          if(!elements.length) return;
+          _abrirModalCuotasMes(fc, MESES_FC[elements[0].index], mesLabels[elements[0].index], FX);
+        },
         plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>'S/ '+fN(c.raw)}} },
         scales:{ y:{beginAtZero:true,ticks:{callback:v=>fN(v)}}, x:{ticks:{font:{size:9},maxRotation:60}} }
       }
     });
-    // el onClick de Chart.js solo cubre el área del gráfico; con esto el clic
-    // funciona en cualquier parte del recuadro (márgenes y ejes incluidos)
-    const box = ctxMes.parentElement;
-    if(box && !box.dataset.toggleBound){
-      box.dataset.toggleBound = '1';
-      box.addEventListener('click', e=>{ if(e.target===box) toggleProyeccionTabla(); });
-    }
   }
 
   if(window._admFcChartProy) window._admFcChartProy.destroy();
@@ -4319,121 +4207,6 @@ function _renderMetaAdsTab(j){
 // ══════════════════════════════════════════════════════════════════════════
 // MONDAY COBROS
 // ══════════════════════════════════════════════════════════════════════════
-function renderMondayCobros(){
-  const wrap = document.getElementById('monday-cobros-wrap');
-  if(!wrap) return;
-  const data = D.monday_cobros;
-  if(!data){ wrap.innerHTML='<div style="padding:20px;color:var(--ink-4);font-size:13px">Cargando datos de Monday...</div>'; return; }
-  if(data.error){ wrap.innerHTML=`<div style="padding:20px;color:var(--bad);font-size:13px">${data.error}</div>`; return; }
-
-  const _desde = document.getElementById('adm-date-desde')?.value||'';
-  const _hasta = document.getElementById('adm-date-hasta')?.value||'';
-  const _proj = (document.getElementById('adm-proj')?.value||'').toUpperCase();
-
-  const _MES_ES={'ENERO':'01','FEBRERO':'02','MARZO':'03','ABRIL':'04','MAYO':'05',
-    'JUNIO':'06','JULIO':'07','AGOSTO':'08','SEPTIEMBRE':'09','SETIEMBRE':'09',
-    'OCTUBRE':'10','NOVIEMBRE':'11','DICIEMBRE':'12'};
-  const _grupoToYYYYMM=g=>{
-    const parts=g.toUpperCase().replace(/[^A-Z0-9 ]/g,'').trim().split(/\s+/);
-    let mo='', yr='';
-    for(const p of parts){
-      if(_MES_ES[p]) mo=_MES_ES[p];
-      if(/^\d{4}$/.test(p)) yr=p;
-      if(/^\d{2}$/.test(p)) yr='20'+p;
-    }
-    return (yr&&mo) ? `${yr}-${mo}` : null;
-  };
-  const _grupoMatch=g=>{
-    const ym=_grupoToYYYYMM(g);
-    if(!ym) return false;
-    if(_desde && ym<_desde.slice(0,7)) return false;
-    if(_hasta && ym>_hasta.slice(0,7)) return false;
-    return true;
-  };
-
-  const boards = _proj
-    ? data.filter(b=>normStr(b.label).replace(/\s/g,'').includes(normStr(_proj).replace(/\s/g,'')))
-    : data;
-
-  const _ST_COLORS={
-    'desembolsado': '#16a34a',
-    'listo':        '#16a34a',
-    'en proceso':   '#f97316',
-    'riesgos':      '#ef4444',
-    'enviando doc': '#3b82f6',
-    'banco contacta':'#a78bfa',
-    'proper':       '#0ea5e9',
-    'inm contacta': '#14b8a6',
-    'caida':        '#dc2626',
-    'caída':        '#dc2626',
-    'no ingresado': '#94a3b8',
-  };
-  const _stColor=st=>_ST_COLORS[st.toLowerCase().trim()]||'#94a3b8';
-  const _toOracion=st=>st.charAt(0).toUpperCase()+st.slice(1).toLowerCase();
-  const fMon = v => v==null||v===0?'—':'S/ '+v.toLocaleString('es-PE',{minimumFractionDigits:0,maximumFractionDigits:0});
-  const fDol = v => v==null||v===0?'—':'$ '+v.toLocaleString('es-PE',{minimumFractionDigits:0,maximumFractionDigits:0});
-
-  const cards = boards.map(board=>{
-    const items = board.items.filter(i=>{
-      if(!i.status) return false;
-      if(!_desde&&!_hasta) return true;
-      return _grupoMatch(i.grupo||'');
-    });
-
-    const byStatus = {};
-    items.forEach(i=>{
-      const st = i.status.trim();
-      if(!byStatus[st]) byStatus[st]={count:0,soles:0,dol:0};
-      byStatus[st].count++;
-      byStatus[st].soles += i.soles||0;
-      byStatus[st].dol   += i.dolares||0;
-    });
-
-    const rows = Object.entries(byStatus)
-      .sort((a,b)=>b[1].count-a[1].count)
-      .map(([st,d])=>{
-        const color=_stColor(st);
-        return `<tr>
-          <td style="padding:10px 14px">
-            <div style="display:flex;align-items:center;gap:8px">
-              <span style="width:10px;height:10px;border-radius:2px;background:${color};flex-shrink:0"></span>
-              <span style="font-size:12px;color:var(--ink);font-weight:500">${_toOracion(st)}</span>
-            </div>
-          </td>
-          <td style="text-align:center;font-size:12px;font-weight:500;color:var(--ink)">${d.count}</td>
-          <td style="text-align:center;font-size:12px;font-weight:500;color:var(--ink)">${fMon(d.soles)}</td>
-          <td style="text-align:center;font-size:12px;font-weight:500;color:var(--ink)">${board.has_dolares?fDol(d.dol):'—'}</td>
-        </tr>`;
-      }).join('');
-
-    const totSoles = items.reduce((a,i)=>a+(i.soles||0),0);
-    const totDol   = items.reduce((a,i)=>a+(i.dolares||0),0);
-    const totCount = items.length;
-
-    return `<div class="card" style="margin-bottom:16px">
-      <div class="card-hd"><div><h3>${board.label}</h3><p>${totCount} registro${totCount!==1?'s':''} · ${(_desde||_hasta)?((_desde?_desde.split('-').reverse().join('/'):'…')+' → '+(_hasta?_hasta.split('-').reverse().join('/'):'…')):'todos los períodos'}</p></div></div>
-      ${rows?`<table class="tbl" style="table-layout:fixed;width:100%">
-        <thead><tr>
-          <th style="width:28%">Estado</th>
-          <th style="text-align:center;width:12%">Ítems</th>
-          <th style="text-align:center;width:30%">Monto S/</th>
-          <th style="text-align:center;width:30%">Monto $</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-        <tfoot><tr>
-          <td><b>Total</b></td>
-          <td style="text-align:center;font-family:var(--mono)"><b>${totCount}</b></td>
-          <td style="text-align:center;font-family:var(--mono)"><b>${totSoles?fMon(totSoles):'—'}</b></td>
-          <td style="text-align:center;font-family:var(--mono)"><b>${board.has_dolares&&totDol?fDol(totDol):'—'}</b></td>
-        </tr></tfoot>
-      </table>`:'<div style="padding:20px;text-align:center;color:var(--ink-4);font-size:13px">Sin desembolsos en este período</div>'}
-    </div>`;
-  }).join('');
-
-  wrap.innerHTML = cards || '<div style="padding:20px;color:var(--ink-4)">Sin datos</div>';
-}
-
-
 // ─── SIDEBAR TOGGLE ────────────────────────────────────────────────────────
 function toggleSidebar(){
   if(window.innerWidth<=768){
@@ -4479,6 +4252,102 @@ function openCalc(nro, precio){
 
 function closeCalc(){
   document.getElementById('sp-overlay').classList.remove('open');
+}
+
+// Modal de detalle reutilizable: 2 tarjetas KPI + tabla Cliente/N°Dpto/Fecha
+// Venta/Monto Venta/Moneda/Monto Pagado/Por Pagar. Lo usan tanto el clic en una
+// barra de "Proyección de cobros — por mes" como el clic en los números de
+// "Distribución por financiamiento". "porPagarFn" decide qué mostrar en Por
+// Pagar porque ese campo significa algo distinto en cada caso.
+const _detFmtMonto = n => Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const _detEsUSD = r => String(r.Tipo_Moneda||'').toUpperCase().includes('DOLAR');
+const _detNum = v => { const n=parseFloat(v); return isNaN(n)?0:n; };
+function _filasDetalleHTML(filas, porPagarFn){
+  const fmtFecha = f=>{ const s=String(f||'').trim(); return (!s||s==='nan'||s==='None') ? '—' : s.slice(0,10); };
+  return filas.slice()
+    .sort((a,b)=>String(a.Titular||'').localeCompare(String(b.Titular||'')))
+    .map(r=>{
+      const esDolar=_detEsUSD(r);
+      const cur=esDolar?'$':'S/';
+      const fC=n=>`${cur} ${_detFmtMonto(n)}`;
+      const montoVenta=_detNum(r.TotalVenta), montoPagado=_detNum(r.Pagos_Recibido);
+      const porPagar=porPagarFn(r);
+      return `<tr>
+        <td style="text-align:left">${String(r.Titular||'—')}</td>
+        <td style="text-align:center">${String(r.NroInmueble_1||'—')}</td>
+        <td style="text-align:center">${fmtFecha(r.FechaVenta)}</td>
+        <td style="text-align:right">${montoVenta?fC(montoVenta):'—'}</td>
+        <td style="text-align:center;font-weight:700;color:${esDolar?'#f59e0b':'var(--brand)'}">${esDolar?'USD':'SOL'}</td>
+        <td style="text-align:right">${montoPagado?fC(montoPagado):'—'}</td>
+        <td style="text-align:right;font-weight:600;color:${porPagar>0?'var(--bad)':'var(--ok)'}">${fC(porPagar)}</td>
+      </tr>`;
+    }).join('');
+}
+function _abrirModalDetalle(titulo, kpi1, kpi2, filas, porPagarFn){
+  document.getElementById('cob-mes-titulo-mes').textContent = titulo;
+  document.getElementById('cob-mes-kpi-total-lbl').textContent = kpi1.label;
+  const k1 = document.getElementById('cob-mes-kpi-total');
+  k1.textContent = kpi1.val;
+  k1.style.color = kpi1.color;
+  document.getElementById('cob-mes-kpi-clientes-lbl').textContent = kpi2.label;
+  const k2 = document.getElementById('cob-mes-kpi-clientes');
+  k2.textContent = kpi2.val;
+  k2.style.color = kpi2.color;
+
+  const rows = _filasDetalleHTML(filas, porPagarFn);
+  document.getElementById('cob-mes-tbody').innerHTML = rows ||
+    '<tr><td colspan="7" style="text-align:center;color:var(--ink-4);padding:20px">Sin registros</td></tr>';
+
+  document.getElementById('cob-mes-overlay').classList.add('open');
+}
+function cerrarModalDetalle(){
+  document.getElementById('cob-mes-overlay')?.classList.remove('open');
+}
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape') cerrarModalDetalle();
+});
+
+// "Cuotas esperadas del mes" — se abre al clickear una barra del gráfico
+// "Proyección de cobros — por mes". Cada fila de Flujo de Caja es 1 expediente/
+// cliente (no 1 unidad física): filtra a los que tienen algo programado en la
+// columna de ese mes (ej. Enero_2027 > 0). Monto Venta/Pagado son los TOTALES
+// generales de cada expediente, no solo la cuota de ese mes puntual.
+function _abrirModalCuotasMes(fc, mesCol, mesLabel, FX){
+  const filas = (fc||[]).filter(r=>_detNum(r[mesCol])>0);
+  // = exactamente la misma cuenta que la altura de la barra que se clickeó
+  // (suma de la columna de ese mes, USD convertido a S/ igual que el gráfico).
+  const totalMes = filas.reduce((a,r)=>a+(_detEsUSD(r)?_detNum(r[mesCol])*FX:_detNum(r[mesCol])),0);
+  _abrirModalDetalle(
+    mesLabel,
+    {label:'Deuda Pendiente Mes', val:'S/ '+_detFmtMonto(totalMes), color:'#14AFBE'},
+    {label:'Clientes', val:fN(filas.length), color:'#F4A228'},
+    filas,
+    // "Por Pagar" de ESE mes: Flujo de Caja no separa cuánto de lo ya pagado
+    // corresponde a este mes vs. a otros, así que no puede deber más de la
+    // cuota programada este mes que lo que en total le queda por pagar.
+    r=>Math.min(_detNum(r[mesCol]), _detNum(r.Saldo_Por_Cobrar))
+  );
+}
+
+// Clic en "Cobrado completo"/"Pendientes" de "Distribución por financiamiento":
+// detalle de los clientes de ese tipo de financiamiento en ese estado. Aquí
+// "Por Pagar" sí es el saldo total del cliente (no hay recorte por mes).
+function _abrirModalFinanciamiento(fc, tipo, estado, FX){
+  const _pagada = r => _detNum(r.Saldo_Por_Cobrar)<=0.01;
+  const filas = (fc||[]).filter(r=>{
+    const t = String(r.TipoFinanciamiento||'').trim() || 'Sin dato';
+    if(t!==tipo) return false;
+    return estado==='cobrado' ? _pagada(r) : !_pagada(r);
+  });
+  const campoMonto = estado==='cobrado' ? 'Pagos_Recibido' : 'Saldo_Por_Cobrar';
+  const totalMonto = filas.reduce((a,r)=>a+(_detEsUSD(r)?_detNum(r[campoMonto])*FX:_detNum(r[campoMonto])),0);
+  _abrirModalDetalle(
+    tipo+' · '+(estado==='cobrado'?'Cobrado completo':'Pendientes'),
+    {label: estado==='cobrado'?'Total cobrado':'Total pendiente', val:'S/ '+_detFmtMonto(totalMonto), color: estado==='cobrado'?'#14AFBE':'var(--bad)'},
+    {label:'Clientes', val:fN(filas.length), color:'#F4A228'},
+    filas,
+    r=>_detNum(r.Saldo_Por_Cobrar)
+  );
 }
 
 function calcDesc(){
@@ -5679,6 +5548,32 @@ loadAll();
       </div>
     </div>
     <button class="sp-modal-btn" onclick="closeCalc()">Cerrar</button>
+  </div>
+</div>
+
+<!-- ── MODAL: DETALLE DE CUOTAS DEL MES (Cobranza) ── -->
+<div class="cob-overlay" id="cob-mes-overlay" onclick="if(event.target===this)cerrarModalDetalle()">
+  <div class="cob-mes-modal">
+    <button class="cob-mes-x" onclick="cerrarModalDetalle()">✕</button>
+    <h2 class="cob-mes-title" id="cob-mes-titulo-mes">—</h2>
+    <div class="cob-mes-kpis">
+      <div class="cob-mes-kpi"><div class="k-lbl" id="cob-mes-kpi-total-lbl">Deuda Pendiente Mes</div><div class="k-val" id="cob-mes-kpi-total" style="color:#14AFBE">—</div></div>
+      <div class="cob-mes-kpi"><div class="k-lbl" id="cob-mes-kpi-clientes-lbl">Clientes</div><div class="k-val" id="cob-mes-kpi-clientes" style="color:#F4A228">—</div></div>
+    </div>
+    <div class="cob-mes-tablewrap">
+      <table class="tbl" style="width:100%">
+        <thead style="position:sticky;top:0;background:var(--panel);z-index:2"><tr>
+          <th style="text-align:left">Cliente</th>
+          <th style="text-align:center">N° Dpto.</th>
+          <th style="text-align:center">Fecha Venta</th>
+          <th style="text-align:right">Monto Venta</th>
+          <th style="text-align:center">Moneda</th>
+          <th style="text-align:right">Monto Pagado</th>
+          <th style="text-align:right">Por Pagar</th>
+        </tr></thead>
+        <tbody id="cob-mes-tbody"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 </body>
