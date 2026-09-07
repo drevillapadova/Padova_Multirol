@@ -408,6 +408,24 @@ def calcular_mercado_ventas():
         fecha_iso = _parse_fecha_mercado(r.get("Fecha de Venta"))
         if not fecha_iso:
             continue
+        precio_m2_venta = _float(r, "Precio por m2 - Venta Solarizado")
+        area_total = _float(r, "Área Total")
+        precio_venta = _float(r, "Precio de Venta Solarizado Neto")
+        # Al pegar desde Excel a Sheets, el punto decimal a veces se pierde
+        # (ej. 917025.7016 queda guardado como 917025702), y como cada celda
+        # tiene una cantidad distinta de decimales el factor de inflación no es
+        # fijo (a veces x10, a veces x1000...). precio_m2_venta y área sí son
+        # confiables, así que si precio_venta no cuadra con esa multiplicación
+        # (fuera de un rango razonable), se reconstruye a partir de ellas.
+        esperado = precio_m2_venta * area_total
+        if esperado > 0 and (precio_venta <= 0 or not (0.5 <= precio_venta / esperado <= 2.0)):
+            precio_venta = esperado
+        # Si incluso reconstruido queda por debajo de un piso razonable para un
+        # inmueble, es que precio_m2_venta (la referencia) también está corrupto
+        # (mismo problema de pegado desde Excel) — se descarta la fila entera en
+        # vez de arrastrar un precio que sigue estando mal.
+        if precio_venta < 150_000:
+            continue
         out.append({
             "proyecto":          proy,
             "inmobiliaria":      _str(r, "Inmobiliaria"),
@@ -415,9 +433,9 @@ def calcular_mercado_ventas():
             "fecha_venta":       fecha_iso,
             "dormitorios":       _int(r, "Cantidad de Dormitorios"),
             "precio_m2_oferta":  _float(r, "Precio por m2 - Oferta Solarizado"),
-            "precio_m2_venta":   _float(r, "Precio por m2 - Venta Solarizado"),
-            "area_total":        _float(r, "Área Total"),
-            "precio_venta":      _float(r, "Precio de Venta Solarizado Neto"),
+            "precio_m2_venta":   precio_m2_venta,
+            "area_total":        area_total,
+            "precio_venta":      precio_venta,
         })
     return out
 
