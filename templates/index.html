@@ -2377,6 +2377,8 @@ let _flDateFrom2 = '';
 let _flDateTo2 = '';
 let _flLastAnalysisHTML = null;
 let _flChatHistory=[];
+let _flDatasets = null; // {A:{data, periodoLbl}, B:{data, periodoLbl}|null} — set por renderFunnelMkt para el popup de detalle del funnel
+let _flDatesInitDone = false; // asegura que el default "1ro del mes actual" en Desde solo se aplique una vez
 
 // Reconstruye una burbuja de chat como string, para repoblar #fl-chat-msgs
 // cuando el usuario vuelve a la pestaña IA (el tab se re-renderiza desde cero).
@@ -2651,6 +2653,16 @@ function _flCrossSetSort(key){
 
 function renderFunnelMkt(){
   const proj = document.getElementById('fl-proj')?.value||'';
+  // Por defecto (solo la 1ra vez) el filtro "Desde" arranca en el día 1 del mes
+  // actual en vez de vacío, para no mostrar siempre el histórico completo.
+  if(!_flDatesInitDone){
+    _flDatesInitDone = true;
+    const deInput = document.getElementById('fl-desde');
+    if(deInput && !deInput.value){
+      const hoy = new Date();
+      deInput.value = hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-01';
+    }
+  }
   _flDateFrom = document.getElementById('fl-desde')?.value||'';
   _flDateTo   = document.getElementById('fl-hasta')?.value||'';
   if(_flComp){
@@ -2711,25 +2723,26 @@ function renderFunnelMkt(){
 
   // ══ TAB: FUNNEL ══════════════════════════════════════════════════════════
   if(_flTab==='funnel'){
-    function makeFunnel(d, topRef){
+    function makeFunnel(d, which, topRef){
       const t=topRef||d.leadsTotal||1;
-      const fmS=(lbl,n,conv,color)=>{
+      const fmS=(lbl,n,conv,color,stageKey)=>{
         const w=t?Math.min(Math.round(Math.sqrt(n/t)*100),100):0;
-        return `<div class="fstep"><div class="lbl"><b>${lbl}</b></div>
+        return `<div class="fstep" onclick="_flAbrirEtapa('${stageKey}','${which}')" style="cursor:pointer" title="Ver detalle de clientes"><div class="lbl"><b>${lbl}</b></div>
           <div class="track"><div class="fill" style="width:${Math.max(w,2)}%;background:linear-gradient(90deg,${color}cc,${color})"></div></div>
           <div class="right"><span class="pct-n">${fN(n)}</span><span class="pct">${conv}</span></div></div>`;
       };
       return `
-        ${fmS('Leads Totales',   d.leadsTotal,    '—',                                           COLORS[0])}
-        ${fmS('Leads con DNI',   d.leadsDNI,      pct(d.leadsDNI,   d.leadsTotal||1)+' de leads',COLORS[1])}
-        ${fmS('Contactados',     d.prospectos,    pct(d.prospectos, d.leadsTotal||1)+' de leads',COLORS[2])}
-        ${fmS('Citas Generadas', d.citasN,        pct(d.citasN,     d.prospectos||1)+' de contactados',COLORS[3])}
-        ${fmS('Visitas',         d.visitasN,      pct(d.visitasN,   d.citasN||1)+' de citas',   COLORS[4])}
-        ${fmS('Separaciones',    d.separacionesN, pct(d.separacionesN,d.visitasN||1)+' de visitas',COLORS[5])}
-        ${fmS('Ventas',          d.ventasN,       pct(d.ventasN,    d.separacionesN||1)+' de separaciones',COLORS[6])}`;
+        ${fmS('Leads Totales',   d.leadsTotal,    '—',                                           COLORS[0], 'leadsTotal')}
+        ${fmS('Leads con DNI',   d.leadsDNI,      pct(d.leadsDNI,   d.leadsTotal||1)+' de leads',COLORS[1], 'leadsDNI')}
+        ${fmS('Contactados',     d.prospectos,    pct(d.prospectos, d.leadsTotal||1)+' de leads',COLORS[2], 'contactados')}
+        ${fmS('Citas Generadas', d.citasN,        pct(d.citasN,     d.prospectos||1)+' de contactados',COLORS[3], 'citas')}
+        ${fmS('Visitas',         d.visitasN,      pct(d.visitasN,   d.citasN||1)+' de citas',   COLORS[4], 'visitas')}
+        ${fmS('Separaciones',    d.separacionesN, pct(d.separacionesN,d.visitasN||1)+' de visitas',COLORS[5], 'separaciones')}
+        ${fmS('Ventas',          d.ventasN,       pct(d.ventasN,    d.separacionesN||1)+' de separaciones',COLORS[6], 'ventas')}`;
     }
 
     const topRef=Math.max(leadsTotal, B?.leadsTotal||0)||1;
+    _flDatasets = {A:{data:A, periodoLbl:B?lblA:''}, B: B?{data:B, periodoLbl:lblB}:null};
 
     if(B){
       // ── Comparativo: 2 funnels lado a lado ────────────────────────────────
@@ -2740,13 +2753,13 @@ function renderFunnelMkt(){
           <div class="card-hd" style="background:oklch(0.97 0.01 250);border-radius:10px 10px 0 0">
             <div><h3 style="color:#3b82f6">${lblA}</h3><p>${fN(leadsTotal)} leads · ${fN(ventasN)} ventas · ${pct(ventasN,leadsTotal||1)} conv.</p></div>
           </div>
-          <div class="funnel">${makeFunnel(A, topRef)}</div>
+          <div class="funnel">${makeFunnel(A, 'A', topRef)}</div>
         </div>
         <div class="card">
           <div class="card-hd" style="background:oklch(0.97 0.01 290);border-radius:10px 10px 0 0">
             <div><h3 style="color:#a78bfa">${lblB}</h3><p>${fN(B.leadsTotal)} leads · ${fN(B.ventasN)} ventas · ${pct(B.ventasN,B.leadsTotal||1)} conv.</p></div>
           </div>
-          <div class="funnel">${makeFunnel(B, topRef)}</div>
+          <div class="funnel">${makeFunnel(B, 'B', topRef)}</div>
         </div>
       </div>`;
     } else {
@@ -2755,7 +2768,7 @@ function renderFunnelMkt(){
       <div class="section-title"><h2>EMBUDO DE CONVERSIÓN</h2><div class="hint">${lblA} · tasa global ${pct(ventasN,leadsTotal||1)}</div></div>
       <div class="card" style="margin-bottom:16px">
         <div class="card-hd"><div><h3>Funnel completo</h3><p>${fN(leadsTotal)} leads · ${fN(ventasN)} ventas</p></div></div>
-        <div class="funnel">${makeFunnel(A)}</div>
+        <div class="funnel">${makeFunnel(A, 'A')}</div>
       </div>`;
     }
     return;
@@ -4350,6 +4363,135 @@ function _abrirModalFinanciamiento(fc, tipo, estado, FX){
   );
 }
 
+// ── MODAL: DETALLE DE CLIENTES POR ETAPA DEL FUNNEL (Marketing) ──────────────
+// Cada etapa del funnel viene de una hoja distinta (Prospectos/Visitas/Stock/
+// Ventas) con nombres de columna propios (Nombres vs NombresTitular, etc.), así
+// que los helpers de abajo normalizan esos alias en vez de asumir un único set
+// de campos como sí puede hacerlo Cobranza (que siempre lee Flujo de Caja).
+const _flFmtFecha = f=>{ const s=String(f||'').trim(); return (!s||s==='nan'||s==='None'||s==='NaT') ? '—' : s.slice(0,10); };
+// Los nombres llegan de las hojas en formatos inconsistentes (MAYÚSCULAS, minúsculas,
+// mixto) — se normalizan a Formato Título (cada palabra con su primera letra en mayúscula).
+const _flTitleCase = s=>String(s||'').trim().toLowerCase().replace(/(^|[\s\-])\p{L}/gu, m=>m.toUpperCase());
+const _flNombreCompleto = r=>{
+  const n=String(r.Nombres||r.NombresTitular||'').trim();
+  const ap=String(r.ApellidoPaterno||'').trim();
+  return _flTitleCase((n+(ap?' '+ap:'')).trim()) || '—';
+};
+const _flDNI = r=>{
+  const d=String(r.NroDocumento||r.NroDocTitular||r.NroDocumentoTitular||'').trim();
+  return (d && d!=='nan' && d!=='None' && d!=='0') ? d : '—';
+};
+const _flCanal = r=>String(r.ComoSeEntero||'').trim()||'—';
+const _flAsesor = r=>String(r.Responsable||r.Vendedor||r.Asesor||'').trim()||'—';
+const _flDistritoCli = r=>String(r.Distrito_Procedencia||r.Distrito||'').trim()||'—';
+const _flProyectoCli = r=>String(r.Proyecto||'').trim()||'—';
+const _flPrecioVenta = r=>{
+  const esDolar=String(r.Moneda||r.TipoMoneda||'').toUpperCase().includes('DOLAR');
+  const n=_detNum(esDolar ? (r.PrecioVenta||r.PrecioVentaSoles) : (r.PrecioVentaSoles||r.PrecioVenta));
+  return n ? (esDolar?'$':'S/')+' '+n.toLocaleString('en-US',{maximumFractionDigits:0}) : '—';
+};
+
+const FL_LEAD_COLS=[
+  {label:'Nombre',        get:_flNombreCompleto},
+  {label:'DNI',           get:_flDNI, align:'center'},
+  {label:'Proyecto',      get:_flProyectoCli},
+  {label:'Canal',         get:_flCanal},
+  {label:'Asesor',        get:_flAsesor},
+  {label:'F. Registro',   get:r=>_flFmtFecha(r.FechaRegistro), align:'center'},
+  {label:'F. Cita',       get:r=>_flFmtFecha(r.FechaCitado), align:'center'},
+  {label:'Sub-Estado',    get:r=>String(r.SubEstado||'').trim()||'—'},
+  {label:'Nivel Interés', get:r=>String(r.NivelInteres||'').trim()||'—', align:'center'},
+];
+// Citas Generadas: además de las columnas de lead, muestra el Responsable_Anterior
+// (de Prospectos) para identificar si el lead venía de IA Mantra antes de la cita.
+const FL_CITAS_COLS=[...FL_LEAD_COLS, {label:'Responsable Anterior', get:r=>String(r.Responsable_Anterior||'').trim()||'—'}];
+const FL_VISITA_COLS=[
+  {label:'Nombre',    get:_flNombreCompleto},
+  {label:'DNI',       get:_flDNI, align:'center'},
+  {label:'Proyecto',  get:_flProyectoCli},
+  {label:'Canal',     get:_flCanal},
+  {label:'Vendedor',  get:_flAsesor},
+  {label:'Distrito',  get:_flDistritoCli},
+  {label:'F. Cita',   get:r=>_flFmtFecha(r.Fecha_CitaProspecto), align:'center'},
+  {label:'F. Visita', get:r=>_flFmtFecha(r.FechaVisita), align:'center'},
+];
+const FL_SEP_COLS=[
+  {label:'Nombre',         get:_flNombreCompleto},
+  {label:'DNI',            get:_flDNI, align:'center'},
+  {label:'Proyecto',       get:_flProyectoCli},
+  {label:'Canal',          get:_flCanal},
+  {label:'Vendedor',       get:_flAsesor},
+  {label:'Distrito',       get:_flDistritoCli},
+  {label:'F. Separación',  get:r=>_flFmtFecha(r.FechaSepDefinitiva), align:'center'},
+  {label:'Estado',         get:r=>String(r.Estado||'').trim()||'—', align:'center'},
+  {label:'Precio Venta',   get:_flPrecioVenta, align:'right'},
+];
+const FL_VENTA_COLS=[
+  {label:'Nombre',          get:_flNombreCompleto},
+  {label:'DNI',             get:_flDNI, align:'center'},
+  {label:'Proyecto',        get:_flProyectoCli},
+  {label:'Canal',           get:_flCanal},
+  {label:'Vendedor',        get:_flAsesor},
+  {label:'Distrito',        get:_flDistritoCli},
+  {label:'F. Venta',        get:r=>_flFmtFecha(r.FechaVenta||r.FechaEntrega_Minuta), align:'center'},
+  {label:'Financiamiento',  get:r=>String(r.TipoFinanciamiento||'').trim()||'—'},
+  {label:'Precio Venta',    get:_flPrecioVenta, align:'right'},
+];
+
+function _abrirModalFunnelEtapa(titulo, kpi1, kpi2, filas, cols){
+  document.getElementById('fl-cli-titulo').textContent = titulo;
+  document.getElementById('fl-cli-kpi1-lbl').textContent = kpi1.label;
+  const k1=document.getElementById('fl-cli-kpi1'); k1.textContent=kpi1.val; k1.style.color=kpi1.color;
+  document.getElementById('fl-cli-kpi2-lbl').textContent = kpi2.label;
+  const k2=document.getElementById('fl-cli-kpi2'); k2.textContent=kpi2.val; k2.style.color=kpi2.color;
+  document.getElementById('fl-cli-thead').innerHTML = cols.map(c=>`<th style="text-align:${c.align||'left'}">${c.label}</th>`).join('');
+  const filasOrdenadas = filas.slice().sort((a,b)=>_flNombreCompleto(a).localeCompare(_flNombreCompleto(b)));
+  const rows = filasOrdenadas.map(r=>`<tr>${cols.map(c=>`<td style="text-align:${c.align||'left'}">${c.get(r)}</td>`).join('')}</tr>`).join('');
+  document.getElementById('fl-cli-tbody').innerHTML = rows ||
+    `<tr><td colspan="${cols.length}" style="text-align:center;color:var(--ink-4);padding:20px">Sin registros</td></tr>`;
+  document.getElementById('fl-cli-overlay').classList.add('open');
+}
+function cerrarModalFunnel(){
+  document.getElementById('fl-cli-overlay')?.classList.remove('open');
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') cerrarModalFunnel(); });
+
+// Clic en una barra del funnel: abre el detalle de clientes de esa etapa.
+// "which" indica si viene del período A o del B (modo comparativo).
+function _flAbrirEtapa(stageKey, which){
+  const dd = _flDatasets && _flDatasets[which];
+  if(!dd) return;
+  const d = dd.data;
+  const _validDate=v=>{const s=String(v||'').trim();return s&&s!=='nan'&&s!=='None'&&s!=='-'&&s!=='';};
+  let filas, titulo, cols;
+  switch(stageKey){
+    case 'leadsTotal':
+      filas=d.lb; titulo='Leads Totales'; cols=FL_LEAD_COLS; break;
+    case 'leadsDNI':
+      filas=d.lb.filter(r=>{const doc=String(r.NroDocumento||'').trim();return doc&&doc!=='nan'&&doc!=='None'&&doc!=='0';});
+      titulo='Leads con DNI'; cols=FL_LEAD_COLS; break;
+    case 'contactados':
+      filas=d.lb.filter(r=>normStr(r.SubEstado||'').includes('contactado'));
+      titulo='Contactados'; cols=FL_LEAD_COLS; break;
+    case 'citas':
+      filas=d.lb.filter(r=>_validDate(r.FechaCitado));
+      titulo='Citas Generadas'; cols=FL_CITAS_COLS; break;
+    case 'visitas':
+      filas=d.visF; titulo='Visitas'; cols=FL_VISITA_COLS; break;
+    case 'separaciones':
+      filas=d.sp; titulo='Separaciones'; cols=FL_SEP_COLS; break;
+    case 'ventas':
+      filas=d.ve; titulo='Ventas'; cols=FL_VENTA_COLS; break;
+    default: return;
+  }
+  _abrirModalFunnelEtapa(
+    titulo+(dd.periodoLbl?' · '+dd.periodoLbl:''),
+    {label:'Clientes en esta etapa', val:fN(filas.length), color:'#14AFBE'},
+    {label:'% de leads totales',     val:pct(filas.length, d.leadsTotal||1), color:'#F4A228'},
+    filas, cols
+  );
+}
+
 function calcDesc(){
   const nuevo = parseFloat(document.getElementById('sp-calc-input').value)||0;
   const dscto = _calcPrecio - nuevo;
@@ -5572,6 +5714,24 @@ loadAll();
           <th style="text-align:right">Por Pagar</th>
         </tr></thead>
         <tbody id="cob-mes-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: DETALLE DE CLIENTES POR ETAPA (Funnel Marketing) ── -->
+<div class="cob-overlay" id="fl-cli-overlay" onclick="if(event.target===this)cerrarModalFunnel()">
+  <div class="cob-mes-modal">
+    <button class="cob-mes-x" onclick="cerrarModalFunnel()">✕</button>
+    <h2 class="cob-mes-title" id="fl-cli-titulo">—</h2>
+    <div class="cob-mes-kpis">
+      <div class="cob-mes-kpi"><div class="k-lbl" id="fl-cli-kpi1-lbl">Clientes en esta etapa</div><div class="k-val" id="fl-cli-kpi1" style="color:#14AFBE">—</div></div>
+      <div class="cob-mes-kpi"><div class="k-lbl" id="fl-cli-kpi2-lbl">% de leads totales</div><div class="k-val" id="fl-cli-kpi2" style="color:#F4A228">—</div></div>
+    </div>
+    <div class="cob-mes-tablewrap">
+      <table class="tbl" style="width:100%">
+        <thead style="position:sticky;top:0;background:var(--panel);z-index:2"><tr id="fl-cli-thead"></tr></thead>
+        <tbody id="fl-cli-tbody"></tbody>
       </table>
     </div>
   </div>
