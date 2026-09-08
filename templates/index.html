@@ -4372,9 +4372,13 @@ const _flFmtFecha = f=>{ const s=String(f||'').trim(); return (!s||s==='nan'||s=
 // Los nombres llegan de las hojas en formatos inconsistentes (MAYÚSCULAS, minúsculas,
 // mixto) — se normalizan a Formato Título (cada palabra con su primera letra en mayúscula).
 const _flTitleCase = s=>String(s||'').trim().toLowerCase().replace(/(^|[\s\-])\p{L}/gu, m=>m.toUpperCase());
+// Algunos registros arrastran basura de un <span> mal exportado pegada al nombre
+// (ej. "Ada Pahuara Laraspan>correo: ...telefono: ...comentarios: ..."): todo lo
+// que sigue al primer ">" es ese resto de HTML/comentario, no parte del nombre.
+const _flLimpiarNombre = s=>{ const str=String(s||''); const i=str.indexOf('>'); return (i>=0?str.slice(0,i):str).trim(); };
 const _flNombreCompleto = r=>{
-  const n=String(r.Nombres||r.NombresTitular||'').trim();
-  const ap=String(r.ApellidoPaterno||'').trim();
+  const n=_flLimpiarNombre(r.Nombres||r.NombresTitular||'');
+  const ap=_flLimpiarNombre(r.ApellidoPaterno||'');
   return _flTitleCase((n+(ap?' '+ap:'')).trim()) || '—';
 };
 const _flDNI = r=>{
@@ -4385,9 +4389,13 @@ const _flCanal = r=>String(r.ComoSeEntero||'').trim()||'—';
 const _flAsesor = r=>String(r.Responsable||r.Vendedor||r.Asesor||'').trim()||'—';
 const _flDistritoCli = r=>String(r.Distrito_Procedencia||r.Distrito||'').trim()||'—';
 const _flProyectoCli = r=>String(r.Proyecto||'').trim()||'—';
+const _flPrecioVentaNum = r=>{
+  const esDolar=String(r.Moneda||r.TipoMoneda||'').toUpperCase().includes('DOLAR');
+  return _detNum(esDolar ? (r.PrecioVenta||r.PrecioVentaSoles) : (r.PrecioVentaSoles||r.PrecioVenta));
+};
 const _flPrecioVenta = r=>{
   const esDolar=String(r.Moneda||r.TipoMoneda||'').toUpperCase().includes('DOLAR');
-  const n=_detNum(esDolar ? (r.PrecioVenta||r.PrecioVentaSoles) : (r.PrecioVentaSoles||r.PrecioVenta));
+  const n=_flPrecioVentaNum(r);
   return n ? (esDolar?'$':'S/')+' '+n.toLocaleString('en-US',{maximumFractionDigits:0}) : '—';
 };
 
@@ -4424,7 +4432,7 @@ const FL_SEP_COLS=[
   {label:'Distrito',       get:_flDistritoCli},
   {label:'F. Separación',  get:r=>_flFmtFecha(r.FechaSepDefinitiva), align:'center'},
   {label:'Estado',         get:r=>String(r.Estado||'').trim()||'—', align:'center'},
-  {label:'Precio Venta',   get:_flPrecioVenta, align:'right'},
+  {label:'Precio Venta',   get:_flPrecioVenta, align:'right', sortVal:_flPrecioVentaNum, numeric:true},
 ];
 const FL_VENTA_COLS=[
   {label:'Nombre',          get:_flNombreCompleto},
@@ -4435,21 +4443,73 @@ const FL_VENTA_COLS=[
   {label:'Distrito',        get:_flDistritoCli},
   {label:'F. Venta',        get:r=>_flFmtFecha(r.FechaVenta||r.FechaEntrega_Minuta), align:'center'},
   {label:'Financiamiento',  get:r=>String(r.TipoFinanciamiento||'').trim()||'—'},
-  {label:'Precio Venta',    get:_flPrecioVenta, align:'right'},
+  {label:'Precio Venta',    get:_flPrecioVenta, align:'right', sortVal:_flPrecioVentaNum, numeric:true},
 ];
 
+// Estado del popup para poder re-ordenar sin recalcular las filas desde _flDatasets.
+let _flPopupState = null; // {titulo, kpi1, kpi2, filas, cols}
+let _flPopupSortIdx = null;
+let _flPopupSortDir = 'asc';
+
 function _abrirModalFunnelEtapa(titulo, kpi1, kpi2, filas, cols){
+  _flPopupState = {titulo, kpi1, kpi2, filas, cols};
+  _flPopupSortIdx = null;
+  _flPopupSortDir = 'asc';
+  _flRenderPopupTable();
+}
+
+// Clic en una cabecera: igual que en las tablas de cruces de Marketing — 1er
+// clic ordena (desc si es columna numérica, asc si es texto), 2do clic invierte.
+function _flPopupSetSort(idx){
+  const col = _flPopupState?.cols?.[idx];
+  if(!col) return;
+  if(_flPopupSortIdx===idx) _flPopupSortDir = _flPopupSortDir==='asc'?'desc':'asc';
+  else { _flPopupSortIdx=idx; _flPopupSortDir = col.numeric?'desc':'asc'; }
+  _flRenderPopupTable();
+}
+
+function _flRenderPopupTable(){
+  if(!_flPopupState) return;
+  const {titulo, kpi1, kpi2, filas, cols} = _flPopupState;
   document.getElementById('fl-cli-titulo').textContent = titulo;
   document.getElementById('fl-cli-kpi1-lbl').textContent = kpi1.label;
   const k1=document.getElementById('fl-cli-kpi1'); k1.textContent=kpi1.val; k1.style.color=kpi1.color;
   document.getElementById('fl-cli-kpi2-lbl').textContent = kpi2.label;
   const k2=document.getElementById('fl-cli-kpi2'); k2.textContent=kpi2.val; k2.style.color=kpi2.color;
-  document.getElementById('fl-cli-thead').innerHTML = cols.map(c=>`<th style="text-align:${c.align||'left'}">${c.label}</th>`).join('');
-  const filasOrdenadas = filas.slice().sort((a,b)=>_flNombreCompleto(a).localeCompare(_flNombreCompleto(b)));
+
+  const _sortIco = idx => _flPopupSortIdx===idx ? (_flPopupSortDir==='asc'?' ↑':' ↓') : '';
+  document.getElementById('fl-cli-thead').innerHTML = cols.map((c,i)=>
+    `<th style="text-align:${c.align||'left'};cursor:pointer;user-select:none" onclick="_flPopupSetSort(${i})" title="Ordenar">${c.label}${_sortIco(i)}</th>`
+  ).join('');
+
+  let filasOrdenadas;
+  if(_flPopupSortIdx===null){
+    filasOrdenadas = filas.slice().sort((a,b)=>_flNombreCompleto(a).localeCompare(_flNombreCompleto(b)));
+  } else {
+    const col = cols[_flPopupSortIdx];
+    const valFn = col.sortVal || col.get;
+    filasOrdenadas = filas.slice().sort((a,b)=>{
+      const va=valFn(a), vb=valFn(b);
+      const cmp = (typeof va==='number' && typeof vb==='number')
+        ? va-vb
+        : String(va).localeCompare(String(vb), undefined, {numeric:true, sensitivity:'base'});
+      return _flPopupSortDir==='asc' ? cmp : -cmp;
+    });
+  }
   const rows = filasOrdenadas.map(r=>`<tr>${cols.map(c=>`<td style="text-align:${c.align||'left'}">${c.get(r)}</td>`).join('')}</tr>`).join('');
   document.getElementById('fl-cli-tbody').innerHTML = rows ||
     `<tr><td colspan="${cols.length}" style="text-align:center;color:var(--ink-4);padding:20px">Sin registros</td></tr>`;
   document.getElementById('fl-cli-overlay').classList.add('open');
+}
+
+// Descarga la tabla del popup tal como se ve en pantalla (respeta el orden
+// de columna que el usuario haya elegido), reusando el exportador de Excel
+// que ya usa Comercial para sus tablas.
+function _flExportarExcel(){
+  const titulo = _flPopupState?.titulo || 'clientes';
+  const slug = titulo.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') || 'clientes';
+  _exportarTablaExcel('#fl-cli-table', 'funnel_'+slug);
 }
 function cerrarModalFunnel(){
   document.getElementById('fl-cli-overlay')?.classList.remove('open');
@@ -5723,13 +5783,16 @@ loadAll();
 <div class="cob-overlay" id="fl-cli-overlay" onclick="if(event.target===this)cerrarModalFunnel()">
   <div class="cob-mes-modal">
     <button class="cob-mes-x" onclick="cerrarModalFunnel()">✕</button>
-    <h2 class="cob-mes-title" id="fl-cli-titulo">—</h2>
+    <div style="display:flex;align-items:center;gap:10px;margin:0 34px 18px 0">
+      <h2 class="cob-mes-title" id="fl-cli-titulo" style="margin:0;flex:1;min-width:0">—</h2>
+      <button onclick="_flExportarExcel()" title="Descargar Excel" style="flex-shrink:0;background:var(--bg);border:1px solid var(--line);color:var(--ink-2);font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif">⬇ Excel</button>
+    </div>
     <div class="cob-mes-kpis">
       <div class="cob-mes-kpi"><div class="k-lbl" id="fl-cli-kpi1-lbl">Clientes en esta etapa</div><div class="k-val" id="fl-cli-kpi1" style="color:#14AFBE">—</div></div>
       <div class="cob-mes-kpi"><div class="k-lbl" id="fl-cli-kpi2-lbl">% de leads totales</div><div class="k-val" id="fl-cli-kpi2" style="color:#F4A228">—</div></div>
     </div>
     <div class="cob-mes-tablewrap">
-      <table class="tbl" style="width:100%">
+      <table class="tbl" id="fl-cli-table" style="width:100%">
         <thead style="position:sticky;top:0;background:var(--panel);z-index:2"><tr id="fl-cli-thead"></tr></thead>
         <tbody id="fl-cli-tbody"></tbody>
       </table>
