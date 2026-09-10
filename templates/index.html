@@ -4374,8 +4374,15 @@ const _flFmtFecha = f=>{ const s=String(f||'').trim(); return (!s||s==='nan'||s=
 const _flTitleCase = s=>String(s||'').trim().toLowerCase().replace(/(^|[\s\-])\p{L}/gu, m=>m.toUpperCase());
 // Algunos registros arrastran basura de un <span> mal exportado pegada al nombre
 // (ej. "Ada Pahuara Laraspan>correo: ...telefono: ...comentarios: ..."): todo lo
-// que sigue al primer ">" es ese resto de HTML/comentario, no parte del nombre.
-const _flLimpiarNombre = s=>{ const str=String(s||''); const i=str.indexOf('>'); return (i>=0?str.slice(0,i):str).trim(); };
+// que sigue al primer ">" es ese resto de HTML/comentario, no parte del nombre —
+// y el "span" que queda pegado justo antes del ">" es el resto de la etiqueta
+// "<span>" (se le comió el "<" en algún paso de la exportación), así que también se recorta.
+const _flLimpiarNombre = s=>{
+  const str=String(s||'');
+  const i=str.indexOf('>');
+  if(i<0) return str.trim();
+  return str.slice(0,i).replace(/span$/i,'').trim();
+};
 const _flNombreCompleto = r=>{
   const n=_flLimpiarNombre(r.Nombres||r.NombresTitular||'');
   const ap=_flLimpiarNombre(r.ApellidoPaterno||'');
@@ -4398,6 +4405,23 @@ const _flPrecioVenta = r=>{
   const n=_flPrecioVentaNum(r);
   return n ? (esDolar?'$':'S/')+' '+n.toLocaleString('en-US',{maximumFractionDigits:0}) : '—';
 };
+// Cruce Prospectos <-> Visitas por DNI (o por nombre si no hay DNI) + Proyecto,
+// para saber si una cita realmente se concretó en visita — Visitas no trae de
+// vuelta el link al prospecto, así que hay que buscarlo por estos campos.
+const _flFechaVisitaPara = r=>{
+  const doc = String(r.NroDocumento||'').trim();
+  const tieneDoc = doc && doc!=='nan' && doc!=='None' && doc!=='0';
+  const proy = String(r.Proyecto||'').trim();
+  const nombreNorm = normStr(((r.Nombres||'')+' '+(r.ApellidoPaterno||'')).trim());
+  const candidatas = (D.visitas||[]).filter(v=>{
+    if(proy && String(v.Proyecto||'').trim()!==proy) return false;
+    if(tieneDoc) return String(v.NroDocTitular||'').trim()===doc;
+    return nombreNorm && normStr(v.NombresTitular||'')===nombreNorm;
+  });
+  if(!candidatas.length) return null;
+  candidatas.sort((a,b)=>String(a.FechaVisita||'').localeCompare(String(b.FechaVisita||'')));
+  return candidatas[candidatas.length-1].FechaVisita;
+};
 
 const FL_LEAD_COLS=[
   {label:'Nombre',        get:_flNombreCompleto},
@@ -4411,8 +4435,16 @@ const FL_LEAD_COLS=[
   {label:'Nivel Interés', get:r=>String(r.NivelInteres||'').trim()||'—', align:'center'},
 ];
 // Citas Generadas: además de las columnas de lead, muestra el Responsable_Anterior
-// (de Prospectos) para identificar si el lead venía de IA Mantra antes de la cita.
-const FL_CITAS_COLS=[...FL_LEAD_COLS, {label:'Responsable Anterior', get:r=>String(r.Responsable_Anterior||'').trim()||'—'}];
+// (de Prospectos) para identificar si el lead venía de IA Mantra antes de la cita,
+// y la Fecha de Visita real (cruzada con Visitas, justo al lado de F. Cita) para
+// ver de un vistazo si la cita fue efectiva.
+const FL_CITAS_COLS=(()=>{
+  const cols=[...FL_LEAD_COLS];
+  const idx=cols.findIndex(c=>c.label==='F. Cita');
+  cols.splice(idx+1, 0, {label:'F. Visita', get:r=>_flFmtFecha(_flFechaVisitaPara(r)), align:'center'});
+  cols.push({label:'Responsable Anterior', get:r=>String(r.Responsable_Anterior||'').trim()||'—'});
+  return cols;
+})();
 const FL_VISITA_COLS=[
   {label:'Nombre',    get:_flNombreCompleto},
   {label:'DNI',       get:_flDNI, align:'center'},
@@ -4881,7 +4913,10 @@ function _exportarTablaExcel(tableSelector, nombreArchivo){
     alert('No hay datos para exportar todavía. Elige algún filtro primero.');
     return;
   }
-  const ws = XLSX.utils.table_to_sheet(table);
+  // raw:true evita que SheetJS intente adivinar fechas: sin esto, convierte
+  // texto tipo "2026-09-19" a fecha interpretándolo como UTC y luego lo
+  // muestra en la zona horaria local, restando 1 día a todas las fechas.
+  const ws = XLSX.utils.table_to_sheet(table, {raw:true});
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Datos');
   const fecha = new Date().toISOString().slice(0,10);

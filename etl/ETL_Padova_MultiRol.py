@@ -319,7 +319,8 @@ COLS_PROSPECTOS = [
     'Proyecto','TipoInmueble','Nombres','ApellidoPaterno',
     'NroDocumento','CorreoElectronico','ComoSeEntero','NivelInteres',
     'FechaRegistro','Fecha_PrimeraAccion','Cant_Acciones',
-    'Estado','SubEstado','Responsable','Responsable_Anterior','Motivo_Cerrado_Actual',
+    'Estado','SubEstado','Estado_Tarea','Fecha_UltimaAccion','Fecha_TareaNueva',
+    'Responsable','Responsable_Anterior','Motivo_Cerrado_Actual',
     'TiempoRespuesta_min','LeadUnicoxMesProyecto',
     'FechaCitado','Descrip_UltimaAccion','EstadoSentinel',
 ]
