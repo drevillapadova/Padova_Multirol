@@ -1370,7 +1370,8 @@ function schedHtml(ventas){
     const d=parseDate(r.FechaVenta||r.FechaEntrega_Minuta||'');
     const day=d?d.getDate():'—'; const mon=d?MN[d.getMonth()+1]:'';
     const monto=Number(r.PrecioVentaSoles||r.PrecioVenta||0);
-    return `<div class="sched-item"><div class="day"><b>${day}</b><small>${mon}</small></div><div class="body"><b>${r.NombresTitular||'Cliente'}</b><small>${PLBL[String(r.Proyecto||'').toUpperCase()]||r.Proyecto||'—'} · ${r.TipoInmueble||'—'}</small></div><div class="amt">${fS(monto)}<small>${r.TipoFinanciamiento||'—'}</small></div></div>`;
+    const cliente=(typeof _flTitleCase==='function'?_flTitleCase(_flLimpiarNombre(r.NombresTitular||'')):r.NombresTitular)||'Cliente';
+    return `<div class="sched-item"><div class="day"><b>${day}</b><small>${mon}</small></div><div class="body"><b>${cliente}</b><small>${PLBL[String(r.Proyecto||'').toUpperCase()]||r.Proyecto||'—'} · ${r.TipoInmueble||'—'}</small></div><div class="amt">${fS(monto)}<small>${r.TipoFinanciamiento||'—'}</small></div></div>`;
   }).join('');
   const tot=ventas.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
   return `<div class="sched"><div class="sched-sum"><div><small>Total ventas</small><b>${fN(ventas.length)} und.</b></div><div><small>Monto total</small><b>${fM(tot)}</b></div><div><small>Ticket prom.</small><b>${ventas.length?fM(tot/ventas.length):'—'}</b></div></div>${items||'<div style="color:var(--ink-4);font-size:12px;padding:12px">Sin registros</div>'}</div>`;
@@ -4285,8 +4286,9 @@ function _filasDetalleHTML(filas, porPagarFn){
       const fC=n=>`${cur} ${_detFmtMonto(n)}`;
       const montoVenta=_detNum(r.TotalVenta), montoPagado=_detNum(r.Pagos_Recibido);
       const porPagar=porPagarFn(r);
+      const titular=(typeof _flTitleCase==='function'?_flTitleCase(_flLimpiarNombre(r.Titular||'')):String(r.Titular||''))||'—';
       return `<tr>
-        <td style="text-align:left">${String(r.Titular||'—')}</td>
+        <td style="text-align:left">${titular}</td>
         <td style="text-align:center">${String(r.NroInmueble_1||'—')}</td>
         <td style="text-align:center">${fmtFecha(r.FechaVenta)}</td>
         <td style="text-align:right">${montoVenta?fC(montoVenta):'—'}</td>
@@ -4377,11 +4379,15 @@ const _flTitleCase = s=>String(s||'').trim().toLowerCase().replace(/(^|[\s\-])\p
 // que sigue al primer ">" es ese resto de HTML/comentario, no parte del nombre —
 // y el "span" que queda pegado justo antes del ">" es el resto de la etiqueta
 // "<span>" (se le comió el "<" en algún paso de la exportación), así que también se recorta.
+// El dato crudo a veces trae el ">" ya escapado como texto literal "&gt;" (no el
+// carácter ">" en sí) — el navegador lo decodifica visualmente al pintar el HTML,
+// así que en pantalla SE VE como un ">" normal aunque en el string no lo sea; hay
+// que buscar ambas formas o la limpieza no encuentra nada y deja todo el texto.
 const _flLimpiarNombre = s=>{
   const str=String(s||'');
-  const i=str.indexOf('>');
-  if(i<0) return str.trim();
-  return str.slice(0,i).replace(/span$/i,'').trim();
+  const m=str.match(/>|&gt;/i);
+  if(!m) return str.trim();
+  return str.slice(0,m.index).replace(/span$/i,'').trim();
 };
 const _flNombreCompleto = r=>{
   const n=_flLimpiarNombre(r.Nombres||r.NombresTitular||'');
