@@ -2366,6 +2366,11 @@ let _flCrossRows = 'subestado';
 let _flCrossCols = 'canal';
 let _flCrossStage = 'leads';
 let _flEvoGranularidad = 'auto'; // 'auto' | 'dias' | 'mes' — granularidad del gráfico de Evolución
+let _flEvoCanalTodos = true; // true = todos los canales — filtro de Canal (checklist) en la pestaña Evolución
+let _flEvoCanalSel = new Set(); // canales elegidos explícitamente cuando _flEvoCanalTodos=false
+let _flEvoStages = new Set(['leads']); // etapas seleccionadas (multi-select) en la pestaña Evolución
+const EVO_STAGE_VALUES = ['leads','contactados','visita','separacion','venta'];
+let EVO_CANALES_ACTUALES = []; // lista de canales del último render, para el checklist de Canales
 let _flCrossSort = null;
 let _flCrossSortDir = 'desc';
 let _flComp = false;
@@ -2882,30 +2887,73 @@ function renderFunnelMkt(){
     const PROYECTOS_COLOR={'HELIO - SANTA BEATRIZ':'#60a5fa','SUNNY':'#34d399','LITORAL 900':'#fbbf24','LOMAS DE CARABAYLLO 4':'#a78bfa','LOMAS DE CARABAYLLO 5':'#f472b6','DOMINGO ORUE':'#fb923c'};
     const BRAND_COLORS=['#60a5fa','#34d399','#fbbf24','#a78bfa','#f472b6','#fb923c','#f87171','#38bdf8'];
     const ETAPA_COLOR={leads:'#60a5fa',contactados:'#34d399',visita:'#fbbf24',separacion:'#a78bfa',venta:'#f87171'};
+    // Filtro de Canal (debajo de Etapa): acota cada etapa a un solo ComoSeEntero.
+    // La lista de canales disponibles sale de leadBase (el conjunto más amplio,
+    // ya que todo lead entra por algún canal) para no perder opciones aunque la
+    // etapa activa en ese momento no tenga registros de ese canal.
+    const _evoCanalFiltro = r=>_flEvoCanalTodos || _flEvoCanalSel.has(String(r.ComoSeEntero||'').trim());
+    const EVO_CANALES = [...new Set(leadBase.map(r=>String(r.ComoSeEntero||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+    EVO_CANALES_ACTUALES = EVO_CANALES;
     const EVO_STAGES=[
-      {val:'leads',      lbl:'Leads',            data:leadBase, dataB:(B?.lb)||[], dateF:r=>_toISO(r.FechaRegistro)},
-      {val:'contactados',lbl:'Contactados',      data:leadBase.filter(r=>normStr(r.SubEstado||'').includes('contactad')), dataB:((B?.lb)||[]).filter(r=>normStr(r.SubEstado||'').includes('contactad')), dateF:r=>_toISO(r.FechaRegistro)},
-      {val:'visita',     lbl:'Con visita',       data:visF,    dataB:(B?.visF)||[], dateF:r=>_toISO(r.FechaVisita)},
-      {val:'separacion', lbl:'Separados',        data:sepBase, dataB:(B?.sp)||[], dateF:r=>_toISO(r.FechaSepDefinitiva)},
-      {val:'venta',      lbl:'Vendidos',         data:ventaBase, dataB:(B?.ve)||[], dateF:r=>_toISO(r.FechaVenta||r.FechaEntrega_Minuta)},
+      {val:'leads',      lbl:'Leads',            data:leadBase.filter(_evoCanalFiltro), dataB:((B?.lb)||[]).filter(_evoCanalFiltro), dateF:r=>_toISO(r.FechaRegistro)},
+      {val:'contactados',lbl:'Contactados',      data:leadBase.filter(r=>normStr(r.SubEstado||'').includes('contactad')).filter(_evoCanalFiltro), dataB:((B?.lb)||[]).filter(r=>normStr(r.SubEstado||'').includes('contactad')).filter(_evoCanalFiltro), dateF:r=>_toISO(r.FechaRegistro)},
+      {val:'visita',     lbl:'Con visita',       data:visF.filter(_evoCanalFiltro),    dataB:((B?.visF)||[]).filter(_evoCanalFiltro), dateF:r=>_toISO(r.FechaVisita)},
+      {val:'separacion', lbl:'Separados',        data:sepBase.filter(_evoCanalFiltro), dataB:((B?.sp)||[]).filter(_evoCanalFiltro), dateF:r=>_toISO(r.FechaSepDefinitiva)},
+      {val:'venta',      lbl:'Vendidos',         data:ventaBase.filter(_evoCanalFiltro), dataB:((B?.ve)||[]).filter(_evoCanalFiltro), dateF:r=>_toISO(r.FechaVenta||r.FechaEntrega_Minuta)},
     ];
-    const esTodas = _flCrossStage==='todas';
-    const evoStageOpt=EVO_STAGES.find(s=>s.val===_flCrossStage)||EVO_STAGES[0];
+    // Etapa ahora es selección múltiple: 1 sola etapa = vista detallada "por
+    // proyecto" (comportamiento de siempre); 2+ etapas = una línea por etapa
+    // (generaliza lo que antes era el modo fijo "Todas las etapas" a cualquier
+    // subconjunto elegido, no solo las 5).
+    if(_flEvoStages.size===0) _flEvoStages.add('leads');
+    const selectedStages = EVO_STAGES.filter(s=>_flEvoStages.has(s.val));
+    const esTodas = selectedStages.length!==1;
+    const evoStageOpt = selectedStages[0] || EVO_STAGES[0];
     const evoBase=evoStageOpt.data;
     const evoBaseB=evoStageOpt.dataB;
     const _evoDateF=evoStageOpt.dateF;
     const _ffsE="font-family:'Plus Jakarta Sans',sans-serif";
     const _evoTabBtn=(val,lbl,activo,setter)=>`<button onclick="${setter}='${val}';renderFunnelMkt()" style="${_ffsE};padding:4px 14px;border-radius:99px;font-size:10.5px;font-weight:700;cursor:pointer;letter-spacing:.03em;border:1.5px solid ${activo?'#3b82f6':'var(--line)'};background:${activo?'var(--brand-soft)':'transparent'};color:${activo?'var(--brand)':'var(--ink-3)'}">${lbl}</button>`;
-    const evoStageSel=`<div style="display:flex;align-items:center;gap:6px;padding:10px 18px 0;flex-wrap:wrap">
-      <span style="${_ffsE};font-size:10px;color:var(--ink-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Etapa:</span>
-      ${EVO_STAGES.map(s=>_evoTabBtn(s.val,s.lbl,!esTodas&&_flCrossStage===s.val,'_flCrossStage')).join('')}
-      ${_evoTabBtn('todas','Todas las etapas',esTodas,'_flCrossStage')}
-    </div>
-    <div style="display:flex;align-items:center;gap:6px;padding:8px 18px 0;flex-wrap:wrap">
-      <span style="${_ffsE};font-size:10px;color:var(--ink-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Vista:</span>
-      ${_evoTabBtn('auto','Auto',_flEvoGranularidad==='auto','_flEvoGranularidad')}
-      ${_evoTabBtn('dias','Días',_flEvoGranularidad==='dias','_flEvoGranularidad')}
-      ${_evoTabBtn('mes','Mes',_flEvoGranularidad==='mes','_flEvoGranularidad')}
+    const evoEtapaTodas = _flEvoStages.size===EVO_STAGE_VALUES.length;
+    const evoEtapaLabel = evoEtapaTodas ? 'Todas las etapas' : (selectedStages.length===1 ? selectedStages[0].lbl : `${selectedStages.length} etapas`);
+    const evoCanalLabel = _flEvoCanalTodos ? 'Todos los canales' : (_flEvoCanalSel.size===1 ? [..._flEvoCanalSel][0] : `${_flEvoCanalSel.size} canales`);
+    const evoStageSel=`<div style="display:flex;align-items:center;gap:20px;padding:10px 18px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="${_ffsE};font-size:10px;color:var(--ink-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Etapa:</span>
+        <div style="position:relative">
+          <button type="button" class="chip-sel msel-btn" onclick="mselToggle('evoetapa')" style="${_ffsE};font-size:11px;font-weight:600;padding:4px 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink-2)">
+            <span>${evoEtapaLabel}</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
+          </button>
+          <div class="msel-panel" id="msel-evoetapa-panel" style="display:none;min-width:170px">
+            <label class="msel-item" style="font-weight:700;border-bottom:1px solid var(--line-2);margin-bottom:4px;padding-bottom:7px">
+              <input type="checkbox" ${evoEtapaTodas?'checked':''} onchange="_evoToggleAllStages(this.checked)"><span>Todos</span>
+            </label>
+            ${EVO_STAGES.map(s=>`<label class="msel-item"><input type="checkbox" ${_flEvoStages.has(s.val)?'checked':''} onchange="_evoToggleStage('${s.val}', this.checked)"><span>${s.lbl}</span></label>`).join('')}
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="${_ffsE};font-size:10px;color:var(--ink-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Canales:</span>
+        <div style="position:relative">
+          <button type="button" class="chip-sel msel-btn" onclick="mselToggle('evocanal')" style="${_ffsE};font-size:11px;font-weight:600;padding:4px 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink-2)">
+            <span>${evoCanalLabel}</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
+          </button>
+          <div class="msel-panel" id="msel-evocanal-panel" style="display:none;min-width:200px">
+            <label class="msel-item" style="font-weight:700;border-bottom:1px solid var(--line-2);margin-bottom:4px;padding-bottom:7px">
+              <input type="checkbox" ${_flEvoCanalTodos?'checked':''} onchange="_evoToggleAllCanales(this.checked)"><span>Todos</span>
+            </label>
+            ${EVO_CANALES.map(c=>{const esc=c.replace(/"/g,'&quot;');return `<label class="msel-item" data-val="${esc}"><input type="checkbox" ${(_flEvoCanalTodos||_flEvoCanalSel.has(c))?'checked':''} onchange="_evoToggleCanal(this.closest('.msel-item').dataset.val, this.checked)"><span>${c}</span></label>`;}).join('')}
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="${_ffsE};font-size:10px;color:var(--ink-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Vista:</span>
+        <select onchange="_flEvoGranularidad=this.value;renderFunnelMkt()" style="${_ffsE};font-size:11px;font-weight:600;padding:4px 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink-2);cursor:pointer">
+          <option value="auto"${_flEvoGranularidad==='auto'?' selected':''}>Auto</option>
+          <option value="dias"${_flEvoGranularidad==='dias'?' selected':''}>Días</option>
+          <option value="mes"${_flEvoGranularidad==='mes'?' selected':''}>Mes</option>
+        </select>
+      </div>
     </div>`;
 
     const _isDark=document.documentElement.classList.contains('dark');
@@ -2998,12 +3046,12 @@ function renderFunnelMkt(){
       formatter: v=>fN(v),
     });
 
-    // ── Modo "todas las etapas" (sin comparar): una línea por etapa del funnel,
-    // agregada según el filtro de proyecto activo (no desglosa por proyecto — con
-    // 5 etapas ya son 5 líneas, cruzarlo también por proyecto sería ilegible).
+    // ── Modo "varias etapas" (sin comparar): una línea por cada etapa elegida,
+    // agregada según el filtro de proyecto activo (no desglosa por proyecto —
+    // cruzarlo también por proyecto sería ilegible con varias líneas).
     if(esTodas && !(_flComp && (_flDateFrom2||_flDateTo2))){
       const dayMapTodas={};
-      EVO_STAGES.forEach(st=>{
+      selectedStages.forEach(st=>{
         st.data.forEach(r=>{
           const iso=st.dateF(r); if(!iso) return;
           if(!dayMapTodas[iso]) dayMapTodas[iso]={};
@@ -3013,19 +3061,19 @@ function renderFunnelMkt(){
       const {periodMap, periods, isMonthly, allDates}=_flFillPeriods(dayMapTodas);
       if(!allDates.length){
         document.getElementById('fl-content').innerHTML=
-          '<div class="card" style="margin-bottom:12px;padding-bottom:10px">'+evoStageSel+'</div>'
+          '<div class="card" style="margin-bottom:12px;padding-bottom:10px;overflow:visible">'+evoStageSel+'</div>'
           +'<div class="card" style="margin-bottom:16px;padding:40px;text-align:center;color:var(--ink-4);font-size:13px">Sin datos para el período seleccionado</div>';
         return;
       }
       const xLabelsT=periods.map(d=>isMonthly?_fmtPeriodoGen(d,true):(periods.length>90?d.slice(5).replace('-','/'):_fmtPeriodoGen(d,false)));
-      const datasetsT=EVO_STAGES.map(st=>({
+      const datasetsT=selectedStages.map(st=>({
         label:st.lbl,
         data:periods.map(d=>periodMap[d]?.[st.val]||0),
         borderColor:ETAPA_COLOR[st.val],
         backgroundColor:ETAPA_COLOR[st.val]+'22',
         borderWidth:2, pointRadius:periods.length>60?0:3, pointHoverRadius:5, tension:0.35, fill:false,
       }));
-      const legendT=EVO_STAGES.map(st=>{
+      const legendT=selectedStages.map(st=>{
         const tot=periods.reduce((a,d)=>a+(periodMap[d]?.[st.val]||0),0);
         return `<div style="display:flex;align-items:center;gap:5px;font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;color:var(--ink-2)">
           <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${ETAPA_COLOR[st.val]};flex-shrink:0"></span>
@@ -3035,10 +3083,10 @@ function renderFunnelMkt(){
       }).join('');
 
       document.getElementById('fl-content').innerHTML=
-        '<div class="card" style="margin-bottom:12px;padding-bottom:10px">'+evoStageSel+'</div>'
+        '<div class="card" style="margin-bottom:12px;padding-bottom:10px;overflow:visible">'+evoStageSel+'</div>'
         +'<div class="card" style="margin-bottom:16px">'
           +'<div class="card-hd">'
-            +'<div><h3>Evolución '+(isMonthly?'mensual':'diaria')+' · todas las etapas</h3><p>'+(lblA||'Todo el período')+' · '+(proj||'todos los proyectos')+'</p></div>'
+            +'<div><h3>Evolución '+(isMonthly?'mensual':'diaria')+' · '+selectedStages.map(s=>s.lbl).join(', ')+'</h3><p>'+(lblA||'Todo el período')+' · '+(proj||'todos los proyectos')+'</p></div>'
             +'<div style="display:flex;flex-direction:column;gap:5px;min-width:180px">'+legendT+'</div>'
           +'</div>'
           +'<div style="height:340px;padding:8px 16px 16px"><canvas id="fl-evo-chart"></canvas></div>'
@@ -3087,21 +3135,21 @@ function renderFunnelMkt(){
     // que normalmente difiere entre A y B).
     const modoComparar = _flComp && (_flDateFrom2 || _flDateTo2);
     if(modoComparar){
-      // En modo "todas las etapas" los límites del período se calculan combinando
-      // las 5 etapas (no solo la que quedó seleccionada por defecto), para que las
-      // 10 líneas (5 etapas × A/B) compartan el mismo eje.
+      // Con varias etapas elegidas los límites del período se calculan combinando
+      // todas las etapas seleccionadas (no solo una), para que sus líneas × A/B
+      // compartan el mismo eje.
       const isoA=esTodas
-        ? EVO_STAGES.flatMap(st=>st.data.map(st.dateF)).filter(Boolean).sort()
+        ? selectedStages.flatMap(st=>st.data.map(st.dateF)).filter(Boolean).sort()
         : evoBase.map(_evoDateF).filter(Boolean).sort();
       const isoB=esTodas
-        ? EVO_STAGES.flatMap(st=>st.dataB.map(st.dateF)).filter(Boolean).sort()
+        ? selectedStages.flatMap(st=>st.dataB.map(st.dateF)).filter(Boolean).sort()
         : evoBaseB.map(_evoDateF).filter(Boolean).sort();
       const fromA=_flDateFrom||isoA[0]||null, toA=_flDateTo||isoA[isoA.length-1]||null;
       const fromB=_flDateFrom2||isoB[0]||null, toB=_flDateTo2||isoB[isoB.length-1]||null;
 
       if(!fromA||!toA||!fromB||!toB){
         document.getElementById('fl-content').innerHTML=
-          '<div class="card" style="margin-bottom:12px;padding-bottom:10px">'+evoStageSel+'</div>'
+          '<div class="card" style="margin-bottom:12px;padding-bottom:10px;overflow:visible">'+evoStageSel+'</div>'
           +'<div class="card" style="margin-bottom:16px;padding:40px;text-align:center;color:var(--ink-4);font-size:13px">Sin datos suficientes en alguno de los dos períodos para comparar</div>';
         return;
       }
@@ -3133,11 +3181,11 @@ function renderFunnelMkt(){
       const idxs=Array.from({length:nPuntos},(_,i)=>i);
       const xLabelsCmp=idxs.map(i=>cmpMonthly?('Mes '+(i+1)):('Día '+(i+1)));
 
-      // ── "Todas las etapas" + comparar: 10 líneas (5 etapas × A/B) — color por
+      // ── Varias etapas + comparar: 2 líneas por etapa elegida (A/B) — color por
       // etapa, sólida = Período A, punteada = Período B.
       if(esTodas){
         const datasetsTodasCmp=[];
-        EVO_STAGES.forEach(st=>{
+        selectedStages.forEach(st=>{
           const mA=_serieRelativa(st.data, st.dateF, fromA);
           const mB=_serieRelativa(st.dataB, st.dateF, fromB);
           const sA=idxs.map(i=>mA[i]||0), sB=idxs.map(i=>mB[i]||0);
@@ -3145,16 +3193,16 @@ function renderFunnelMkt(){
           datasetsTodasCmp.push({label:st.lbl+' · B', data:sB, borderColor:ETAPA_COLOR[st.val], backgroundColor:ETAPA_COLOR[st.val]+'15', borderWidth:2, borderDash:[6,4], pointRadius:nPuntos>60?0:2, pointHoverRadius:4, tension:0.35, fill:false});
         });
 
-        const legendTodasCmp=EVO_STAGES.map(st=>`<div style="display:flex;align-items:center;gap:5px;font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;color:var(--ink-2)">
+        const legendTodasCmp=selectedStages.map(st=>`<div style="display:flex;align-items:center;gap:5px;font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;color:var(--ink-2)">
           <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${ETAPA_COLOR[st.val]};flex-shrink:0"></span>
           <span>${st.lbl}</span>
         </div>`).join('');
 
         document.getElementById('fl-content').innerHTML=
-          '<div class="card" style="margin-bottom:12px;padding-bottom:10px">'+evoStageSel+'</div>'
+          '<div class="card" style="margin-bottom:12px;padding-bottom:10px;overflow:visible">'+evoStageSel+'</div>'
           +'<div class="card" style="margin-bottom:16px">'
             +'<div class="card-hd">'
-              +'<div><h3>Evolución '+(cmpMonthly?'mensual':'diaria')+' · todas las etapas</h3><p>Período A ('+lblA+', línea sólida) vs Período B ('+lblB+', línea punteada) · alineado por '+(cmpMonthly?'mes':'día')+' relativo</p></div>'
+              +'<div><h3>Evolución '+(cmpMonthly?'mensual':'diaria')+' · '+selectedStages.map(s=>s.lbl).join(', ')+'</h3><p>Período A ('+lblA+', línea sólida) vs Período B ('+lblB+', línea punteada) · alineado por '+(cmpMonthly?'mes':'día')+' relativo</p></div>'
               +'<div style="display:flex;flex-direction:column;gap:5px;min-width:150px">'+legendTodasCmp+'</div>'
             +'</div>'
             +'<div style="height:360px;padding:8px 16px 16px"><canvas id="fl-evo-chart"></canvas></div>'
@@ -3220,7 +3268,7 @@ function renderFunnelMkt(){
       const _evoKpiCmp=(lbl,val,sub,col)=>`<div class="kpi"><div class="lbl">${lbl}</div><div class="val">${val}</div><div class="sub">${sub}</div></div>`;
 
       document.getElementById('fl-content').innerHTML=
-        '<div class="card" style="margin-bottom:12px;padding-bottom:10px">'+evoStageSel+'</div>'
+        '<div class="card" style="margin-bottom:12px;padding-bottom:10px;overflow:visible">'+evoStageSel+'</div>'
         +'<div class="kpi-row kpi-4" style="margin-bottom:16px">'
           +_evoKpiCmp(evoStageOpt.lbl, fN(totA)+' <span style="font-size:12px;color:var(--ink-3)">vs</span> '+fN(totB), 'total A vs B', '#3b82f6')
           +_evoKpiCmp('Promedio '+(cmpMonthly?'mensual':'diario'), avgA+' <span style="font-size:12px;color:var(--ink-3)">vs</span> '+avgB, 'A vs B', '#14AFBE')
@@ -3290,7 +3338,7 @@ function renderFunnelMkt(){
     // Si no hay datos suficientes mostrar mensaje
     if(Object.keys(dayMap).length===0){
       document.getElementById('fl-content').innerHTML=
-        '<div class="card" style="margin-bottom:12px;padding-bottom:10px">'+evoStageSel+'</div>'
+        '<div class="card" style="margin-bottom:12px;padding-bottom:10px;overflow:visible">'+evoStageSel+'</div>'
         +'<div class="card" style="margin-bottom:16px;padding:40px;text-align:center;color:var(--ink-4);font-size:13px">Sin datos para el período seleccionado</div>';
       return;
     }
@@ -3356,7 +3404,7 @@ function renderFunnelMkt(){
     const _evoKpi=(lbl,val,sub,col)=>`<div class="kpi"><div class="lbl">${lbl}</div><div class="val">${val}</div><div class="sub">${sub}</div></div>`;
 
     document.getElementById('fl-content').innerHTML=
-      '<div class="card" style="margin-bottom:12px;padding-bottom:10px">'+evoStageSel+'</div>'
+      '<div class="card" style="margin-bottom:12px;padding-bottom:10px;overflow:visible">'+evoStageSel+'</div>'
       +'<div class="kpi-row kpi-4" style="margin-bottom:16px">'
         +_evoKpi(evoStageOpt.lbl,fN(evoBase.length),'período seleccionado','#3b82f6')
         +_evoKpi('Promedio '+_lblGran,avgPer,'registros / '+(_isMonthly?'mes':'día'),'#14AFBE')
@@ -5034,11 +5082,16 @@ function setMercadoTab(tab, el){
 }
 
 // ── Multi-select checkbox dropdown genérico (distrito / proyecto, x2 secciones) ──
+let _mselOpenKey = null; // qué dropdown msel está abierto — se usa para reabrirlo
+// tras un renderFunnelMkt() completo (los checklists de Etapa/Canales en Evolución
+// viven dentro del innerHTML que ese render reemplaza entero, así que sin esto el
+// panel se veía "cerrarse solo" después de cada tilde).
 function mselToggle(key){
   const panel = document.getElementById('msel-'+key+'-panel');
   const isOpen = panel.style.display==='block';
   document.querySelectorAll('.msel-panel').forEach(p=>p.style.display='none');
   panel.style.display = isOpen ? 'none' : 'block';
+  _mselOpenKey = isOpen ? null : key;
   if(!isOpen){
     // Al abrir el dropdown siempre arranca limpio: buscador vacío y scroll arriba
     // (lo tildado/seleccionado NO se toca, solo el estado visual de la lista).
@@ -5047,9 +5100,15 @@ function mselToggle(key){
     panel.scrollTop = 0;
   }
 }
+function _mselRestoreOpen(){
+  if(!_mselOpenKey) return;
+  const panel = document.getElementById('msel-'+_mselOpenKey+'-panel');
+  if(panel) panel.style.display='block';
+}
 document.addEventListener('click', e=>{
   if(!e.target.closest('.msel-btn') && !e.target.closest('.msel-panel')){
     document.querySelectorAll('.msel-panel').forEach(p=>p.style.display='none');
+    _mselOpenKey = null;
   }
 });
 
@@ -5096,6 +5155,36 @@ function mselToggleValue(key, val, checked){
     [..._mselGet('proyecto')].forEach(p=>{ if(!validos.has(p)) _mselGet('proyecto').delete(p); });
     _renderMercadoCompartidas();
   }
+}
+
+// ── Checklists de Etapa y Canales (pestaña Evolución de Leads) ──────────────
+// Mismo widget visual que el multi-select de Estudio de Mercado (msel-btn/panel/item),
+// pero con estado propio: acá "Todos" es una fila más dentro de la lista, no solo
+// el texto por defecto del botón.
+function _evoToggleAllStages(checked){
+  _flEvoStages = checked ? new Set(EVO_STAGE_VALUES) : new Set();
+  renderFunnelMkt();
+  _mselRestoreOpen();
+}
+function _evoToggleStage(val, checked){
+  if(checked) _flEvoStages.add(val); else _flEvoStages.delete(val);
+  renderFunnelMkt();
+  _mselRestoreOpen();
+}
+function _evoToggleAllCanales(checked){
+  _flEvoCanalTodos = checked;
+  _flEvoCanalSel = new Set(); // al destildar "Todos" arranca vacío para elegir a mano
+                              // (igual que Etapa) — al activarlo tampoco hace falta
+                              // lista explícita, ya lo cubre _flEvoCanalTodos=true.
+  renderFunnelMkt();
+  _mselRestoreOpen();
+}
+function _evoToggleCanal(val, checked){
+  if(_flEvoCanalTodos){ _flEvoCanalTodos=false; _flEvoCanalSel=new Set(EVO_CANALES_ACTUALES); }
+  if(checked) _flEvoCanalSel.add(val); else _flEvoCanalSel.delete(val);
+  if(_flEvoCanalSel.size===EVO_CANALES_ACTUALES.length){ _flEvoCanalTodos=true; _flEvoCanalSel=new Set(); }
+  renderFunnelMkt();
+  _mselRestoreOpen();
 }
 
 function mselFilterList(key){
