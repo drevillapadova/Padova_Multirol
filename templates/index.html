@@ -3592,7 +3592,18 @@ async function enviarChatFunnel(preset){
 // ADM. DE VENTAS
 // ══════════════════════════════════════════════════════════════════════════
 
+let _admDatesInitDone = false;
 function renderAdmVentas(){
+  // Por defecto (solo la 1ra vez) el filtro "Desde" arranca en el día 1 del mes
+  // actual en vez de vacío, igual que en Marketing → Funnel.
+  if(!_admDatesInitDone){
+    _admDatesInitDone = true;
+    const deInput = document.getElementById('adm-date-desde');
+    if(deInput && !deInput.value){
+      const hoy = new Date();
+      deInput.value = hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-01';
+    }
+  }
   const proj  = filtrarProj('adm');
   const _tipo = document.getElementById('adm-tipo')?.value||'';
   let v       = filtrarVentas('adm');
@@ -3775,7 +3786,7 @@ function renderAdmVentas(){
     <div style="height:280px;padding:8px 16px 16px"><canvas id="adm-fc-chart-real"></canvas></div>
   </div>
   `;
-  renderFlujoCajaCharts(fc, FX_FC);
+  renderFlujoCajaCharts(fc, FX_FC, ingDep);
   renderProyeccionTabla(fc, ingDep);
   renderCobranzaRealChart(fc, ingDep, FX_FC);
 }
@@ -3928,10 +3939,11 @@ function renderProyeccionTabla(fc, ingDep){
   </table>`;
 }
 
-function renderFlujoCajaCharts(fc, FX){
+function renderFlujoCajaCharts(fc, FX, ingDep){
   const mesesFC = _mesesFlujoCaja();
   const MESES_FC = mesesFC.map(m=>m.col);
   const mesLabels = mesesFC.map(m=>m.labelLargo);
+  const MESES_YM = mesesFC.map(m=>m.ym);
   const _convMes = (r,col) => {
     const n = parseFloat(r[col]);
     if(isNaN(n)) return 0;
@@ -3949,7 +3961,7 @@ function renderFlujoCajaCharts(fc, FX){
       options:{ responsive:true, maintainAspectRatio:false,
         onClick: (evt, elements) => {
           if(!elements.length) return;
-          _abrirModalCuotasMes(fc, MESES_FC[elements[0].index], mesLabels[elements[0].index], FX);
+          _abrirModalCuotasMes(fc, MESES_FC[elements[0].index], mesLabels[elements[0].index], FX, ingDep, MESES_YM[elements[0].index]);
         },
         plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>'S/ '+fN(c.raw)}} },
         scales:{ y:{beginAtZero:true,ticks:{callback:v=>fN(v)}}, x:{ticks:{font:{size:9},maxRotation:60}} }
@@ -4323,25 +4335,28 @@ function closeCalc(){
 // Venta/Monto Venta/Moneda/Monto Pagado/Por Pagar. Lo usan tanto el clic en una
 // barra de "Proyección de cobros — por mes" como el clic en los números de
 // "Distribución por financiamiento". "porPagarFn" decide qué mostrar en Por
-// Pagar porque ese campo significa algo distinto en cada caso.
+// Pagar porque ese campo significa algo distinto en cada caso — igual pasa con
+// "montoPagadoFn": en financiamiento es el total histórico pagado del
+// expediente (default = Pagos_Recibido, para no romper al que no lo pase),
+// pero en la vista mensual es el pago real (Ingreso x Depósito) de LA CUOTA DE
+// ESE MES puntual, no todo lo que el cliente pagó en su vida.
 const _detFmtMonto = n => Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const _detEsUSD = r => String(r.Tipo_Moneda||'').toUpperCase().includes('DOLAR');
 const _detNum = v => { const n=parseFloat(v); return isNaN(n)?0:n; };
-function _filasDetalleHTML(filas, porPagarFn){
-  const fmtFecha = f=>{ const s=String(f||'').trim(); return (!s||s==='nan'||s==='None') ? '—' : s.slice(0,10); };
+function _filasDetalleHTML(filas, porPagarFn, montoPagadoFn){
+  const _montoPagadoFn = montoPagadoFn || (r=>_detNum(r.Pagos_Recibido));
   return filas.slice()
     .sort((a,b)=>String(a.Titular||'').localeCompare(String(b.Titular||'')))
     .map(r=>{
       const esDolar=_detEsUSD(r);
       const cur=esDolar?'$':'S/';
       const fC=n=>`${cur} ${_detFmtMonto(n)}`;
-      const montoVenta=_detNum(r.TotalVenta), montoPagado=_detNum(r.Pagos_Recibido);
+      const montoVenta=_detNum(r.TotalVenta), montoPagado=_montoPagadoFn(r);
       const porPagar=porPagarFn(r);
       const titular=(typeof _flTitleCase==='function'?_flTitleCase(_flLimpiarNombre(r.Titular||'')):String(r.Titular||''))||'—';
       return `<tr>
         <td style="text-align:left">${titular}</td>
         <td style="text-align:center">${String(r.NroInmueble_1||'—')}</td>
-        <td style="text-align:center">${fmtFecha(r.FechaVenta)}</td>
         <td style="text-align:right">${montoVenta?fC(montoVenta):'—'}</td>
         <td style="text-align:center;font-weight:700;color:${esDolar?'#f59e0b':'var(--brand)'}">${esDolar?'USD':'SOL'}</td>
         <td style="text-align:right">${montoPagado?fC(montoPagado):'—'}</td>
@@ -4349,7 +4364,7 @@ function _filasDetalleHTML(filas, porPagarFn){
       </tr>`;
     }).join('');
 }
-function _abrirModalDetalle(titulo, kpi1, kpi2, filas, porPagarFn){
+function _abrirModalDetalle(titulo, kpi1, kpi2, filas, porPagarFn, montoPagadoFn){
   document.getElementById('cob-mes-titulo-mes').textContent = titulo;
   document.getElementById('cob-mes-kpi-total-lbl').textContent = kpi1.label;
   const k1 = document.getElementById('cob-mes-kpi-total');
@@ -4360,9 +4375,9 @@ function _abrirModalDetalle(titulo, kpi1, kpi2, filas, porPagarFn){
   k2.textContent = kpi2.val;
   k2.style.color = kpi2.color;
 
-  const rows = _filasDetalleHTML(filas, porPagarFn);
+  const rows = _filasDetalleHTML(filas, porPagarFn, montoPagadoFn);
   document.getElementById('cob-mes-tbody').innerHTML = rows ||
-    '<tr><td colspan="7" style="text-align:center;color:var(--ink-4);padding:20px">Sin registros</td></tr>';
+    '<tr><td colspan="6" style="text-align:center;color:var(--ink-4);padding:20px">Sin registros</td></tr>';
 
   document.getElementById('cob-mes-overlay').classList.add('open');
 }
@@ -4376,22 +4391,45 @@ document.addEventListener('keydown', e=>{
 // "Cuotas esperadas del mes" — se abre al clickear una barra del gráfico
 // "Proyección de cobros — por mes". Cada fila de Flujo de Caja es 1 expediente/
 // cliente (no 1 unidad física): filtra a los que tienen algo programado en la
-// columna de ese mes (ej. Enero_2027 > 0). Monto Venta/Pagado son los TOTALES
-// generales de cada expediente, no solo la cuota de ese mes puntual.
-function _abrirModalCuotasMes(fc, mesCol, mesLabel, FX){
+// columna de ese mes (ej. Enero_2027 > 0). Monto Venta es el TOTAL general del
+// expediente (no solo la cuota de ese mes). Monto Pagado sí es específico de
+// ese mes: las columnas por mes de Flujo de Caja son el SALDO PENDIENTE
+// proyectado (su suma da exacto Saldo_Por_Cobrar), no hay pagos históricos ahí,
+// así que el pago real de ese mes se busca en Ingreso x Depósito (Fecha_Pago +
+// Monto_Cuota_Pagado), cruzando por Proyecto+NroInmueble_1 igual que hace
+// renderCobranzaRealChart.
+function _abrirModalCuotasMes(fc, mesCol, mesLabel, FX, ingDep, mesYM){
   const filas = (fc||[]).filter(r=>_detNum(r[mesCol])>0);
   // = exactamente la misma cuenta que la altura de la barra que se clickeó
   // (suma de la columna de ese mes, USD convertido a S/ igual que el gráfico).
   const totalMes = filas.reduce((a,r)=>a+(_detEsUSD(r)?_detNum(r[mesCol])*FX:_detNum(r[mesCol])),0);
+
+  const _keyUnidad = r => String(r.Proyecto||'').trim().toUpperCase()+'|'+String(r.NroInmueble_1||'').trim().toUpperCase();
+  const pagadoPorUnidad = {};
+  (ingDep||[]).forEach(dep=>{
+    const fecha = String(dep.Fecha_Pago||dep.Fecha_Programada||'').trim();
+    if(fecha.slice(0,7) !== mesYM) return;
+    const key = _keyUnidad(dep);
+    const monto = _detNum(dep.Monto_Cuota_Pagado) || _detNum(dep.Monto_Pagado_Real);
+    pagadoPorUnidad[key] = (pagadoPorUnidad[key]||0) + monto;
+  });
+  // Monto Pagado = suma real de Ingreso x Depósito ese mes, sin tope: un cliente
+  // puede pagar más de una cuota atrasada el mismo mes (ej. 2 cuotas de S/500 el
+  // mismo día), y eso debe sumar S/1000 aunque la cuota programada de ese mes en
+  // Flujo de Caja sea menor — no se debe recortar el dato real.
+  const montoPagadoDelMes = r => pagadoPorUnidad[_keyUnidad(r)]||0;
+  // Por Pagar = la columna del mes tal cual la trae Flujo de Caja (ya es el saldo
+  // pendiente, no una cuota bruta) — no se le resta el pago real del mes, porque
+  // no son la misma cosa: sería restar dos veces (ej. Setiembre_2026 ya viene
+  // igual a Saldo_Por_Cobrar cuando es la última cuota pendiente).
+  const porPagarDelMes = r => Math.min(_detNum(r[mesCol]), _detNum(r.Saldo_Por_Cobrar));
   _abrirModalDetalle(
     mesLabel,
     {label:'Deuda Pendiente Mes', val:'S/ '+_detFmtMonto(totalMes), color:'#14AFBE'},
     {label:'Clientes', val:fN(filas.length), color:'#F4A228'},
     filas,
-    // "Por Pagar" de ESE mes: Flujo de Caja no separa cuánto de lo ya pagado
-    // corresponde a este mes vs. a otros, así que no puede deber más de la
-    // cuota programada este mes que lo que en total le queda por pagar.
-    r=>Math.min(_detNum(r[mesCol]), _detNum(r.Saldo_Por_Cobrar))
+    porPagarDelMes,
+    montoPagadoDelMes
   );
 }
 
@@ -5918,7 +5956,6 @@ loadAll();
         <thead style="position:sticky;top:0;background:var(--panel);z-index:2"><tr>
           <th style="text-align:left">Cliente</th>
           <th style="text-align:center">N° Dpto.</th>
-          <th style="text-align:center">Fecha Venta</th>
           <th style="text-align:right">Monto Venta</th>
           <th style="text-align:center">Moneda</th>
           <th style="text-align:right">Monto Pagado</th>
