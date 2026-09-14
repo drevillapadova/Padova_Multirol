@@ -3878,7 +3878,7 @@ function renderProyeccionTabla(fc, ingDep){
     };
   });
   const T = k => filas.reduce((s,f)=>s+f[k],0);
-  const _mono = 'text-align:right;font-family:var(--mono);font-size:12px';
+  const _mono = 'text-align:right';
 
   const rowsHtml = filas.map(f=>{
     const estilo = f.esActual ? 'background:var(--brand-soft);font-weight:600'
@@ -4364,6 +4364,8 @@ function _filasDetalleHTML(filas, porPagarFn, montoPagadoFn){
       </tr>`;
     }).join('');
 }
+let _cobMesState = null; // {filas, porPagarFn, montoPagadoFn} — para poder refiltrar sin reabrir el modal
+let _cobMesSearch = '';
 function _abrirModalDetalle(titulo, kpi1, kpi2, filas, porPagarFn, montoPagadoFn){
   document.getElementById('cob-mes-titulo-mes').textContent = titulo;
   document.getElementById('cob-mes-kpi-total-lbl').textContent = kpi1.label;
@@ -4375,11 +4377,31 @@ function _abrirModalDetalle(titulo, kpi1, kpi2, filas, porPagarFn, montoPagadoFn
   k2.textContent = kpi2.val;
   k2.style.color = kpi2.color;
 
-  const rows = _filasDetalleHTML(filas, porPagarFn, montoPagadoFn);
-  document.getElementById('cob-mes-tbody').innerHTML = rows ||
-    '<tr><td colspan="6" style="text-align:center;color:var(--ink-4);padding:20px">Sin registros</td></tr>';
+  _cobMesState = {filas, porPagarFn, montoPagadoFn};
+  _cobMesSearch = '';
+  const searchInput = document.getElementById('cob-mes-search');
+  if(searchInput) searchInput.value = '';
+  _cobMesRenderTabla();
 
   document.getElementById('cob-mes-overlay').classList.add('open');
+}
+// Buscador por nombre y N° Dpto. en el popup de detalle (Cobranza): filtra sin
+// volver a pedir los datos, sobre las mismas filas que ya trajo el modal.
+function _cobMesBuscar(q){
+  _cobMesSearch = String(q||'').trim().toLowerCase();
+  _cobMesRenderTabla();
+}
+function _cobMesRenderTabla(){
+  if(!_cobMesState) return;
+  const {filas, porPagarFn, montoPagadoFn} = _cobMesState;
+  const filasFiltradas = !_cobMesSearch ? filas : filas.filter(r=>{
+    const nombre = (typeof _flTitleCase==='function'?_flTitleCase(_flLimpiarNombre(r.Titular||'')):String(r.Titular||'')).toLowerCase();
+    const dpto = String(r.NroInmueble_1||'').toLowerCase();
+    return nombre.includes(_cobMesSearch) || dpto.includes(_cobMesSearch);
+  });
+  const rows = _filasDetalleHTML(filasFiltradas, porPagarFn, montoPagadoFn);
+  document.getElementById('cob-mes-tbody').innerHTML = rows ||
+    `<tr><td colspan="6" style="text-align:center;color:var(--ink-4);padding:20px">${_cobMesSearch?'Sin resultados para la búsqueda':'Sin registros'}</td></tr>`;
 }
 function cerrarModalDetalle(){
   document.getElementById('cob-mes-overlay')?.classList.remove('open');
@@ -5950,6 +5972,9 @@ loadAll();
     <div class="cob-mes-kpis">
       <div class="cob-mes-kpi"><div class="k-lbl" id="cob-mes-kpi-total-lbl">Deuda Pendiente Mes</div><div class="k-val" id="cob-mes-kpi-total" style="color:#14AFBE">—</div></div>
       <div class="cob-mes-kpi"><div class="k-lbl" id="cob-mes-kpi-clientes-lbl">Clientes</div><div class="k-val" id="cob-mes-kpi-clientes" style="color:#F4A228">—</div></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+      <input type="text" class="sp-search" id="cob-mes-search" placeholder="Buscar por nombre o N° Dpto..." oninput="_cobMesBuscar(this.value)">
     </div>
     <div class="cob-mes-tablewrap">
       <table class="tbl" style="width:100%">
