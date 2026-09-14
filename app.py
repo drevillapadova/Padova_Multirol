@@ -1088,8 +1088,14 @@ Sé directo y práctico. Máximo 150 palabras."""
             # El panel funnel maneja JSON denso (varios campos numéricos por fila,
             # ej. leads/visitas/separaciones/ventas) donde Haiku puede confundir
             # columnas adyacentes; Sonnet es más confiable citando el campo correcto.
-            model="claude-sonnet-5" if panel == "funnel" else "claude-haiku-4-5-20251001",
-            max_tokens=1600 if panel == "funnel" else 500,
+            model="claude-sonnet-5" if panel == "funnel" else "claude-haiku-4-5",
+            # Sonnet 5 corre "adaptive thinking" prendido por defecto si no se manda
+            # thinking (a diferencia de generaciones previas) y esos tokens de
+            # pensamiento salen del mismo max_tokens — con 1600 el análisis se
+            # cortaba a mitad de camino porque el thinking se comía casi todo el
+            # presupuesto. Se sube a 4000 para dejarle espacio real a la respuesta
+            # visible (pedimos máx. 350 palabras en el prompt, ~500-600 tokens).
+            max_tokens=4000 if panel == "funnel" else 1000,
             messages=[{"role":"user","content":prompt}]
         )
         if panel == "funnel":
