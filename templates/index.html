@@ -2697,7 +2697,7 @@ function renderFunnelMkt(){
 
   const A = _flCalcPeriodo(proj, _flDateFrom, _flDateTo);
   const B = _flComp ? _flCalcPeriodo(proj, _flDateFrom2, _flDateTo2) : null;
-  const {lb:leadBase, pr:prospBase, visF, sp:sepBase, ve:ventaBase, leadsTotal, leadsDNI, leadsDigital, prospectos, citasN, visitasN, separacionesN, ventasN, medTR} = A;
+  const {lb:leadBase, visF, sp:sepBase, ve:ventaBase, leadsTotal, leadsDNI, leadsDigital, prospectos, citasN, visitasN, separacionesN, ventasN, medTR} = A;
   const trFmt = v => v!=null?(v<60?Math.round(v)+'min':Math.round(v/60)+'h '+Math.round(v%60)+'min'):'—';
   const COLORS=['#60a5fa','#34d399','#a78bfa','#fbbf24','#fb923c','#f472b6','#f87171'];
   const CC=['#60a5fa','#a78bfa','#34d399','#fbbf24','#f472b6','#fb923c','#38bdf8','#94a3b8'];
@@ -2784,22 +2784,25 @@ function renderFunnelMkt(){
   if(_flTab==='calidad'){
     const NIVEL_ORDER=['INMEDIATO','ALTO','MEDIO','BAJO','NULO'];
     const NIVEL_COL={'INMEDIATO':'oklch(0.50 0.20 25)','ALTO':'oklch(0.60 0.18 45)','MEDIO':'oklch(0.65 0.15 65)','BAJO':'oklch(0.70 0.10 230)','NULO':'oklch(0.75 0.05 250)'};
+    // OJO: se agrupa sobre leadBase (leads únicos por mes, LeadUnicoxMesProyecto='SI'),
+    // NO sobre prospBase (todas las filas crudas, con duplicados) — tiene que dar
+    // exactamente los mismos totales que "Todos los leads" en la Tabla Cruce.
     const nivelMap={};
-    prospBase.forEach(r=>{const nv=String(r.NivelInteres||'Sin clasificar').toUpperCase().trim();nivelMap[nv]=(nivelMap[nv]||0)+1;});
+    leadBase.forEach(r=>{const nv=String(r.NivelInteres||'Sin clasificar').toUpperCase().trim();nivelMap[nv]=(nivelMap[nv]||0)+1;});
     const nivelEntries=[...NIVEL_ORDER.filter(k=>nivelMap[k]),...Object.keys(nivelMap).filter(k=>!NIVEL_ORDER.includes(k)&&nivelMap[k])].map(k=>({n:k,count:nivelMap[k]||0,color:NIVEL_COL[k]||'oklch(0.75 0.05 250)'})).sort((a,b)=>b.count-a.count);
     const totNivel=nivelEntries.reduce((a,c)=>a+c.count,0)||1;
     const califRows=nivelEntries.map(c=>`<div class="list-row"><span class="sw" style="background:${c.color}"></span><span class="name">${c.n}</span><span class="n">${c.count}</span><span class="pct-c">${pct(c.count,totNivel)}</span></div>`).join('')||'<div style="padding:16px 18px;color:var(--ink-4);font-size:12px">Sin datos</div>';
     const cerradosMap={};
-    prospBase.filter(r=>String(r.Motivo_Cerrado_Actual||'').trim()).forEach(r=>{const m=String(r.Motivo_Cerrado_Actual||'').trim();cerradosMap[m]=(cerradosMap[m]||0)+1;});
+    leadBase.filter(r=>String(r.Motivo_Cerrado_Actual||'').trim()).forEach(r=>{const m=String(r.Motivo_Cerrado_Actual||'').trim();cerradosMap[m]=(cerradosMap[m]||0)+1;});
     const desistTotal=Object.values(cerradosMap).reduce((a,b)=>a+b,0);
     const cerradosRows=Object.entries(cerradosMap).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([m,n],i)=>`<div class="list-row"><span class="sw" style="background:${DC[i%DC.length]}"></span><span class="name">${m}</span><span class="n">${n}</span><span class="pct-c">${pct(n,desistTotal||1)}</span></div>`).join('')||'<div style="padding:16px 18px;color:var(--ink-4);font-size:12px">Sin datos de cierres</div>';
     const subMap={};
-    prospBase.forEach(r=>{const s=String(r.SubEstado||'').trim();if(s&&s!=='nan'&&s!=='None')subMap[s]=(subMap[s]||0)+1;});
+    leadBase.forEach(r=>{const s=String(r.SubEstado||'').trim();if(s&&s!=='nan'&&s!=='None')subMap[s]=(subMap[s]||0)+1;});
     const totSub=Object.values(subMap).reduce((a,b)=>a+b,0)||1;
     const maxSub=Math.max(...Object.values(subMap),1);
     const subRows=Object.entries(subMap).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([s,n],i)=>`<div class="chan-row"><div class="nm"><span class="sw" style="background:${CC[i%CC.length]}"></span>${s}</div><div class="chan-tr"><i style="width:${Math.round(n/maxSub*100)}%;background:${CC[i%CC.length]}"></i></div><div class="v">${fN(n)}</div><div class="p">${pct(n,totSub)}</div></div>`).join('')||'<div style="padding:16px 18px;color:var(--ink-4);font-size:12px">Sin datos</div>';
     const canalMap={};
-    prospBase.forEach(r=>{const c=String(r.ComoSeEntero||'Sin especificar').trim()||'Sin especificar';canalMap[c]=(canalMap[c]||0)+1;});
+    leadBase.forEach(r=>{const c=String(r.ComoSeEntero||'Sin especificar').trim()||'Sin especificar';canalMap[c]=(canalMap[c]||0)+1;});
     const totCanal=Object.values(canalMap).reduce((a,b)=>a+b,0)||1;
     const maxCanal=Math.max(...Object.values(canalMap),1);
     const chanRows=Object.entries(canalMap).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([c,n],i)=>`<div class="chan-row"><div class="nm"><span class="sw" style="background:${CC[i%CC.length]}"></span>${c}</div><div class="chan-tr"><i style="width:${Math.round(n/maxCanal*100)}%;background:${CC[i%CC.length]}"></i></div><div class="v">${fN(n)}</div><div class="p">${pct(n,totCanal)}</div></div>`).join('')||'<div style="padding:16px 18px;color:var(--ink-4);font-size:12px">Sin datos</div>';
@@ -4418,7 +4421,16 @@ function _abrirModalFinanciamiento(fc, tipo, estado, FX){
 // Ventas) con nombres de columna propios (Nombres vs NombresTitular, etc.), así
 // que los helpers de abajo normalizan esos alias en vez de asumir un único set
 // de campos como sí puede hacerlo Cobranza (que siempre lee Flujo de Caja).
-const _flFmtFecha = f=>{ const s=String(f||'').trim(); return (!s||s==='nan'||s==='None'||s==='NaT') ? '—' : s.slice(0,10); };
+// _flIsoFecha da el valor ordenable (AAAA-MM-DD, comparación de texto = orden
+// cronológico) para usar como sortVal; _flFmtFecha es solo para mostrar en
+// pantalla en formato DD-MM-AAAA — nunca ordenar por el texto de _flFmtFecha.
+const _flIsoFecha = f=>{ const s=String(f||'').trim(); return (!s||s==='nan'||s==='None'||s==='NaT') ? '' : s.slice(0,10); };
+const _flFmtFecha = f=>{
+  const iso=_flIsoFecha(f);
+  if(!iso) return '—';
+  const m=iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : iso;
+};
 // Los nombres llegan de las hojas en formatos inconsistentes (MAYÚSCULAS, minúsculas,
 // mixto) — se normalizan a Formato Título (cada palabra con su primera letra en mayúscula).
 const _flTitleCase = s=>String(s||'').trim().toLowerCase().replace(/(^|[\s\-])\p{L}/gu, m=>m.toUpperCase());
@@ -4450,15 +4462,6 @@ const _flCanal = r=>String(r.ComoSeEntero||'').trim()||'—';
 const _flAsesor = r=>String(r.Responsable||r.Vendedor||r.Asesor||'').trim()||'—';
 const _flDistritoCli = r=>String(r.Distrito_Procedencia||r.Distrito||'').trim()||'—';
 const _flProyectoCli = r=>String(r.Proyecto||'').trim()||'—';
-const _flPrecioVentaNum = r=>{
-  const esDolar=String(r.Moneda||r.TipoMoneda||'').toUpperCase().includes('DOLAR');
-  return _detNum(esDolar ? (r.PrecioVenta||r.PrecioVentaSoles) : (r.PrecioVentaSoles||r.PrecioVenta));
-};
-const _flPrecioVenta = r=>{
-  const esDolar=String(r.Moneda||r.TipoMoneda||'').toUpperCase().includes('DOLAR');
-  const n=_flPrecioVentaNum(r);
-  return n ? (esDolar?'$':'S/')+' '+n.toLocaleString('en-US',{maximumFractionDigits:0}) : '—';
-};
 // Cruce Prospectos <-> Visitas por DNI (o por nombre si no hay DNI) + Proyecto,
 // para saber si una cita realmente se concretó en visita — Visitas no trae de
 // vuelta el link al prospecto, así que hay que buscarlo por estos campos.
@@ -4477,14 +4480,32 @@ const _flFechaVisitaPara = r=>{
   return candidatas[candidatas.length-1].FechaVisita;
 };
 
+// Separaciones (Stock) y Ventas no traen la fecha de registro original del lead
+// (esa vive en Prospectos) — mismo cruce por DNI/nombre+Proyecto que _flFechaVisitaPara,
+// pero acá se toma la MÁS ANTIGUA (el primer registro), no la más reciente.
+const _flFechaRegistroPara = r=>{
+  const doc = String(r.NroDocumento||r.NroDocumentoTitular||'').trim();
+  const tieneDoc = doc && doc!=='nan' && doc!=='None' && doc!=='0';
+  const proy = String(r.Proyecto||'').trim();
+  const nombreNorm = normStr(((r.Nombres||r.NombresTitular||'')+' '+(r.ApellidoPaterno||'')).trim());
+  const candidatas = (D.prospectos||[]).filter(p=>{
+    if(proy && String(p.Proyecto||'').trim()!==proy) return false;
+    if(tieneDoc) return String(p.NroDocumento||'').trim()===doc;
+    return nombreNorm && normStr(p.Nombres||'')===nombreNorm;
+  });
+  if(!candidatas.length) return null;
+  candidatas.sort((a,b)=>String(a.FechaRegistro||'').localeCompare(String(b.FechaRegistro||'')));
+  return candidatas[0].FechaRegistro;
+};
+
 const FL_LEAD_COLS=[
   {label:'Nombre',        get:_flNombreCompleto},
   {label:'DNI',           get:_flDNI, align:'center'},
   {label:'Proyecto',      get:_flProyectoCli},
   {label:'Canal',         get:_flCanal},
   {label:'Asesor',        get:_flAsesor},
-  {label:'F. Registro',   get:r=>_flFmtFecha(r.FechaRegistro), align:'center'},
-  {label:'F. Cita',       get:r=>_flFmtFecha(r.FechaCitado), align:'center'},
+  {label:'F. Registro',   get:r=>_flFmtFecha(r.FechaRegistro), align:'center', sortVal:r=>_flIsoFecha(r.FechaRegistro)},
+  {label:'F. Cita',       get:r=>_flFmtFecha(r.FechaCitado), align:'center', sortVal:r=>_flIsoFecha(r.FechaCitado)},
   {label:'Sub-Estado',    get:r=>String(r.SubEstado||'').trim()||'—'},
   {label:'Nivel Interés', get:r=>String(r.NivelInteres||'').trim()||'—', align:'center'},
 ];
@@ -4495,7 +4516,7 @@ const FL_LEAD_COLS=[
 const FL_CITAS_COLS=(()=>{
   const cols=[...FL_LEAD_COLS];
   const idx=cols.findIndex(c=>c.label==='F. Cita');
-  cols.splice(idx+1, 0, {label:'F. Visita', get:r=>_flFmtFecha(_flFechaVisitaPara(r)), align:'center'});
+  cols.splice(idx+1, 0, {label:'F. Visita', get:r=>_flFmtFecha(_flFechaVisitaPara(r)), align:'center', sortVal:r=>_flIsoFecha(_flFechaVisitaPara(r))});
   cols.push({label:'Responsable Anterior', get:r=>String(r.Responsable_Anterior||'').trim()||'—'});
   return cols;
 })();
@@ -4506,8 +4527,8 @@ const FL_VISITA_COLS=[
   {label:'Canal',     get:_flCanal},
   {label:'Vendedor',  get:_flAsesor},
   {label:'Distrito',  get:_flDistritoCli},
-  {label:'F. Cita',   get:r=>_flFmtFecha(r.Fecha_CitaProspecto), align:'center'},
-  {label:'F. Visita', get:r=>_flFmtFecha(r.FechaVisita), align:'center'},
+  {label:'F. Cita',   get:r=>_flFmtFecha(r.Fecha_CitaProspecto), align:'center', sortVal:r=>_flIsoFecha(r.Fecha_CitaProspecto)},
+  {label:'F. Visita', get:r=>_flFmtFecha(r.FechaVisita), align:'center', sortVal:r=>_flIsoFecha(r.FechaVisita)},
 ];
 const FL_SEP_COLS=[
   {label:'Nombre',         get:_flNombreCompleto},
@@ -4516,9 +4537,9 @@ const FL_SEP_COLS=[
   {label:'Canal',          get:_flCanal},
   {label:'Vendedor',       get:_flAsesor},
   {label:'Distrito',       get:_flDistritoCli},
-  {label:'F. Separación',  get:r=>_flFmtFecha(r.FechaSepDefinitiva), align:'center'},
+  {label:'F. Registro',    get:r=>_flFmtFecha(_flFechaRegistroPara(r)), align:'center', sortVal:r=>_flIsoFecha(_flFechaRegistroPara(r))},
+  {label:'F. Separación',  get:r=>_flFmtFecha(r.FechaSepDefinitiva), align:'center', sortVal:r=>_flIsoFecha(r.FechaSepDefinitiva)},
   {label:'Estado',         get:r=>String(r.Estado||'').trim()||'—', align:'center'},
-  {label:'Precio Venta',   get:_flPrecioVenta, align:'right', sortVal:_flPrecioVentaNum, numeric:true},
 ];
 const FL_VENTA_COLS=[
   {label:'Nombre',          get:_flNombreCompleto},
@@ -4527,9 +4548,9 @@ const FL_VENTA_COLS=[
   {label:'Canal',           get:_flCanal},
   {label:'Vendedor',        get:_flAsesor},
   {label:'Distrito',        get:_flDistritoCli},
-  {label:'F. Venta',        get:r=>_flFmtFecha(r.FechaVenta||r.FechaEntrega_Minuta), align:'center'},
+  {label:'F. Registro',     get:r=>_flFmtFecha(_flFechaRegistroPara(r)), align:'center', sortVal:r=>_flIsoFecha(_flFechaRegistroPara(r))},
+  {label:'F. Venta',        get:r=>_flFmtFecha(r.FechaVenta||r.FechaEntrega_Minuta), align:'center', sortVal:r=>_flIsoFecha(r.FechaVenta||r.FechaEntrega_Minuta)},
   {label:'Financiamiento',  get:r=>String(r.TipoFinanciamiento||'').trim()||'—'},
-  {label:'Precio Venta',    get:_flPrecioVenta, align:'right', sortVal:_flPrecioVentaNum, numeric:true},
 ];
 
 // Estado del popup para poder re-ordenar sin recalcular las filas desde _flDatasets.
