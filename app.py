@@ -25,6 +25,15 @@ META_ADS_PROJECTS = [
 ]
 _meta_ads_cache = {}
 META_ADS_CACHE_TTL = 300  # 5 min
+
+# Hoja de Meta de Cobranza (Proyecto/Mes/Unidades/Monto Soles/Monto Dólares) —
+# la mantiene el usuario a mano, no pasa por el ETL. Se lee en vivo (export CSV
+# público de Google Sheets) con un cache corto, para reflejar sus ediciones sin
+# esperar al próximo corte del ETL.
+META_COBRANZA_SHEET_ID = "1JIEEGPxJvCHvmGvVE6Zp9wBPUVXEF-iXy8FNaWr1PPI"
+META_COBRANZA_GID = "620141088"
+_meta_cobranza_cache = {"data": [], "ts": 0}
+META_COBRANZA_CACHE_TTL = 300  # 5 min
 META_LEAD_ACTION_TYPES = ["onsite_conversion.lead_grouped", "lead"]
 META_WHATSAPP_ACTION_TYPES = ["onsite_conversion.messaging_conversation_started_7d"]
 
@@ -972,6 +981,34 @@ def api_meta_ads():
     payload = {"desde": desde, "hasta": hasta, "data": result}
     _meta_ads_cache[cache_key] = {"data": payload, "ts": time.time()}
     return jsonify(payload)
+
+
+@app.route("/api/meta_cobranza")
+def api_meta_cobranza():
+    import csv
+    try:
+        if (time.time() - _meta_cobranza_cache["ts"]) >= META_COBRANZA_CACHE_TTL:
+            url = (
+                f"https://docs.google.com/spreadsheets/d/{META_COBRANZA_SHEET_ID}"
+                f"/export?format=csv&gid={META_COBRANZA_GID}"
+            )
+            resp = requests.get(url, timeout=15)
+            resp.raise_for_status()
+            reader = csv.DictReader(resp.content.decode("utf-8-sig").splitlines())
+            filas = list(reader)
+            # El export de Sheets pone comas de miles en montos grandes (ej.
+            # "3,695,738.93"), lo que rompe un parseFloat directo en el frontend.
+            for f in filas:
+                for col in ("UNIDADES", "MONTO SOLES", "MONTO DOLARES"):
+                    if col in f and f[col]:
+                        f[col] = f[col].replace(",", "")
+            _meta_cobranza_cache["data"] = filas
+            _meta_cobranza_cache["ts"] = time.time()
+        return jsonify({"data": _meta_cobranza_cache["data"]})
+    except Exception as e:
+        # Si Google Sheets falla, se sigue sirviendo el último dato bueno en cache
+        # en vez de romper la pestaña de Cobranza.
+        return jsonify({"data": _meta_cobranza_cache["data"], "error": str(e)})
 
 
 @app.route("/api/refresh", methods=["POST"])

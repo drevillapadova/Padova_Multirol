@@ -129,6 +129,12 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 .pill.rev{background:var(--warn-soft);color:var(--warn)}
 .pill.off{background:#f1f5f9;color:var(--ink-3)}
 
+/* ── Cobrado real vs. Meta: fila de cumplimiento por mes (debajo del chart) ── */
+.adm-cumplim-row{display:flex;gap:22px;justify-content:center;flex-wrap:wrap;padding:12px 16px 4px;border-top:1px dashed var(--line-2)}
+.adm-cumplim-item{display:flex;flex-direction:column;align-items:center;gap:6px}
+.adm-cumplim-item .mes{font-size:10px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em}
+.adm-cumplim-item .pill{font-size:13px;padding:4px 14px}
+
 /* ── BAR ROWS ── */
 .bar-list{padding:8px 0}
 .bar-row{display:grid;grid-template-columns:130px 1fr 70px 50px;gap:10px;align-items:center;padding:7px 18px}
@@ -877,6 +883,10 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
     </div>
     <button onclick="document.getElementById('adm-date-desde').value='';document.getElementById('adm-date-hasta').value='';renderAdmVentas()" title="Limpiar fechas" style="background:transparent;border:none;color:var(--ink-4);font-size:14px;cursor:pointer;padding:0 4px;line-height:1">✕</button>
   </div>
+  <div class="tab-bar" id="adm-tab-bar">
+    <button class="tab-btn active" onclick="setAdmTab('proyeccion',this)">Proyección</button>
+    <button class="tab-btn" onclick="setAdmTab('detalle',this)">Detalle</button>
+  </div>
   <div id="adm-content"><div class="loading">Cargando...</div></div>
 </div>
 
@@ -1190,7 +1200,7 @@ Chart.defaults.plugins.legend.labels.boxWidth = 10;
 Chart.defaults.plugins.legend.labels.padding = 14;
 
 const API = '';
-let D = {funnel:{}, ventas:[], stock:[], campanas:{}, desist:[], prospectos:[], visitas:[], inversion:[], ingresoDeposito:[], flujoCaja:[], mercado:[], mercadoVentas:[], updatedAt:'—'};
+let D = {funnel:{}, ventas:[], stock:[], campanas:{}, desist:[], prospectos:[], visitas:[], inversion:[], ingresoDeposito:[], flujoCaja:[], mercado:[], mercadoVentas:[], metaCobranza:[], updatedAt:'—'};
 let _jmktMetrica = 'leads';
 
 const MES_ES = {'01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Setiembre','10':'Octubre','11':'Noviembre','12':'Diciembre'};
@@ -1495,6 +1505,7 @@ async function loadAll(forzarRefresh){
     fetch(API+'/api/stock').then(r=>r.json()).then(s=>{D.stock=s.data||[];renderAll();}).catch(()=>renderAll());
     fetch(API+'/api/mercado').then(r=>r.json()).then(m=>{D.mercado=m.data||[];if(typeof renderMercadoMapa!=='undefined')renderMercadoMapa();if(typeof renderMercadoPrecios!=='undefined')renderMercadoPrecios();if(typeof renderMercadoTipologia!=='undefined')renderMercadoTipologia();}).catch(()=>{});
     fetch(API+'/api/mercado_ventas').then(r=>r.json()).then(m=>{D.mercadoVentas=m.data||[];if(typeof renderMercadoVentas!=='undefined')renderMercadoVentas();if(typeof renderMercadoPrecios!=='undefined')renderMercadoPrecios();if(typeof renderMercadoTipologia!=='undefined')renderMercadoTipologia();}).catch(()=>{});
+    fetch(API+'/api/meta_cobranza').then(r=>r.json()).then(m=>{D.metaCobranza=m.data||[];if(typeof renderAdmVentas!=='undefined')renderAdmVentas();}).catch(()=>{});
     _schedNextRefresh();
   }catch(e){
     console.error(e);
@@ -3688,6 +3699,13 @@ async function enviarChatFunnel(preset){
 // ══════════════════════════════════════════════════════════════════════════
 
 let _admDatesInitDone = false;
+let _admTab = 'proyeccion';
+function setAdmTab(tab, el){
+  _admTab = tab;
+  document.querySelectorAll('#adm-tab-bar .tab-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderAdmVentas();
+}
 function renderAdmVentas(){
   // Por defecto (solo la 1ra vez) el filtro "Desde" arranca en el día 1 del mes
   // actual en vez de vacío, igual que en Marketing → Funnel.
@@ -3735,6 +3753,13 @@ function renderAdmVentas(){
   // Un expediente sin FechaVenta (solo separado, aún no vendido) no cuenta en
   // ninguna cifra de cobranza/proyección: no es una venta confirmada todavía.
   fc = fc.filter(r=>{ const s=String(r.FechaVenta||'').trim(); return s && s!=='nan' && s!=='None'; });
+
+  if(_admTab === 'detalle'){
+    document.getElementById('adm-kpis').innerHTML = '';
+    renderAdmDetalle(fc, ingDep);
+    return;
+  }
+
   const _esUSD_fc = r => String(r.Tipo_Moneda||'').toUpperCase().includes('DOLAR');
   const _n_fc = v => { const n=parseFloat(v); return isNaN(n)?0:n; };
   const fUsd_fc = n => '$ '+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -3855,7 +3880,7 @@ function renderAdmVentas(){
       </tr></tfoot>
     </table>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:26px">
+  <div style="margin-bottom:26px">
     <div class="card">
       <div class="card-hd">
         <div><h3>Proyección de cobros — por mes</h3><p>Suma mensual de Flujo de Caja · USD a S/ referencial ×${FX_FC}</p></div>
@@ -3863,9 +3888,18 @@ function renderAdmVentas(){
       </div>
       <div style="height:260px;padding:8px 16px 16px"><canvas id="adm-fc-chart-mes"></canvas></div>
     </div>
+  </div>
+  <div class="section-title"><h2>Cobrado real vs. Meta de Cobranza</h2><div class="hint">Solo meses con meta cargada · total, o individual si filtras por proyecto · % debajo = Real/Meta</div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:26px">
     <div class="card">
-      <div class="card-hd"><div><h3>Proyección mensual — por proyecto</h3><p>Mismo periodo, apilado por proyecto</p></div></div>
-      <div style="height:260px;padding:8px 16px 16px"><canvas id="adm-fc-chart-proy"></canvas></div>
+      <div class="card-hd"><div><h3>Soles (S/)</h3><p>Cobrado real vs. Meta</p></div></div>
+      <div style="height:260px;padding:8px 16px 0"><canvas id="adm-fc-chart-meta-soles"></canvas></div>
+      <div class="adm-cumplim-row" id="adm-fc-cumplim-soles"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div><h3>Dólares ($)</h3><p>Cobrado real vs. Meta</p></div></div>
+      <div style="height:260px;padding:8px 16px 0"><canvas id="adm-fc-chart-meta-dolares"></canvas></div>
+      <div class="adm-cumplim-row" id="adm-fc-cumplim-dolares"></div>
     </div>
   </div>
   <div class="card" id="adm-fc-tabla-card" style="margin-bottom:26px;display:none">
@@ -3904,6 +3938,152 @@ function _mesesFlujoCaja(){
     });
   });
   return out;
+}
+
+// ── PESTAÑA "DETALLE" (Cobranza): buscador de cliente → pagos hechos y por
+// haber. Cruza Flujo de Caja (el expediente: venta/saldo/tipo financiamiento)
+// con Ingreso x Depósito (el libro de pagos reales, con fecha) por unidad
+// (Proyecto+NroInmueble_1, mismo cruce que ya usa renderCobranzaRealChart).
+let _admDetalleSearch = '';
+let _admDetalleSel = null;
+let _admDetalleFC = [];     // cache de la última renderAdmDetalle, para refiltrar en cada tecla sin re-render completo (perdería el foco del input)
+let _admDetalleIngDep = [];
+const _admKeyUnidad = r => String(r.Proyecto||'').trim().toUpperCase()+'|'+String(r.NroInmueble_1||'').trim().toUpperCase();
+
+function renderAdmDetalle(fc, ingDep){
+  _admDetalleFC = fc;
+  _admDetalleIngDep = ingDep;
+  const wrap = document.getElementById('adm-content');
+  if(!wrap) return;
+
+  // Si cambió el filtro de proyecto/tipo y el cliente seleccionado ya no
+  // está en el set filtrado, se limpia (evita mostrar una ficha "fantasma").
+  if(_admDetalleSel && !fc.includes(_admDetalleSel)) _admDetalleSel = null;
+
+  wrap.innerHTML = `
+  <div class="section-title"><h2>Detalle por cliente</h2><div class="hint">Busca por nombre, DNI o N° de departamento</div></div>
+  <div class="card" style="margin-bottom:16px">
+    <div style="padding:14px 18px">
+      <input type="text" class="sp-search" id="adm-detalle-search" style="width:100%;max-width:480px" placeholder="Buscar por nombre, DNI o N° Dpto..." value="${_escapeHtml(_admDetalleSearch)}" oninput="_admBuscarCliente(this.value)">
+    </div>
+    <div id="adm-detalle-resultados"></div>
+  </div>
+  <div id="adm-detalle-ficha"></div>`;
+
+  _renderAdmDetalleResultados();
+  _renderAdmDetalleFicha();
+}
+
+// Solo repinta la lista de resultados (no el input) para no perder el foco/
+// cursor mientras el usuario escribe.
+function _renderAdmDetalleResultados(){
+  const cont = document.getElementById('adm-detalle-resultados');
+  if(!cont) return;
+  const q = _admDetalleSearch.trim().toLowerCase();
+  const matches = q ? _admDetalleFC.filter(r=>{
+    const nombre = String(r.Titular||'').toLowerCase();
+    const dni = String(r.NroDocumentoTitular||'').toLowerCase();
+    const dpto = String(r.NroInmueble_1||'').toLowerCase();
+    return nombre.includes(q) || dni.includes(q) || dpto.includes(q);
+  }).slice(0,20) : [];
+
+  cont.innerHTML = matches.map(r=>{
+    const nombre=(typeof _flTitleCase==='function'?_flTitleCase(_flLimpiarNombre(r.Titular||'')):String(r.Titular||''))||'—';
+    const key=_admKeyUnidad(r);
+    const activo=_admDetalleSel && _admKeyUnidad(_admDetalleSel)===key;
+    return `<div onclick='_admSeleccionarCliente(${JSON.stringify(key)})' style="padding:10px 18px;border-top:1px solid var(--line-2);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;${activo?'background:var(--brand-soft)':''}">
+      <span style="font-weight:600;font-size:13px;color:var(--ink)">${nombre}</span>
+      <span style="font-size:11.5px;color:var(--ink-3);white-space:nowrap">DNI ${String(r.NroDocumentoTitular||'—')} · Dpto ${String(r.NroInmueble_1||'—')} · ${String(r.Proyecto||'—')}</span>
+    </div>`;
+  }).join('') || (q ? `<div style="padding:14px 18px;color:var(--ink-4);font-size:13px">Sin resultados para "${_escapeHtml(_admDetalleSearch)}"</div>` : '');
+}
+
+function _admBuscarCliente(v){
+  _admDetalleSearch = v;
+  _renderAdmDetalleResultados();
+}
+function _admSeleccionarCliente(key){
+  const todos = D.flujoCaja||[];
+  _admDetalleSel = todos.find(r=>_admKeyUnidad(r)===key) || null;
+  _renderAdmDetalleResultados();
+  _renderAdmDetalleFicha();
+}
+
+function _renderAdmDetalleFicha(){
+  const el = document.getElementById('adm-detalle-ficha');
+  if(!el) return;
+  const ingDep = _admDetalleIngDep;
+  const r = _admDetalleSel;
+  if(!r){
+    el.innerHTML = '<div class="card" style="padding:36px 20px;text-align:center;color:var(--ink-4);font-size:13px">Busca y selecciona un cliente para ver su detalle de pagos.</div>';
+    return;
+  }
+  const esUSD = String(r.Tipo_Moneda||'').toUpperCase().includes('DOLAR');
+  const cur = esUSD?'$':'S/';
+  const fC = n => `${cur} ${Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+  const nombre=(typeof _flTitleCase==='function'?_flTitleCase(_flLimpiarNombre(r.Titular||'')):String(r.Titular||''))||'—';
+  const key=_admKeyUnidad(r);
+
+  const pagos=(ingDep||[]).filter(dep=>_admKeyUnidad(dep)===key)
+    .slice().sort((a,b)=>String(a.Fecha_Pago||a.Fecha_Programada||'').localeCompare(String(b.Fecha_Pago||b.Fecha_Programada||'')));
+  const _montoPago = p => parseFloat(p.Monto_Cuota_Pagado)||parseFloat(p.Monto_Pagado_Real)||0;
+  const totalPagado = pagos.reduce((a,p)=>a+_montoPago(p),0);
+
+  const pagosRows = pagos.length ? pagos.map(p=>`<tr>
+      <td style="text-align:center">${String(p.Fecha_Pago||p.Fecha_Programada||'—').slice(0,10)}</td>
+      <td style="text-align:center">${String(p.Nro_Cuota||'—')}</td>
+      <td style="text-align:left">${String(p.Tipo_Cuota||'—')}</td>
+      <td style="text-align:right">${fC(_montoPago(p))}</td>
+      <td style="text-align:left">${String(p.Medio_Pago||'—')}</td>
+      <td style="text-align:left">${String(p.Entidad_Financiera||p.Entidad_Financiera_SF||'—')}</td>
+    </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--ink-4);padding:18px">Sin pagos registrados en Ingreso x Depósito</td></tr>';
+
+  // "Por haber": todo el calendario 2025–2027 de Flujo de Caja para este
+  // expediente, no solo el rango del filtro de fecha de arriba (a diferencia
+  // de _mesesFlujoCaja) — acá se quiere ver TODO lo pendiente del cliente.
+  const pendientes=[];
+  ['2025','2026','2027'].forEach(y=>{
+    _FC_MESES_TXT.forEach((m,i)=>{
+      const val=parseFloat(r[m+'_'+y])||0;
+      if(val>0) pendientes.push({label:_FC_MM_CORTO[i]+' '+y, val});
+    });
+  });
+  const pendientesRows = pendientes.length ? pendientes.map(m=>`<tr><td style="text-align:left">${m.label}</td><td style="text-align:right">${fC(m.val)}</td></tr>`).join('')
+    : '<tr><td colspan="2" style="text-align:center;color:var(--ink-4);padding:18px">Sin cuotas pendientes programadas</td></tr>';
+
+  el.innerHTML = `
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hd"><div><h3>${nombre}</h3><p>DNI ${String(r.NroDocumentoTitular||'—')} · ${String(r.Proyecto||'—')} · Dpto ${String(r.NroInmueble_1||'—')} · ${String(r.TipoFinanciamiento||'Sin dato')} · ${esUSD?'USD':'SOL'}</p></div></div>
+    <div class="kpi-row kpi-4" style="padding:14px 18px">
+      ${kpi('Monto Venta', fC(r.TotalVenta), 'Precio total del expediente')}
+      ${kpi('Total Pagado', fC(r.Pagos_Recibido), 'Histórico, Flujo de Caja')}
+      ${kpi('Saldo Por Cobrar', fC(r.Saldo_Por_Cobrar), 'Pendiente actual')}
+      ${kpi('Pagos Registrados', fN(pagos.length), 'En Ingreso x Depósito · total '+fC(totalPagado))}
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:16px">
+    <div class="card">
+      <div class="card-hd"><div><h3>Pagos realizados</h3><p>Ingreso x Depósito · ${fN(pagos.length)} registros</p></div></div>
+      <table class="tbl" style="width:100%">
+        <thead><tr>
+          <th style="text-align:center">Fecha</th>
+          <th style="text-align:center">N° Cuota</th>
+          <th style="text-align:left">Tipo Cuota</th>
+          <th style="text-align:right">Monto Pagado</th>
+          <th style="text-align:left">Medio de Pago</th>
+          <th style="text-align:left">Entidad</th>
+        </tr></thead>
+        <tbody>${pagosRows}</tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div><h3>Por haber (pendiente)</h3><p>Saldo proyectado por mes · Flujo de Caja</p></div></div>
+      <table class="tbl" style="width:100%">
+        <thead><tr><th style="text-align:left">Mes</th><th style="text-align:right">Monto</th></tr></thead>
+        <tbody>${pendientesRows}</tbody>
+      </table>
+    </div>
+  </div>`;
 }
 
 // La tabla de detalle arranca oculta y se muestra/oculta al hacer clic en el
@@ -4064,28 +4244,151 @@ function renderFlujoCajaCharts(fc, FX, ingDep){
     });
   }
 
-  if(window._admFcChartProy) window._admFcChartProy.destroy();
-  const ctxProy = document.getElementById('adm-fc-chart-proy');
-  if(ctxProy){
-    const proyectos = [...new Set(fc.map(r=>String(r.Proyecto||'').trim()).filter(Boolean))];
-    const PALETTE = ['#60a5fa','#a78bfa','#34d399','#fbbf24','#f472b6','#fb923c','#f87171'];
-    const porProyecto = {};
-    proyectos.forEach(p => { porProyecto[p] = fc.filter(r=>String(r.Proyecto||'').trim()===p); });
-    const datasets = proyectos.map((p,i)=>({
-      label: p,
-      data: MESES_FC.map(col => porProyecto[p].reduce((s,r)=>s+_convMes(r,col),0)),
-      backgroundColor: PALETTE[i%PALETTE.length],
-      borderRadius: 2, borderSkipped:false
-    }));
-    window._admFcChartProy = new Chart(ctxProy, {
+  _renderAdmMetaCharts(fc, ingDep);
+}
+
+// Formato compacto para las etiquetas encima de las barras (ej. "620K", "1.2M").
+function _fCompact(n){
+  n = Number(n)||0;
+  const abs = Math.abs(n);
+  if(abs>=1e6) return (Math.round(n/1e5)/10)+'M';
+  if(abs>=1e3) return (Math.round(n/100)/10)+'K';
+  return String(Math.round(n));
+}
+
+// Plugin de Chart.js: dibuja un pill de % (Real/Meta) debajo de cada mes, con
+// color según el cumplimiento — no existe forma nativa de anclar una etiqueta
+// "debajo del eje X" con datalabels, así que se dibuja a mano en afterDraw.
+// Necesita layout.padding.bottom en el chart para no cortarse.
+// Fila de cumplimiento (Real/Meta %) que va debajo de cada chart Real vs. Meta:
+// mes + pill de color (mismas clases .pill g/w/b que el resto de la app) en vez
+// del sticker dibujado a mano sobre el canvas (se pisaba con las etiquetas del
+// eje X apenas los meses rotaban).
+function _admCumplimientoRow(mesLabels, dataReal, dataMeta){
+  return mesLabels.map((lbl,i)=>{
+    const meta = dataMeta[i];
+    if(!meta) return ''; // sin meta ese mes: no hay % que mostrar
+    const pct = Math.round((dataReal[i]/meta)*100);
+    const cls = pct>=90 ? 'g' : pct>=60 ? 'w' : 'b';
+    return `<div class="adm-cumplim-item"><span class="mes">${lbl}</span><span class="pill ${cls}">${pct}%</span></div>`;
+  }).join('');
+}
+
+// Cobrado real vs. Meta de Cobranza: 2 gráficos separados (Soles/Dólares, cada
+// uno con su propia escala Y) para no mezclar monedas en el mismo eje. El eje
+// X sale solo de los meses que YA tienen meta cargada en la hoja (no se
+// extiende a futuro vacío) y crece solo conforme se llenen meses nuevos.
+function _renderAdmMetaCharts(fc, ingDep){
+  // Moneda por unidad (Proyecto|NroInmueble_1 → Tipo_Moneda), para separar los
+  // pagos reales de Ingreso x Depósito por moneda nativa (sin blend a S/,
+  // igual que el resto de KPIs de Cobranza — "Cobrado S/" / "Cobrado $" aparte).
+  const monedaByUnidad = {};
+  fc.forEach(r=>{
+    const key = String(r.Proyecto||'').trim().toUpperCase()+'|'+String(r.NroInmueble_1||'').trim().toUpperCase();
+    if(key!=='|' && !(key in monedaByUnidad)) monedaByUnidad[key] = String(r.Tipo_Moneda||'').toUpperCase();
+  });
+  const realPorMesS = {}, realPorMesD = {};
+  (ingDep||[]).forEach(r=>{
+    const fecha = String(r.Fecha_Pago||r.Fecha_Programada||'').trim();
+    const ym = fecha.slice(0,7);
+    if(!/^\d{4}-\d{2}$/.test(ym)) return;
+    const key = String(r.Proyecto||'').trim().toUpperCase()+'|'+String(r.NroInmueble_1||'').trim().toUpperCase();
+    const esUSD = (monedaByUnidad[key]||'').includes('DOLAR');
+    const monto = parseFloat(r.Monto_Cuota_Pagado)||0;
+    if(esUSD) realPorMesD[ym] = (realPorMesD[ym]||0) + monto;
+    else      realPorMesS[ym] = (realPorMesS[ym]||0) + monto;
+  });
+
+  // Meta de Cobranza (hoja aparte, mantenida a mano — D.metaCobranza): usa
+  // nombres de proyecto abreviados (HELIO, LITORAL, CARABAYLLO 4/5, SUNNY,
+  // D.ORUE) distintos a los de Flujo de Caja, y trae "Mes" SIN año — se asume
+  // año en curso (es una hoja que se llena mes a mes, no histórico multi-año).
+  // Sin filtro de proyecto activo se suman las 6 metas (total); con un
+  // proyecto filtrado, "fc" ya viene acotado a ese proyecto, así que la meta
+  // se filtra igual — sale individual automáticamente.
+  const META_PROJ_ALIAS = {
+    'HELIO - SANTA BEATRIZ':'HELIO', 'LITORAL 900':'LITORAL',
+    'LOMAS DE CARABAYLLO 4':'CARABAYLLO 4', 'LOMAS DE CARABAYLLO 5':'CARABAYLLO 5',
+    'SUNNY':'SUNNY', 'DOMINGO ORUE':'D.ORUE',
+  };
+  const _metaMesNum = { ENERO:1, FEBRERO:2, MARZO:3, ABRIL:4, MAYO:5, JUNIO:6, JULIO:7, AGOSTO:8,
+    SETIEMBRE:9, SEPTIEMBRE:9, OCTUBRE:10, NOVIEMBRE:11, NOVIENBRE:11, DICIEMBRE:12 };
+  const anioMeta = new Date().getFullYear();
+  const proyectosActivos = new Set(fc.map(r=>String(r.Proyecto||'').trim().toUpperCase()));
+  const metaKeysActivos = new Set([...proyectosActivos].map(p=>META_PROJ_ALIAS[p]).filter(Boolean));
+  const metaPorMesS = {}, metaPorMesD = {};
+  const mesesConMeta = new Set(); // solo meses con al menos 1 fila de meta cargada
+  (D.metaCobranza||[]).forEach(row=>{
+    if(!metaKeysActivos.has(String(row.PROYECTO||'').trim().toUpperCase())) return;
+    const mesNum = _metaMesNum[String(row.MES||'').trim().toUpperCase()];
+    if(!mesNum) return;
+    const ym = anioMeta+'-'+String(mesNum).padStart(2,'0');
+    mesesConMeta.add(ym);
+    metaPorMesS[ym] = (metaPorMesS[ym]||0) + (parseFloat(row['MONTO SOLES'])||0);
+    metaPorMesD[ym] = (metaPorMesD[ym]||0) + (parseFloat(row['MONTO DOLARES'])||0);
+  });
+
+  // Recorta al filtro de fecha de Adm. de Ventas, igual que el resto de esta
+  // pestaña, pero el universo de meses viene de la hoja de metas, no de un
+  // rango fijo 2025-2027 — así no aparecen meses futuros vacíos.
+  const desde = (document.getElementById('adm-date-desde')?.value||'').slice(0,7);
+  const hasta = (document.getElementById('adm-date-hasta')?.value||'').slice(0,7);
+  const MESES_META = [...mesesConMeta].filter(ym=>(!desde||ym>=desde)&&(!hasta||ym<=hasta)).sort();
+  const mesLabelsMeta = MESES_META.map(ym=>{
+    const [y,m] = ym.split('-');
+    return _FC_MM_CORTO[+m-1]+' '+y;
+  });
+
+  const dataRealS = MESES_META.map(ym => realPorMesS[ym]||0);
+  const dataMetaS = MESES_META.map(ym => metaPorMesS[ym]||0);
+  const dataRealD = MESES_META.map(ym => realPorMesD[ym]||0);
+  const dataMetaD = MESES_META.map(ym => metaPorMesD[ym]||0);
+
+  const _dlCfg = simbolo => ({
+    display: ctx => ctx.dataset.data[ctx.dataIndex]>0,
+    color: '#334155',
+    anchor: 'end', align: 'top', offset: -2,
+    font: {family:"'Plus Jakarta Sans',sans-serif", size:9, weight:'700'},
+    formatter: v => simbolo+' '+_fCompact(v),
+  });
+
+  if(window._admFcChartMetaS) window._admFcChartMetaS.destroy();
+  const ctxMetaS = document.getElementById('adm-fc-chart-meta-soles');
+  if(ctxMetaS){
+    window._admFcChartMetaS = new Chart(ctxMetaS, {
       type:'bar',
-      data:{ labels:mesLabels, datasets },
+      data:{ labels: mesLabelsMeta, datasets:[
+        { label:'Cobrado real S/', data:dataRealS, backgroundColor:'rgba(52,211,153,0.85)', borderRadius:4, borderSkipped:false, datalabels:_dlCfg('S/') },
+        { label:'Meta S/', data:dataMetaS, backgroundColor:'rgba(244,162,40,0.85)', borderRadius:4, borderSkipped:false, datalabels:_dlCfg('S/') },
+      ]},
       options:{ responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:8}} },
-        scales:{ y:{stacked:true,beginAtZero:true,ticks:{callback:v=>fN(v)}}, x:{stacked:true,ticks:{font:{size:9},maxRotation:60}} }
+        plugins:{ legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:8}}, tooltip:{callbacks:{label:c=>c.dataset.label+': S/ '+fN(c.raw)}} },
+        scales:{ y:{beginAtZero:true,ticks:{callback:v=>fN(v)}}, x:{ticks:{font:{size:9},maxRotation:60}} }
       }
     });
   }
+  const cumplimS = document.getElementById('adm-fc-cumplim-soles');
+  if(cumplimS) cumplimS.innerHTML = _admCumplimientoRow(mesLabelsMeta, dataRealS, dataMetaS)
+    || '<div style="text-align:center;color:var(--ink-4);font-size:12px;padding:4px 0">Sin meses con meta cargada</div>';
+
+  if(window._admFcChartMetaD) window._admFcChartMetaD.destroy();
+  const ctxMetaD = document.getElementById('adm-fc-chart-meta-dolares');
+  if(ctxMetaD){
+    window._admFcChartMetaD = new Chart(ctxMetaD, {
+      type:'bar',
+      data:{ labels: mesLabelsMeta, datasets:[
+        { label:'Cobrado real $', data:dataRealD, backgroundColor:'rgba(52,211,153,0.85)', borderRadius:4, borderSkipped:false, datalabels:_dlCfg('$') },
+        { label:'Meta $', data:dataMetaD, backgroundColor:'rgba(244,162,40,0.85)', borderRadius:4, borderSkipped:false, datalabels:_dlCfg('$') },
+      ]},
+      options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:8}}, tooltip:{callbacks:{label:c=>c.dataset.label+': $ '+fN(c.raw)}} },
+        scales:{ y:{beginAtZero:true,ticks:{callback:v=>fN(v)}}, x:{ticks:{font:{size:9},maxRotation:60}} }
+      }
+    });
+  }
+  const cumplimD = document.getElementById('adm-fc-cumplim-dolares');
+  if(cumplimD) cumplimD.innerHTML = _admCumplimientoRow(mesLabelsMeta, dataRealD, dataMetaD)
+    || '<div style="text-align:center;color:var(--ink-4);font-size:12px;padding:4px 0">Sin meses con meta cargada</div>';
 }
 
 function renderCobranzaRealChart(fc, ingDep, FX){
