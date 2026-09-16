@@ -3889,6 +3889,13 @@ function renderAdmVentas(){
       <div style="height:260px;padding:8px 16px 16px"><canvas id="adm-fc-chart-mes"></canvas></div>
     </div>
   </div>
+  <div class="card" id="adm-fc-tabla-card" style="margin-bottom:26px;display:none">
+    <div class="card-hd" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+      <div><h3>Proyección de cobros — detalle por mes</h3><p>Cada moneda en su columna (sin convertir) · <b>Programados</b> = operaciones con monto ese mes (Flujo de Caja) · <b>Reales</b> = desembolsos ya recibidos (Saldo Financiar en Ingreso x Depósito)</p></div>
+      <button onclick="toggleProyeccionTabla(false)" title="Cerrar" style="background:transparent;border:none;color:var(--ink-4);font-size:16px;cursor:pointer;line-height:1;padding:2px 6px;flex-shrink:0">✕</button>
+    </div>
+    <div id="adm-fc-tabla-wrap" style="overflow:auto;max-height:520px"></div>
+  </div>
   <div class="section-title"><h2>Cobrado real vs. Meta de Cobranza</h2><div class="hint">Solo meses con meta cargada · total, o individual si filtras por proyecto · % debajo = Real/Meta</div></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:26px">
     <div class="card">
@@ -3901,13 +3908,6 @@ function renderAdmVentas(){
       <div style="height:260px;padding:8px 16px 0"><canvas id="adm-fc-chart-meta-dolares"></canvas></div>
       <div class="adm-cumplim-row" id="adm-fc-cumplim-dolares"></div>
     </div>
-  </div>
-  <div class="card" id="adm-fc-tabla-card" style="margin-bottom:26px;display:none">
-    <div class="card-hd" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-      <div><h3>Proyección de cobros — detalle por mes</h3><p>Cada moneda en su columna (sin convertir) · <b>Programados</b> = operaciones con monto ese mes (Flujo de Caja) · <b>Reales</b> = desembolsos ya recibidos (Saldo Financiar en Ingreso x Depósito)</p></div>
-      <button onclick="toggleProyeccionTabla(false)" title="Cerrar" style="background:transparent;border:none;color:var(--ink-4);font-size:16px;cursor:pointer;line-height:1;padding:2px 6px;flex-shrink:0">✕</button>
-    </div>
-    <div id="adm-fc-tabla-wrap" style="overflow:auto;max-height:520px"></div>
   </div>
   <div class="section-title"><h2>Cobranza mensual — real vs. proyectada</h2><div class="hint">Pasado = depósitos reales (Ingreso x Depósito) · Futuro = proyección (Flujo de Caja)</div></div>
   <div class="card" style="margin-bottom:26px">
