@@ -1106,6 +1106,68 @@ Sé directo y práctico. Máximo 150 palabras."""
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/generar_ppt_marketing", methods=["POST"])
+def api_generar_ppt_marketing():
+    try:
+        import anthropic
+        from ppt_marketing import generar_ppt
+
+        data = request.get_json(force=True)
+        periodo_label = data.get("periodoLabel", "")
+        tiene_comparacion = bool(data.get("tieneComparacion"))
+        proyectos = data.get("proyectos") or []
+        if not proyectos:
+            return jsonify({"error": "No hay proyectos con leads en ese período"}), 400
+
+        resumen = [{
+            "proyecto": p.get("nombre"),
+            "leads_semana": p.get("leadsA"),
+            "leads_periodo_comparacion": p.get("leadsB"),
+            "pct_cambio_leads": p.get("pctCambio"),
+            "visitas_semana": p.get("visitasA"),
+            "canales": p.get("canales", []),
+        } for p in proyectos]
+
+        prompt = f"""Eres consultor senior de marketing inmobiliario. Te paso datos de la semana ({periodo_label}) de varios proyectos, con el desglose de leads y visitas por canal:
+
+{json.dumps(resumen, ensure_ascii=False, indent=2)}
+
+Para CADA proyecto, escribe un párrafo de análisis de 3-4 oraciones en español, estilo consultor senior, directo y sin relleno, citando SIEMPRE números exactos del JSON (leads totales, % que representa el canal principal sobre el total, visitas generadas por ese canal, y si el volumen de leads subió o bajó vs. el período de comparación cuando exista). No repitas la misma estructura de frase en todos los proyectos. No uses viñetas, un solo párrafo corrido por proyecto.
+
+Responde ÚNICAMENTE con un JSON válido (sin texto extra, sin markdown, sin \\`\\`\\`), con esta forma exacta:
+{{"analisis": {{"NOMBRE_DEL_PROYECTO_TAL_CUAL_EN_EL_JSON_DE_ARRIBA": "párrafo del proyecto"}}}}"""
+
+        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
+        msg = client.messages.create(
+            model="claude-sonnet-5",
+            max_tokens=4000,
+            output_config={"effort": "medium"},
+            messages=[{"role": "user", "content": prompt}],
+        )
+        texto = _extraer_texto(msg)
+        analisis_map = {}
+        try:
+            m = re.search(r"\{.*\}", texto, re.S)
+            if m:
+                analisis_map = json.loads(m.group(0)).get("analisis", {})
+        except Exception:
+            analisis_map = {}
+
+        for p in proyectos:
+            p["analisis"] = analisis_map.get(p.get("nombre"), "")
+
+        buf = generar_ppt(periodo_label, tiene_comparacion, proyectos)
+        from flask import send_file
+        return send_file(
+            buf,
+            as_attachment=True,
+            download_name="Reunion_Semanal_Marketing.pptx",
+            mimetype="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/chat_ia", methods=["POST"])
 def api_chat_ia():
     try:

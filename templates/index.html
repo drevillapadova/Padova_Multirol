@@ -920,6 +920,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
       </div>
     </span>
     <button id="fl-ext-btn" onclick="_flExcludeExt=!_flExcludeExt;renderFunnelMkt()" style="margin-left:auto;background:var(--bg);border:1px solid var(--line);color:var(--ink-2);font-size:11px;padding:5px 12px;border-radius:6px;cursor:pointer;font-weight:500">Sin Proper</button>
+    <button id="fl-ppt-btn" onclick="_flGenerarPPT()" style="background:var(--brand);border:1px solid var(--brand);color:#fff;font-size:11px;padding:5px 12px;border-radius:6px;cursor:pointer;font-weight:600">📊 Generar PPT</button>
   </div>
   <div class="tab-bar" id="fl-tab-bar">
     <button class="tab-btn active" onclick="setFlTab('funnel',this)">Funnel</button>
@@ -2335,6 +2336,15 @@ function _renderFlCrossTable(prosp){
 // ── Canales offline — todo lo demás se considera digital ──────────────────
 const FL_OFFLINE_CH = ['referid','cartel','volante','afiche','periódico','periodico','feria','radio','televisi','diario','valla','recomend','conocid','familiar','amigo','caminando'];
 function _isProper(canal){ return normStr(canal||'').trim()==='proper'; }
+// El vendedor "Proper Proper" es basura de carga (Evolta) homónima con el canal
+// "Proper" pero en un campo distinto (Responsable/Vendedor/Asesor — el mismo
+// fallback que ya usa la columna "Vendedor" del popup). "Sin Proper" debe
+// excluir también estos registros, no solo los de canal=Proper.
+function _isProperVendedor(r){
+  const v = normStr(String(r.Responsable||r.Vendedor||r.Asesor||'')).trim();
+  return v==='proper proper' || v==='proper';
+}
+function _esRegistroProper(r){ return _isProper(r.ComoSeEntero) || _isProperVendedor(r); }
 function _isDigital(canal){
   const c=normStr(canal||'');
   if(!c||c==='sin especificar'||c==='sin canal'||c==='sin información'||c==='sin informacion') return false;
@@ -2442,21 +2452,21 @@ function _flCalcPeriodo(proj, from, to){
   let pr=D.prospectos||[];
   if(proj) pr=pr.filter(r=>matchProj(r.Proyecto, proj));
   if(from||to) pr=pr.filter(r=>_matchDateRange(r.FechaRegistro, from, to));
-  if(_flExcludeExt) pr=pr.filter(r=>!_isProper(r.ComoSeEntero));
+  if(_flExcludeExt) pr=pr.filter(r=>!_esRegistroProper(r));
   const lb=pr.filter(r=>String(r.LeadUnicoxMesProyecto||'').toUpperCase()==='SI');
   let vi=(D.visitas||[]).filter(r=>String(r.VisitaUnicaxMesProyecto||'').toUpperCase()==='SI');
   if(proj) vi=vi.filter(r=>matchProj(r.Proyecto, proj));
   if(from||to) vi=vi.filter(r=>_matchDateRange(r.FechaVisita, from, to));
-  if(_flExcludeExt) vi=vi.filter(r=>!_isProper(r.ComoSeEntero));
+  if(_flExcludeExt) vi=vi.filter(r=>!_esRegistroProper(r));
   let sp=_flSeparacionesUnicas(D.stock||[]);
   sp=sp.filter(r=>normStr(r.TipoInmueble||'').includes('departamento')); // igual que Ventas: solo Departamento, no estacionamiento/depósito/etc.
   if(proj) sp=sp.filter(r=>matchProj(r.Proyecto, proj));
   if(from||to) sp=sp.filter(r=>_matchDateRange(r.FechaSepDefinitiva, from, to));
-  if(_flExcludeExt) sp=sp.filter(r=>!_isProper(r.ComoSeEntero));
+  if(_flExcludeExt) sp=sp.filter(r=>!_esRegistroProper(r));
   let ve=(D.ventas||[]).filter(r=>normStr(r.TipoInmueble||'').includes('departamento'));
   if(proj) ve=ve.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
   if(from||to) ve=ve.filter(r=>_matchDateRange(r.FechaVenta||r.FechaEntrega_Minuta||'', from, to));
-  if(_flExcludeExt) ve=ve.filter(r=>!_isProper(r.ComoSeEntero));
+  if(_flExcludeExt) ve=ve.filter(r=>!_esRegistroProper(r));
   const trV=lb.map(r=>parseFloat(r.TiempoRespuesta_min||'')).filter(v=>!isNaN(v)&&v>=0).sort((a,b)=>a-b);
   const _validDate=v=>{const s=String(v||'').trim();return s&&s!=='nan'&&s!=='None'&&s!=='-'&&s!=='';};
   return {
@@ -2603,6 +2613,91 @@ async function _flMarketingSnapshot(proj, from, to){
 
 function _flFmtDate(d){if(!d)return'';const[y,m,dd]=d.split('-');const MM=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];return dd+' '+MM[+m]+' '+y;}
 function _flPeriodLabel(f,t){return f&&t?_flFmtDate(f)+' – '+_flFmtDate(t):f?'Desde '+_flFmtDate(f):t?'Hasta '+_flFmtDate(t):'Todo el histórico';}
+
+// Nombres "bonitos" para el PPT semanal — los valores de #fl-proj vienen tal
+// cual del ETL (mayúsculas, sin tildes); esto solo afecta cómo se ven en el
+// PPT, no ningún filtro/comparación de datos.
+const _PPT_NOMBRE_PROYECTO = {
+  'SUNNY':'Sunny', 'LITORAL 900':'Litoral 900',
+  'HELIO - SANTA BEATRIZ':'Helio – Santa Beatriz',
+  'LOMAS DE CARABAYLLO':'Lomas de Carabayllo', 'DOMINGO ORUE':'Domingo Orué',
+};
+const _pptNombreProyecto = p => _PPT_NOMBRE_PROYECTO[String(p||'').toUpperCase()]
+  || (typeof _flTitleCase==='function' ? _flTitleCase(p) : p);
+
+// Genera el PPT "Reunión Semanal de Marketing" (plantilla fija en el backend):
+// 1 slide por proyecto con leads>0 en el período A, reusando el mismo filtro
+// de fecha/comparación que ya está activo en el Funnel (_flCalcPeriodo es la
+// misma función que arma el contexto del chat de IA, para no duplicar reglas
+// de negocio en dos lados).
+async function _flGenerarPPT(){
+  const btn = document.getElementById('fl-ppt-btn');
+  const from = _flDateFrom, to = _flDateTo;
+  const tieneComparacion = !!(_flComp && (_flDateFrom2 || _flDateTo2));
+  const from2 = _flDateFrom2, to2 = _flDateTo2;
+
+  const projList = [...document.querySelectorAll('#fl-proj option')].map(o=>o.value).filter(Boolean);
+
+  const _diasEnRango = (f,t) => {
+    if(!f || !t) return 7; // sin rango exacto: evita dividir por 0 al promediar
+    const d1=new Date(f+'T00:00:00'), d2=new Date(t+'T00:00:00');
+    return Math.max(1, Math.round((d2-d1)/86400000)+1);
+  };
+  const _canalesProyecto = periodo => {
+    const leadsPorCanal={}, visitasPorCanal={};
+    periodo.lb.forEach(r=>{ const c=String(r.ComoSeEntero||'').trim()||'Sin canal'; leadsPorCanal[c]=(leadsPorCanal[c]||0)+1; });
+    periodo.visF.forEach(r=>{ const c=String(r.ComoSeEntero||'').trim()||'Sin canal'; visitasPorCanal[c]=(visitasPorCanal[c]||0)+1; });
+    const canales=new Set([...Object.keys(leadsPorCanal), ...Object.keys(visitasPorCanal)]);
+    return [...canales].map(c=>({canal:c, leads:leadsPorCanal[c]||0, visitas:visitasPorCanal[c]||0}))
+      .sort((a,b)=>b.leads-a.leads);
+  };
+
+  const periodoLabelA = _flPeriodLabel(from,to);
+  const periodoLabelFull = tieneComparacion ? periodoLabelA+' vs '+_flPeriodLabel(from2,to2) : periodoLabelA;
+
+  const proyectos = [];
+  projList.forEach(proj=>{
+    const A = _flCalcPeriodo(proj, from, to);
+    if(A.leadsTotal<=0) return;
+    const B = tieneComparacion ? _flCalcPeriodo(proj, from2, to2) : null;
+    const diasA = _diasEnRango(from,to);
+    const diasB = tieneComparacion ? _diasEnRango(from2,to2) : null;
+    const pctCambio = (tieneComparacion && B && B.leadsTotal>0)
+      ? Math.round((A.leadsTotal-B.leadsTotal)/B.leadsTotal*1000)/10 : null;
+    proyectos.push({
+      nombre: _pptNombreProyecto(proj),
+      leadsA: A.leadsTotal,
+      leadsB: (tieneComparacion && B) ? B.leadsTotal : null,
+      promA: Math.round(A.leadsTotal/diasA*10)/10,
+      promB: (tieneComparacion && B) ? Math.round(B.leadsTotal/diasB*10)/10 : null,
+      visitasA: A.visitasN,
+      pctCambio,
+      canales: _canalesProyecto(A),
+    });
+  });
+
+  if(!proyectos.length){ alert('No hay proyectos con leads en el período seleccionado.'); return; }
+
+  const originalTxt = btn.textContent;
+  btn.textContent = 'Generando…'; btn.disabled = true;
+  try{
+    const resp = await fetch(API+'/api/generar_ppt_marketing', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ periodoLabel: periodoLabelFull, tieneComparacion, proyectos })
+    });
+    if(!resp.ok){ const j=await resp.json().catch(()=>({})); throw new Error(j.error||'Error generando el PPT'); }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'Reunion_Semanal_Marketing_'+(from||'todo')+'_a_'+(to||'hoy')+'.pptx';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }catch(e){
+    alert('No se pudo generar el PPT: '+e.message);
+  }finally{
+    btn.textContent = originalTxt; btn.disabled = false;
+  }
+}
 
 let _flLastAnalysisText = null;      // texto plano (markdown) del último "Analizar ahora" de esta sesión
 let _flLastAnalysisPeriodo = null;   // período con el que se generó ese análisis
