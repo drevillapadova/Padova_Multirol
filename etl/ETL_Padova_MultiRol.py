@@ -842,9 +842,9 @@ def execute_ingreso_deposito_extraction(driver, wait):
 # ("Dashboard Cobranza") que ya trae solo las columnas necesarias
 # (Proyecto, NroInmueble, FechaEscrituraPublica, etc.). Igual que Ingreso
 # x Depósito, la descarga tiene tope de 1 año, así que se pide por año.
-# Proyecto y Tipo Operación se dejan en su default ("--Todos--" /
-# "--Seleccionar--") — el filtro a los 6 proyectos del dashboard ya lo
-# aplica _leer_por_año() en main() como con los demás reportes.
+# Proyecto se deja en su default ("--Todos--") — el filtro a los 6
+# proyectos del dashboard ya lo aplica _leer_por_año() en main() como con
+# los demás reportes. Tipo Operación sí es obligatorio: "Ventas".
 
 def execute_escritura_year(driver, wait, año):
     print(f"\n>> [ESCRITURA {año}] Procesando...")
@@ -868,6 +868,18 @@ def execute_escritura_year(driver, wait, año):
     except Exception as e:
         print(f"   !! Warning Modelo Reporte: {e}")
 
+    # Tipo Operación: obligatorio, seleccionar "Ventas"
+    try:
+        tipo_selects = _selects_por_opciones(driver, ["Ventas"])
+        if tipo_selects:
+            Select(tipo_selects[0]).select_by_visible_text("Ventas")
+            print("   -> Tipo Operación: 'Ventas' seleccionado")
+            time.sleep(0.5)
+        else:
+            print("   !! Warning: no se encontró el dropdown 'Tipo Operación' con la opción Ventas")
+    except Exception as e:
+        print(f"   !! Warning Tipo Operación: {e}")
+
     # Fechas (mismo patrón que Ingreso x Depósito: tope de 1 año por descarga)
     fecha_inicio = f"01/01/{año}"
     fecha_fin = f"31/12/{año}" if año < datetime.now().year else datetime.now().strftime("%d/%m/%Y")
@@ -887,12 +899,11 @@ def execute_escritura_year(driver, wait, año):
 
     existing = set(glob.glob(os.path.join(DOWNLOAD_DIR, "*.*")))
 
-    # Este reporte exporta con un botón "Excel" (no un "Exportar" genérico) —
-    # se intenta primero por texto exacto y se cae a variantes conocidas de
-    # otros reportes por si el HTML cambia.
-    for xpath in ["//button[contains(text(),'Excel')]", "//a[contains(text(),'Excel')]",
-                  "//input[@value='Excel']", "//button[contains(text(),'Exportar')]",
-                  "//button[@id='btnExportar']", "//button[@type='submit']"]:
+    # El botón real de este reporte se llama "Exportar" (confirmado en pantalla);
+    # se deja "Excel" como respaldo por si el HTML cambia en otro momento.
+    for xpath in ["//button[contains(text(),'Exportar')]", "//button[@id='btnExportar']",
+                  "//button[@type='submit']", "//button[contains(text(),'Excel')]",
+                  "//a[contains(text(),'Excel')]", "//input[@value='Excel']"]:
         try:
             btn = wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
             driver.execute_script("arguments[0].click();", btn)
