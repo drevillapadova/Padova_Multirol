@@ -162,6 +162,7 @@ TABS = {
     "flujo_caja":  "961281144",
     "presupuesto": "485749651",
     "mercado":     "477763204",
+    "escritura_publica": "844322575",
 }
 
 TARGET_PROJECTS = [
@@ -709,7 +710,7 @@ def calcular_stock_resumen():
 # CACHE — actualización
 # ══════════════════════════════════════════════════════════════
 
-TABS_CON_PROYECTO = {"ventas", "stock", "prospectos", "visitas", "flujo_caja", "ingreso_deposito"}
+TABS_CON_PROYECTO = {"ventas", "stock", "prospectos", "visitas", "flujo_caja", "ingreso_deposito", "escritura_publica"}
 
 def leer_tab_header(tab_key, header_row):
     """Lee una pestaña usando una fila específica como encabezado (0-indexed)."""
@@ -871,6 +872,15 @@ def api_flujo_caja():
     proyecto = request.args.get("proyecto", "").upper()
     return jsonify({
         "data": filtrar_proyecto(_cache["flujo_caja"], proyecto),
+        "updated_at": _cache["updated_at"]
+    })
+
+
+@app.route("/api/escritura_publica")
+def api_escritura_publica():
+    proyecto = request.args.get("proyecto", "").upper()
+    return jsonify({
+        "data": filtrar_proyecto(_cache["escritura_publica"], proyecto),
         "updated_at": _cache["updated_at"]
     })
 

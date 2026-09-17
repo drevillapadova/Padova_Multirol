@@ -885,6 +885,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
   </div>
   <div class="tab-bar" id="adm-tab-bar">
     <button class="tab-btn active" onclick="setAdmTab('proyeccion',this)">Proyección</button>
+    <button class="tab-btn" onclick="setAdmTab('liberado',this)">Liberado</button>
     <button class="tab-btn" onclick="setAdmTab('detalle',this)">Detalle</button>
   </div>
   <div id="adm-content"><div class="loading">Cargando...</div></div>
@@ -1200,7 +1201,7 @@ Chart.defaults.plugins.legend.labels.boxWidth = 10;
 Chart.defaults.plugins.legend.labels.padding = 14;
 
 const API = '';
-let D = {funnel:{}, ventas:[], stock:[], campanas:{}, desist:[], prospectos:[], visitas:[], inversion:[], ingresoDeposito:[], flujoCaja:[], mercado:[], mercadoVentas:[], metaCobranza:[], updatedAt:'—'};
+let D = {funnel:{}, ventas:[], stock:[], campanas:{}, desist:[], prospectos:[], visitas:[], inversion:[], ingresoDeposito:[], flujoCaja:[], mercado:[], mercadoVentas:[], metaCobranza:[], escrituraPublica:[], updatedAt:'—'};
 let _jmktMetrica = 'leads';
 
 const MES_ES = {'01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Setiembre','10':'Octubre','11':'Noviembre','12':'Diciembre'};
@@ -1506,6 +1507,7 @@ async function loadAll(forzarRefresh){
     fetch(API+'/api/mercado').then(r=>r.json()).then(m=>{D.mercado=m.data||[];if(typeof renderMercadoMapa!=='undefined')renderMercadoMapa();if(typeof renderMercadoPrecios!=='undefined')renderMercadoPrecios();if(typeof renderMercadoTipologia!=='undefined')renderMercadoTipologia();}).catch(()=>{});
     fetch(API+'/api/mercado_ventas').then(r=>r.json()).then(m=>{D.mercadoVentas=m.data||[];if(typeof renderMercadoVentas!=='undefined')renderMercadoVentas();if(typeof renderMercadoPrecios!=='undefined')renderMercadoPrecios();if(typeof renderMercadoTipologia!=='undefined')renderMercadoTipologia();}).catch(()=>{});
     fetch(API+'/api/meta_cobranza').then(r=>r.json()).then(m=>{D.metaCobranza=m.data||[];if(typeof renderAdmVentas!=='undefined')renderAdmVentas();}).catch(()=>{});
+    fetch(API+'/api/escritura_publica').then(r=>r.json()).then(m=>{D.escrituraPublica=m.data||[];if(typeof renderAdmVentas!=='undefined')renderAdmVentas();}).catch(()=>{});
     _schedNextRefresh();
   }catch(e){
     console.error(e);
@@ -3754,6 +3756,12 @@ function renderAdmVentas(){
   // ninguna cifra de cobranza/proyección: no es una venta confirmada todavía.
   fc = fc.filter(r=>{ const s=String(r.FechaVenta||'').trim(); return s && s!=='nan' && s!=='None'; });
 
+  if(_admTab === 'liberado'){
+    document.getElementById('adm-kpis').innerHTML = '';
+    renderAdmLiberado(fc);
+    return;
+  }
+
   if(_admTab === 'detalle'){
     document.getElementById('adm-kpis').innerHTML = '';
     renderAdmDetalle(fc, ingDep);
@@ -3938,6 +3946,225 @@ function _mesesFlujoCaja(){
     });
   });
   return out;
+}
+
+// ── PESTAÑA "LIBERADO" (Cobranza): cuánto de lo cobrado ya es plata real de
+// la empresa. En Perú el dinero que paga el cliente no queda "liberado" en
+// firme hasta que se firma la Escritura Pública — antes de eso, aunque el
+// cliente ya pagó, contablemente sigue en un estado intermedio. Cruza Flujo
+// de Caja (Pagos_Recibido, por unidad) con la hoja Escritura Pública
+// (FechaEscrituraPublica, por unidad). Ambos lados traen varias unidades por
+// fila (NroInmueble_1..N) y no necesariamente en el mismo orden entre los dos
+// reportes, así que el cruce compara TODOS los slots de cada lado, no solo
+// el primero.
+function _unidadesDeRow(r, maxSlots){
+  const proj = String(r.Proyecto||'').trim().toUpperCase();
+  const keys = [];
+  for(let i=1;i<=maxSlots;i++){
+    const nro = String(r['NroInmueble_'+i]||'').trim().toUpperCase();
+    if(nro) keys.push(proj+'|'+nro);
+  }
+  return keys;
+}
+
+let _admLiberadoSearch = '';
+let _admLiberadoPendientes = []; // cache para refiltrar sin perder el foco del buscador
+
+function _admProgBar(pct){
+  const color = pct>=90?'var(--ok)':pct>=60?'var(--warn)':'var(--bad)';
+  return `<div style="display:flex;align-items:center;gap:6px;justify-content:center">
+    <div style="width:50px;height:6px;border-radius:3px;background:var(--line-2);overflow:hidden"><div style="width:${Math.min(pct,100)}%;height:100%;background:${color}"></div></div>
+    <span style="font-size:11px;font-weight:600;color:${color}">${pct}%</span>
+  </div>`;
+}
+
+function renderAdmLiberado(fc){
+  const escrituraFirmadaKeys = new Set();
+  const escrituraFechaPorUnidad = {}; // key unidad -> "AAAA-MM" de FechaEscrituraPublica, para el gráfico mensual
+  (D.escrituraPublica||[]).forEach(row=>{
+    const fecha = String(row.FechaEscrituraPublica||'').trim();
+    if(!fecha || fecha==='nan' || fecha==='None') return;
+    const ym = fecha.slice(0,7);
+    _unidadesDeRow(row, 4).forEach(k=>{
+      escrituraFirmadaKeys.add(k);
+      if(/^\d{4}-\d{2}$/.test(ym) && !(k in escrituraFechaPorUnidad)) escrituraFechaPorUnidad[k] = ym;
+    });
+  });
+  const _tieneEscritura = r => _unidadesDeRow(r, 6).some(k=>escrituraFirmadaKeys.has(k));
+  const _fechaEscrituraDe = r => {
+    for(const k of _unidadesDeRow(r, 6)){ if(escrituraFechaPorUnidad[k]) return escrituraFechaPorUnidad[k]; }
+    return null;
+  };
+  const _esUSD = r => String(r.Tipo_Moneda||'').toUpperCase().includes('DOLAR');
+  const _n = v => { const x=parseFloat(v); return isNaN(x)?0:x; };
+  const fS = n => 'S/ '+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fD = n => '$ '+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  let cobradoS=0, cobradoD=0, liberadoS=0, liberadoD=0;
+  const porProyecto = {};
+  const pendientes = [];
+  const FX_LIB = 3.5; // solo para blendear el gráfico mensual (una sola serie, no por moneda)
+  const montoPorMes = {};
+  fc.forEach(r=>{
+    const pagado = _n(r.Pagos_Recibido);
+    if(pagado<=0) return;
+    const esD = _esUSD(r);
+    const proj = String(r.Proyecto||'').trim() || 'Sin proyecto';
+    if(!porProyecto[proj]) porProyecto[proj] = {cobS:0,cobD:0,libS:0,libD:0};
+    if(esD){ cobradoD+=pagado; porProyecto[proj].cobD+=pagado; }
+    else   { cobradoS+=pagado; porProyecto[proj].cobS+=pagado; }
+    if(_tieneEscritura(r)){
+      if(esD){ liberadoD+=pagado; porProyecto[proj].libD+=pagado; }
+      else   { liberadoS+=pagado; porProyecto[proj].libS+=pagado; }
+      const ym = _fechaEscrituraDe(r);
+      if(ym) montoPorMes[ym] = (montoPorMes[ym]||0) + (esD?pagado*FX_LIB:pagado);
+    } else {
+      pendientes.push(r);
+    }
+  });
+
+  // Rango continuo de meses (min→max con data), para que se vea la tendencia
+  // incluso en meses sin ninguna escritura firmada (barra en 0, no un hueco).
+  const _mesesConDataOrd = Object.keys(montoPorMes).sort();
+  const rangoMeses = [];
+  if(_mesesConDataOrd.length){
+    let [y,m] = _mesesConDataOrd[0].split('-').map(Number);
+    const [yMax,mMax] = _mesesConDataOrd[_mesesConDataOrd.length-1].split('-').map(Number);
+    while(y<yMax || (y===yMax && m<=mMax)){
+      const ym = y+'-'+String(m).padStart(2,'0');
+      rangoMeses.push({ym, label:_FC_MM_CORTO[m-1]+' '+y, val:montoPorMes[ym]||0});
+      m++; if(m>12){ m=1; y++; }
+    }
+  }
+  const pendienteS = cobradoS-liberadoS, pendienteD = cobradoD-liberadoD;
+  const pctLibS = cobradoS ? Math.round(liberadoS/cobradoS*100) : 0;
+  const pctLibD = cobradoD ? Math.round(liberadoD/cobradoD*100) : 0;
+
+  _admLiberadoPendientes = pendientes.slice().sort((a,b)=>{
+    const va=_n(a.Pagos_Recibido)*(_esUSD(a)?3.5:1), vb=_n(b.Pagos_Recibido)*(_esUSD(b)?3.5:1);
+    return vb-va;
+  });
+
+  const filasProyecto = Object.entries(porProyecto)
+    .sort((a,b)=>(b[1].cobS+b[1].cobD*3.5)-(a[1].cobS+a[1].cobD*3.5))
+    .map(([proy,d])=>{
+      const pS = d.cobS ? Math.round(d.libS/d.cobS*100) : 0;
+      const pD = d.cobD ? Math.round(d.libD/d.cobD*100) : 0;
+      return `<tr>
+        <td style="text-align:left">${proy}</td>
+        <td style="text-align:right">${d.cobS?fS(d.cobS):'—'}</td>
+        <td style="text-align:right;color:var(--ok);font-weight:600">${d.libS?fS(d.libS):'—'}</td>
+        <td style="text-align:center">${d.cobS?_admProgBar(pS):'—'}</td>
+        <td style="text-align:right">${d.cobD?fD(d.cobD):'—'}</td>
+        <td style="text-align:right;color:var(--ok);font-weight:600">${d.libD?fD(d.libD):'—'}</td>
+        <td style="text-align:center">${d.cobD?_admProgBar(pD):'—'}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos</td></tr>';
+
+  const wrap = document.getElementById('adm-content');
+  if(!wrap) return;
+  wrap.innerHTML = `
+  <div class="section-title"><h2>Dinero Liberado</h2><div class="hint">Cobrado = recibido del cliente (Flujo de Caja) · Liberado = ya con Escritura Pública firmada — plata real de la empresa</div></div>
+  <div class="kpi-row kpi-6" style="margin-bottom:16px">
+    ${kpi('Cobrado Total S/', fS(cobradoS), 'Recibido de clientes')}
+    ${kpi('Cobrado Total $', fD(cobradoD), 'Recibido de clientes')}
+    ${kpi('💰 Liberado S/', fS(liberadoS), pctLibS+'% del cobrado · Escritura firmada')}
+    ${kpi('💰 Liberado $', fD(liberadoD), pctLibD+'% del cobrado · Escritura firmada')}
+    ${kpi('Pendiente de Liberar S/', fS(pendienteS), 'Cobrado sin Escritura aún')}
+    ${kpi('Pendiente de Liberar $', fD(pendienteD), 'Cobrado sin Escritura aún')}
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hd"><div><h3>Por proyecto</h3><p>Cobrado vs. Liberado, por moneda nativa</p></div></div>
+    <table class="tbl" style="width:100%">
+      <thead><tr>
+        <th style="text-align:left">Proyecto</th>
+        <th style="text-align:right">Cobrado S/</th>
+        <th style="text-align:right">Liberado S/</th>
+        <th style="text-align:center">% Liberado S/</th>
+        <th style="text-align:right">Cobrado $</th>
+        <th style="text-align:right">Liberado $</th>
+        <th style="text-align:center">% Liberado $</th>
+      </tr></thead>
+      <tbody>${filasProyecto}</tbody>
+    </table>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hd"><div><h3>Dinero liberado por mes</h3><p>Según fecha de Escritura Pública · USD a S/ referencial ×${FX_LIB}</p></div></div>
+    <div style="height:260px;padding:8px 16px 16px">${rangoMeses.length?'<canvas id="adm-liberado-chart-mes"></canvas>':'<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--ink-4);font-size:13px">Sin escrituras firmadas todavía</div>'}</div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><div><h3>Pendientes de escriturar</h3><p>Cobrado pero sin Escritura Pública aún · ${fN(pendientes.length)} expedientes, ordenados por monto</p></div></div>
+    <div style="padding:14px 18px">
+      <input type="text" class="sp-search" id="adm-liberado-search" style="width:100%;max-width:480px" placeholder="Buscar por nombre, DNI o N° Dpto..." value="${_escapeHtml(_admLiberadoSearch)}" oninput="_admLiberadoBuscar(this.value)">
+    </div>
+    <div style="overflow:auto">
+      <table class="tbl" style="width:100%">
+        <thead><tr>
+          <th style="text-align:left">Cliente</th>
+          <th style="text-align:center">DNI</th>
+          <th style="text-align:center">N° Dpto.</th>
+          <th style="text-align:left">Proyecto</th>
+          <th style="text-align:right">Monto Cobrado</th>
+        </tr></thead>
+        <tbody id="adm-liberado-lista"></tbody>
+      </table>
+    </div>
+  </div>`;
+
+  _renderAdmLiberadoLista();
+  _renderAdmLiberadoChart(rangoMeses);
+}
+
+function _renderAdmLiberadoChart(rangoMeses){
+  if(window._admLiberadoChart){ window._admLiberadoChart.destroy(); window._admLiberadoChart=null; }
+  const ctx = document.getElementById('adm-liberado-chart-mes');
+  if(!ctx || !rangoMeses.length) return;
+  window._admLiberadoChart = new Chart(ctx, {
+    type:'bar',
+    data:{ labels: rangoMeses.map(m=>m.label), datasets:[
+      { label:'Liberado', data: rangoMeses.map(m=>m.val), backgroundColor:'rgba(52,211,153,0.85)', borderRadius:4, borderSkipped:false,
+        datalabels:{ display: c=>c.dataset.data[c.dataIndex]>0, color:'#334155', anchor:'end', align:'top', offset:-2,
+          font:{family:"'Plus Jakarta Sans',sans-serif", size:9, weight:'700'}, formatter: v=>'S/ '+_fCompact(v) } },
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>'S/ '+fN(c.raw)}} },
+      scales:{ y:{beginAtZero:true,ticks:{callback:v=>fN(v)}}, x:{ticks:{font:{size:9},maxRotation:60}} }
+    }
+  });
+}
+
+function _admLiberadoBuscar(v){
+  _admLiberadoSearch = v;
+  _renderAdmLiberadoLista();
+}
+
+// Solo repinta la lista (no el input) para no perder el foco mientras se escribe.
+function _renderAdmLiberadoLista(){
+  const cont = document.getElementById('adm-liberado-lista');
+  if(!cont) return;
+  const q = _admLiberadoSearch.trim().toLowerCase();
+  const _n = v => { const x=parseFloat(v); return isNaN(x)?0:x; };
+  const _esUSD = r => String(r.Tipo_Moneda||'').toUpperCase().includes('DOLAR');
+  const filtradas = (q ? _admLiberadoPendientes.filter(r=>{
+    const nombre = String(r.Titular||'').toLowerCase();
+    const dni = String(r.NroDocumentoTitular||'').toLowerCase();
+    const dpto = String(r.NroInmueble_1||'').toLowerCase();
+    return nombre.includes(q) || dni.includes(q) || dpto.includes(q);
+  }) : _admLiberadoPendientes).slice(0,50);
+
+  cont.innerHTML = filtradas.map(r=>{
+    const nombre=(typeof _flTitleCase==='function'?_flTitleCase(_flLimpiarNombre(r.Titular||'')):String(r.Titular||''))||'—';
+    const esD = _esUSD(r);
+    const monto = _n(r.Pagos_Recibido);
+    const fC = n => (esD?'$ ':'S/ ')+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    return `<tr>
+      <td style="text-align:left">${nombre}</td>
+      <td style="text-align:center">${String(r.NroDocumentoTitular||'—')}</td>
+      <td style="text-align:center">${String(r.NroInmueble_1||'—')}</td>
+      <td style="text-align:left">${String(r.Proyecto||'—')}</td>
+      <td style="text-align:right;font-weight:700;color:var(--warn)">${fC(monto)}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--ink-4);padding:20px">${q?'Sin resultados':'Todo lo cobrado ya está liberado 🎉'}</td></tr>`;
 }
 
 // ── PESTAÑA "DETALLE" (Cobranza): buscador de cliente → pagos hechos y por
