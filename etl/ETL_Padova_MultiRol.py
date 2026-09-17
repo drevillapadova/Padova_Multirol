@@ -250,6 +250,7 @@ URL_REPORTE_PROSPECTOS       = "https://v4.evolta.pe/Reportes/RepHiloProspectos/
 URL_REPORTE_VISITAS          = "https://v4.evolta.pe/Reportes/RepVisita/IndexVisita"
 URL_REPORTE_INGRESO_DEPOSITO = "https://v4.evolta.pe/Reportes/RepIngresoxDeposito/Index"
 URL_REPORTE_FLUJO_CAJA       = "https://v4.evolta.pe/Reportes/RepFlujoCaga/Index"
+URL_REPORTE_ESCRITURA        = "https://v4.evolta.pe/Reportes/RepCobranzaMatriz/ReporteMatriz"
 
 TARGET_PROJECTS = [
     'SUNNY', 'LITORAL 900', 'HELIO - SANTA BEATRIZ',
@@ -266,6 +267,7 @@ if IS_CLOUD:
     DOWNLOAD_DIR_VISITAS            = "/tmp/evolta_visitas"
     DOWNLOAD_DIR_INGRESO_DEPOSITO   = "/tmp/evolta_ingreso_deposito"
     DOWNLOAD_DIR_FLUJO_CAJA         = "/tmp/evolta_flujo_caja"
+    DOWNLOAD_DIR_ESCRITURA          = "/tmp/evolta_escritura"
 else:
     DOWNLOAD_DIR                    = r"C:\Users\MKT\Documents\EVOLTA\descargas_stock"
     DOWNLOAD_DIR_VENTAS             = r"C:\Users\MKT\Documents\EVOLTA\descargas_ventas"
@@ -273,6 +275,7 @@ else:
     DOWNLOAD_DIR_VISITAS            = r"C:\Users\MKT\Documents\EVOLTA\descargas_visitas"
     DOWNLOAD_DIR_INGRESO_DEPOSITO   = r"C:\Users\MKT\Documents\EVOLTA\descargas_ingreso_deposito"
     DOWNLOAD_DIR_FLUJO_CAJA         = r"C:\Users\MKT\Documents\EVOLTA\descargas_flujo_caja"
+    DOWNLOAD_DIR_ESCRITURA          = r"C:\Users\MKT\Documents\EVOLTA\descargas_escritura"
 
 ONEDRIVE_OUTPUT_DIR = None if IS_CLOUD else r"C:\Users\MKT\OneDrive - PADOVA SAC\PADOVA - MKT - MIRANO INMOBILIARIA - VENTAS\Dashboards"
 ONEDRIVE_FILE_NAME  = "ReporteEvolta.xlsx"
@@ -280,7 +283,7 @@ ONEDRIVE_FILE_NAME  = "ReporteEvolta.xlsx"
 # ── NUEVO Sheet ID (dashboard multi-rol) ──
 GSHEETS_SPREADSHEET_ID = "1JIEEGPxJvCHvmGvVE6Zp9wBPUVXEF-iXy8FNaWr1PPI"
 
-for dir_path in [DOWNLOAD_DIR, DOWNLOAD_DIR_VENTAS, DOWNLOAD_DIR_PROSPECTOS, DOWNLOAD_DIR_VISITAS, DOWNLOAD_DIR_INGRESO_DEPOSITO, DOWNLOAD_DIR_FLUJO_CAJA]:
+for dir_path in [DOWNLOAD_DIR, DOWNLOAD_DIR_VENTAS, DOWNLOAD_DIR_PROSPECTOS, DOWNLOAD_DIR_VISITAS, DOWNLOAD_DIR_INGRESO_DEPOSITO, DOWNLOAD_DIR_FLUJO_CAJA, DOWNLOAD_DIR_ESCRITURA]:
     os.makedirs(dir_path, exist_ok=True)
 
 AÑOS_VENTAS            = [2023, 2024, 2025, 2026]
@@ -289,6 +292,7 @@ AÑO_INICIO_FLUJO_CAJA  = 2025
 MES_INICIO_FLUJO_CAJA  = "Enero"
 AÑO_FIN_FLUJO_CAJA     = 2027
 MES_FIN_FLUJO_CAJA     = "Diciembre"
+AÑOS_ESCRITURA         = [2025, 2026]  # el reporte también tiene tope de 1 año por descarga
 
 # ── Columnas a conservar por pestaña (reduce celdas en Sheets) ──
 COLS_VENTAS = [
@@ -832,6 +836,104 @@ def execute_ingreso_deposito_extraction(driver, wait):
 
 
 # ============================================================
+# EXTRACCIÓN — ESCRITURA PÚBLICA (Reporte "Cobranza Matriz")
+# ============================================================
+# Reporte de Evolta con un "Modelo Reporte" guardado por el usuario
+# ("Dashboard Cobranza") que ya trae solo las columnas necesarias
+# (Proyecto, NroInmueble, FechaEscrituraPublica, etc.). Igual que Ingreso
+# x Depósito, la descarga tiene tope de 1 año, así que se pide por año.
+# Proyecto y Tipo Operación se dejan en su default ("--Todos--" /
+# "--Seleccionar--") — el filtro a los 6 proyectos del dashboard ya lo
+# aplica _leer_por_año() en main() como con los demás reportes.
+
+def execute_escritura_year(driver, wait, año):
+    print(f"\n>> [ESCRITURA {año}] Procesando...")
+    driver.get(URL_REPORTE_ESCRITURA)
+    time.sleep(4)
+    dismiss_popup(driver)
+
+    # Modelo Reporte: seleccionar el reporte guardado "Dashboard Cobranza"
+    try:
+        modelo_selects = _selects_por_opciones(driver, ["Dashboard Cobranza"])
+        if modelo_selects:
+            opt_text = next(
+                o.text for o in modelo_selects[0].find_elements(By.TAG_NAME, "option")
+                if "dashboard cobranza" in o.text.strip().lower()
+            )
+            Select(modelo_selects[0]).select_by_visible_text(opt_text)
+            print("   -> Modelo Reporte: 'Dashboard Cobranza' seleccionado")
+            time.sleep(1.5)  # el formulario puede recargar campos según el modelo elegido
+        else:
+            print("   !! Warning: no se encontró el dropdown 'Modelo Reporte' con la opción Dashboard Cobranza")
+    except Exception as e:
+        print(f"   !! Warning Modelo Reporte: {e}")
+
+    # Fechas (mismo patrón que Ingreso x Depósito: tope de 1 año por descarga)
+    fecha_inicio = f"01/01/{año}"
+    fecha_fin = f"31/12/{año}" if año < datetime.now().year else datetime.now().strftime("%d/%m/%Y")
+    driver.execute_script(f"""
+        var inputs = document.querySelectorAll('input');
+        var df = [];
+        for(var i=0;i<inputs.length;i++){{
+            var v=inputs[i].value||'';
+            if(v.match(/\\d{{2}}\\/\\d{{2}}\\/\\d{{4}}/)) df.push(inputs[i]);
+        }}
+        if(df.length>=2){{
+            df[0].value='{fecha_inicio}'; df[0].dispatchEvent(new Event('change',{{bubbles:true}}));
+            df[1].value='{fecha_fin}';    df[1].dispatchEvent(new Event('change',{{bubbles:true}}));
+        }}
+    """)
+    time.sleep(1)
+
+    existing = set(glob.glob(os.path.join(DOWNLOAD_DIR, "*.*")))
+
+    # Este reporte exporta con un botón "Excel" (no un "Exportar" genérico) —
+    # se intenta primero por texto exacto y se cae a variantes conocidas de
+    # otros reportes por si el HTML cambia.
+    for xpath in ["//button[contains(text(),'Excel')]", "//a[contains(text(),'Excel')]",
+                  "//input[@value='Excel']", "//button[contains(text(),'Exportar')]",
+                  "//button[@id='btnExportar']", "//button[@type='submit']"]:
+        try:
+            btn = wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
+            driver.execute_script("arguments[0].click();", btn)
+            print(f"   -> Click en botón de exportar ({xpath})")
+            break
+        except Exception:
+            pass
+
+    time.sleep(5)
+    archivo = esperar_descarga_nueva(DOWNLOAD_DIR, existing, timeout=480)
+    if not archivo:
+        print(f"   !! Warning: no se descargó escritura {año}")
+        return None
+
+    ext  = os.path.splitext(archivo)[1].lower()
+    os.makedirs(DOWNLOAD_DIR_ESCRITURA, exist_ok=True)
+    dest = os.path.join(DOWNLOAD_DIR_ESCRITURA, f"ReporteEscritura{año}{ext}")
+    if os.path.exists(dest): os.remove(dest)
+    shutil.move(archivo, dest)
+    print(f"   -> [OK] {os.path.basename(dest)}")
+    return dest
+
+
+def execute_escritura_extraction(driver, wait):
+    print("\n" + "="*60)
+    print(">> [ESCRITURA] Iniciando descarga por año")
+    print("="*60)
+    for f in glob.glob(os.path.join(DOWNLOAD_DIR_ESCRITURA, "*.*")):
+        try: os.remove(f)
+        except: pass
+    archivos = {}
+    for año in AÑOS_ESCRITURA:
+        try:
+            archivos[str(año)] = execute_escritura_year(driver, wait, año)
+            time.sleep(2)
+        except Exception as e:
+            print(f"   !! Error escritura {año}: {e}")
+    return archivos
+
+
+# ============================================================
 # EXTRACCIÓN — FLUJO DE CAJA
 # ============================================================
 
@@ -1191,7 +1293,7 @@ def subir_tab(spreadsheet, tab_name, df, batch_size=2000):
         print(f"   !! Error subiendo {tab_name}: {e}")
 
 
-def upload_to_gsheets(df_ventas, df_stock, df_prospectos=None, df_visitas=None, df_ingreso_deposito=None, df_flujo_caja=None):
+def upload_to_gsheets(df_ventas, df_stock, df_prospectos=None, df_visitas=None, df_ingreso_deposito=None, df_flujo_caja=None, df_escritura=None):
     print("\n>> [GOOGLE SHEETS] Actualizando dashboard multi-rol...")
     try:
         scopes = ["https://www.googleapis.com/auth/spreadsheets",
@@ -1206,6 +1308,7 @@ def upload_to_gsheets(df_ventas, df_stock, df_prospectos=None, df_visitas=None, 
         subir_tab(sp, "VISITAS",            df_visitas)
         subir_tab(sp, "INGRESO_DEPOSITO",   df_ingreso_deposito)
         subir_tab(sp, "FLUJO_CAJA",         df_flujo_caja)
+        subir_tab(sp, "ESCRITURA_PUBLICA",  df_escritura)
 
         print(f"   -> Dashboard: https://docs.google.com/spreadsheets/d/{GSHEETS_SPREADSHEET_ID}")
         return True
@@ -1296,6 +1399,11 @@ def main():
         execute_flujo_caja_extraction(driver, wait)
     except Exception as e:
         print(f"!! ERROR Flujo de Caja: {e} — continuando")
+
+    try:
+        execute_escritura_extraction(driver, wait)
+    except Exception as e:
+        print(f"!! ERROR Escritura Pública: {e} — continuando")
 
     driver.quit()
 
@@ -1422,6 +1530,16 @@ def main():
     except Exception as e:
         print(f"!! FLUJO_CAJA ERROR: {e}")
 
+    # Cargar escritura pública
+    df_escritura = None
+    try:
+        df_escritura = _leer_por_año(DOWNLOAD_DIR_ESCRITURA, "ReporteEscritura", AÑOS_ESCRITURA)
+        if df_escritura is not None:
+            print(f"   -> ESCRITURA columnas disponibles: {list(df_escritura.columns)}")
+            print(f"   -> ESCRITURA total: {len(df_escritura):,} filas, {len(df_escritura.columns)} cols")
+    except Exception as e:
+        print(f"!! ESCRITURA ERROR: {e}")
+
     if final_file:
         # Email
         try: dispatch_report(final_file)
@@ -1440,7 +1558,7 @@ def main():
         try:
             df_v_gs = filtrar_cols(df_ventas,   COLS_VENTAS)   if df_ventas   is not None else None
             df_s_gs = filtrar_cols(df_stock_gs, COLS_STOCK)    if df_stock_gs is not None else None
-            upload_to_gsheets(df_v_gs, df_s_gs, df_prospectos, df_visitas, df_ingreso_deposito, df_flujo_caja)
+            upload_to_gsheets(df_v_gs, df_s_gs, df_prospectos, df_visitas, df_ingreso_deposito, df_flujo_caja, df_escritura)
         except Exception as e:
             print(f"!! GSHEETS ERROR: {e}")
 
