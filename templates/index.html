@@ -1326,6 +1326,14 @@ function _precioM2Ponderado(pares){
   (pares||[]).forEach(p=>{ if(p.precio>0 && p.m2>0){ sumPrecio+=p.precio; sumM2+=p.m2; } });
   return sumM2>0 ? sumPrecio/sumM2 : null;
 }
+// Llave para cruzar una venta con su fila de Stock (área real de la unidad).
+// Proyecto+NroInmueble NO alcanza: el mismo número de unidad se repite entre
+// edificios distintos del mismo proyecto (ej. Sunny "505" existe en Edificio 1
+// Y en Edificio 2, con áreas muy distintas) — Evolta no expone "Edificio" en
+// el reporte de Ventas, así que se agrega el DNI del comprador (que si está en
+// ambos reportes) para desambiguar: se busca la fila de Stock de ESE cliente
+// puntual, no cualquier unidad que comparta el mismo número.
+const _m2Key=(proyecto,nroInmueble,dni)=>String(proyecto||'').toUpperCase()+'||'+String(nroInmueble||'').trim()+'||'+String(dni||'').trim();
 const toTitle=s=>s.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());
 const _NAME_ALIAS={'anthony junior':'Anthony Nolasco'};
 const toShort=s=>{const k=toTitle(s).split(' ').slice(0,2).join(' ');return _NAME_ALIAS[k.toLowerCase()]||k;};
@@ -1634,7 +1642,9 @@ function renderDirector(){
   // Ventas por mes
   const stockArea={};
   (D.stock||[]).forEach(r=>{
-    const k=String(r.Proyecto||'').toUpperCase()+'||'+String(r.NroInmuebleActual||r.NroInmueble||'').trim();
+    const dni=String(r.NroDocumento||'').trim();
+    if(!dni) return; // sin comprador no hay venta con la que cruzar por DNI
+    const k=_m2Key(r.Proyecto, r.NroInmuebleActual||r.NroInmueble, dni);
     if(!(k in stockArea)) stockArea[k]={AreaTechada:r.AreaTechada, AreaLibre:r.AreaLibre};
   });
   const mesMapa={};
@@ -1646,10 +1656,37 @@ function renderDirector(){
     mesMapa[k].n++;
     const precioVenta=Number(r.PrecioVentaSoles||r.PrecioVenta||0);
     mesMapa[k].monto+=precioVenta;
-    const m2key=String(r.Proyecto||'').toUpperCase()+'||'+String(r.NroInmueble||'').trim();
+    const m2key=_m2Key(r.Proyecto, r.NroInmueble, r.NroDocumentoTitular);
     const areaRow=stockArea[m2key];
     if(areaRow && precioVenta>0) mesMapa[k].pares.push({precio:precioVenta, m2:_m2Efectivo(areaRow)});
   });
+  // Rellena con 0 los meses sin ventas en vez de omitirlos (ej. un proyecto
+  // filtrado que no vendió nada en un mes puntual) — dentro del rango de fecha
+  // activo, o si no hay filtro, los últimos 12 meses terminando en el actual.
+  {
+    const _dD=document.getElementById('dir-date-desde')?.value||'';
+    const _dH=document.getElementById('dir-date-hasta')?.value||'';
+    const _hoy=new Date();
+    const _hoyYM=`${_hoy.getFullYear()}-${String(_hoy.getMonth()+1).padStart(2,'0')}`;
+    let yIni,mIni,yFin,mFin;
+    if(_dD||_dH){
+      const desde=_dD?_dD.slice(0,7):(Object.keys(mesMapa).sort()[0]||_hoyYM);
+      const hasta=_dH?_dH.slice(0,7):_hoyYM;
+      [yIni,mIni]=desde.split('-').map(Number);
+      [yFin,mFin]=hasta.split('-').map(Number);
+    } else {
+      yFin=_hoy.getFullYear(); mFin=_hoy.getMonth()+1;
+      let y=yFin, m=mFin-11;
+      while(m<1){ m+=12; y--; }
+      yIni=y; mIni=m;
+    }
+    let y=yIni, m=mIni;
+    while(y<yFin || (y===yFin && m<=mFin)){
+      const k=`${y}-${String(m).padStart(2,'0')}`;
+      if(!mesMapa[k]) mesMapa[k]={mes:MN[m]+' '+y,n:0,monto:0,pares:[]};
+      m++; if(m>12){ m=1; y++; }
+    }
+  }
   const mesEntries=Object.entries(mesMapa).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,12);
   const totales=mesEntries.reduce((a,[,d])=>({n:a.n+d.n,monto:a.monto+d.monto}),{n:0,monto:0});
   {
@@ -1788,7 +1825,7 @@ function renderDirector(){
         const sepsP=sepsUnicas.filter(r=>matchProj(r.Proyecto,p)&&_matchTipo(r,_tipo)&&inPeriodFn(r.FechaSepDefinitiva));
         const paresP=pV.map(r=>{
           const precio=Number(r.PrecioVentaSoles||r.PrecioVenta||0);
-          const areaRow=stockArea[String(r.Proyecto||'').toUpperCase()+'||'+String(r.NroInmueble||'').trim()];
+          const areaRow=stockArea[_m2Key(r.Proyecto, r.NroInmueble, r.NroDocumentoTitular)];
           return areaRow&&precio>0?{precio, m2:_m2Efectivo(areaRow)}:null;
         }).filter(Boolean);
         const pm2P_=_precioM2Ponderado(paresP);
