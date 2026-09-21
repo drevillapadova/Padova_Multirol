@@ -4312,7 +4312,7 @@ function _renderAdmDetalleFicha(){
   ['2025','2026','2027'].forEach(y=>{
     _FC_MESES_TXT.forEach((m,i)=>{
       const val=parseFloat(r[m+'_'+y])||0;
-      if(val>0) pendientes.push({label:_FC_MM_CORTO[i]+' '+y, val});
+      if(val>0.01) pendientes.push({label:_FC_MM_CORTO[i]+' '+y, val}); // >0.01: ignora residuos de redondeo en expedientes ya pagados
     });
   });
   const pendientesRows = pendientes.length ? pendientes.map(m=>`<tr><td style="text-align:left">${m.label}</td><td style="text-align:right">${fC(m.val)}</td></tr>`).join('')
@@ -4407,7 +4407,7 @@ function renderProyeccionTabla(fc, ingDep){
   const suma = (arr,col) => arr.reduce((s,r)=>s+_n(r[col]),0);
 
   const filas = meses.map(m=>{
-    const cantProg = fc.filter(r=>_n(r[m.col])>0).length;
+    const cantProg = fc.filter(r=>_n(r[m.col])>0.01).length;
     return {
       ...m,
       cantProg,
@@ -4488,7 +4488,9 @@ function renderFlujoCajaCharts(fc, FX, ingDep){
   const MESES_YM = mesesFC.map(m=>m.ym);
   const _convMes = (r,col) => {
     const n = parseFloat(r[col]);
-    if(isNaN(n)) return 0;
+    // <=0.01 son residuos de redondeo de Evolta en expedientes ya 100% pagados
+    // (ej. "0.01" en un mes con Saldo_Por_Cobrar=0) — no es plata real pendiente.
+    if(isNaN(n) || n<=0.01) return 0;
     return String(r.Tipo_Moneda||'').toUpperCase().includes('DOLAR') ? n*FX : n;
   };
 
@@ -4496,6 +4498,17 @@ function renderFlujoCajaCharts(fc, FX, ingDep){
   const ctxMes = document.getElementById('adm-fc-chart-mes');
   if(ctxMes){
     const mesData = MESES_FC.map(col => fc.reduce((s,r)=>s+_convMes(r,col),0));
+    // Desglose nativo por moneda (sin blendear a S/), solo para el tooltip —
+    // la barra sigue mostrando el total en S/ equivalente para poder comparar
+    // meses, pero al pasar el cursor se ve la moneda real detrás del número.
+    const _nativoPorMoneda=(col,esUSD)=>fc.reduce((s,r)=>{
+      const n=parseFloat(r[col]);
+      if(isNaN(n)||n<=0.01) return s;
+      const rEsUSD=String(r.Tipo_Moneda||'').toUpperCase().includes('DOLAR');
+      return rEsUSD===esUSD ? s+n : s;
+    },0);
+    const mesDataS = MESES_FC.map(col => _nativoPorMoneda(col,false));
+    const mesDataD = MESES_FC.map(col => _nativoPorMoneda(col,true));
     // "Vencido" = cuota programada en un mes que ya pasó y que Flujo de Caja
     // sigue mostrando como pendiente (si ya se hubiera cobrado, no aparecería
     // ahí) — se distingue en rojo de la proyección normal (mes actual en
@@ -4515,7 +4528,15 @@ function renderFlujoCajaCharts(fc, FX, ingDep){
           if(!elements.length) return;
           _abrirModalCuotasMes(fc, MESES_FC[elements[0].index], mesLabels[elements[0].index], FX, ingDep, MESES_YM[elements[0].index]);
         },
-        plugins:{ legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:8}}, tooltip:{callbacks:{label:c=>c.dataset.label+': S/ '+fN(c.raw)}} },
+        plugins:{ legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:8}}, tooltip:{callbacks:{
+          label:c=>{
+            const i=c.dataIndex, prefix=c.dataset.label;
+            const lines=[];
+            if(mesDataS[i]>0.01) lines.push(prefix+' — S/ '+fN(mesDataS[i]));
+            if(mesDataD[i]>0.01) lines.push(prefix+' — $ '+fN(mesDataD[i]));
+            return lines.length?lines:[prefix+': S/ 0'];
+          }
+        }} },
         scales:{ y:{beginAtZero:true,ticks:{callback:v=>fN(v)}}, x:{ticks:{font:{size:9},maxRotation:60}} }
       }
     });
@@ -4697,7 +4718,8 @@ function renderCobranzaRealChart(fc, ingDep, FX){
   const hoyYM = new Date().toISOString().slice(0,7);
   const _convCol = (r,col) => {
     const n = parseFloat(r[col]);
-    if(isNaN(n)) return 0;
+    // <=0.01 son residuos de redondeo de Evolta en expedientes ya 100% pagados.
+    if(isNaN(n) || n<=0.01) return 0;
     return String(r.Tipo_Moneda||'').toUpperCase().includes('DOLAR') ? n*FX : n;
   };
 
@@ -5096,7 +5118,10 @@ document.addEventListener('keydown', e=>{
 // Monto_Cuota_Pagado), cruzando por Proyecto+NroInmueble_1 igual que hace
 // renderCobranzaRealChart.
 function _abrirModalCuotasMes(fc, mesCol, mesLabel, FX, ingDep, mesYM){
-  const filas = (fc||[]).filter(r=>_detNum(r[mesCol])>0);
+  // >0.01 (no >0): expedientes ya 100% pagados a veces quedan con un residuo
+  // de redondeo tipo "0.01" en algún mes de Flujo de Caja — no es plata real
+  // pendiente, y mostraba clientes con Monto Pagado y Por Pagar en 0.
+  const filas = (fc||[]).filter(r=>_detNum(r[mesCol])>0.01);
   // = exactamente la misma cuenta que la altura de la barra que se clickeó
   // (suma de la columna de ese mes, USD convertido a S/ igual que el gráfico).
   const totalMes = filas.reduce((a,r)=>a+(_detEsUSD(r)?_detNum(r[mesCol])*FX:_detNum(r[mesCol])),0);
