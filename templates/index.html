@@ -3931,7 +3931,7 @@ function renderAdmVentas(){
   <div style="margin-bottom:26px">
     <div class="card">
       <div class="card-hd">
-        <div><h3>Proyección de cobros — por mes</h3><p>Suma mensual de Flujo de Caja · USD a S/ referencial ×${FX_FC}</p></div>
+        <div><h3>Proyección de cobros — por mes</h3><p>Suma mensual de Flujo de Caja · en rojo, meses ya vencidos · USD a S/ referencial ×${FX_FC}</p></div>
         <button class="chip" onclick="toggleProyeccionTabla()" style="font-size:12px;padding:6px 14px;flex-shrink:0">Detalle</button>
       </div>
       <div style="height:260px;padding:8px 16px 16px"><canvas id="adm-fc-chart-mes"></canvas></div>
@@ -4496,16 +4496,26 @@ function renderFlujoCajaCharts(fc, FX, ingDep){
   const ctxMes = document.getElementById('adm-fc-chart-mes');
   if(ctxMes){
     const mesData = MESES_FC.map(col => fc.reduce((s,r)=>s+_convMes(r,col),0));
+    // "Vencido" = cuota programada en un mes que ya pasó y que Flujo de Caja
+    // sigue mostrando como pendiente (si ya se hubiera cobrado, no aparecería
+    // ahí) — se distingue en rojo de la proyección normal (mes actual en
+    // adelante), que se queda en azul.
+    const hoyYM = new Date().toISOString().slice(0,7);
+    const dataVencido = MESES_YM.map((ym,i) => ym < hoyYM ? mesData[i] : null);
+    const dataProyectado = MESES_YM.map((ym,i) => ym >= hoyYM ? mesData[i] : null);
     ctxMes.style.cursor='pointer';
     window._admFcChartMes = new Chart(ctxMes, {
       type:'bar',
-      data:{ labels:mesLabels, datasets:[{ label:'Proyección de cobro (S/ equiv.)', data:mesData, backgroundColor:'rgba(96,165,250,0.75)', borderRadius:4, borderSkipped:false }]},
+      data:{ labels:mesLabels, datasets:[
+        { label:'Vencido', data:dataVencido, backgroundColor:'rgba(239,68,68,0.8)', borderRadius:4, borderSkipped:false },
+        { label:'Proyección de cobro', data:dataProyectado, backgroundColor:'rgba(96,165,250,0.75)', borderRadius:4, borderSkipped:false },
+      ]},
       options:{ responsive:true, maintainAspectRatio:false,
         onClick: (evt, elements) => {
           if(!elements.length) return;
           _abrirModalCuotasMes(fc, MESES_FC[elements[0].index], mesLabels[elements[0].index], FX, ingDep, MESES_YM[elements[0].index]);
         },
-        plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>'S/ '+fN(c.raw)}} },
+        plugins:{ legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:8}}, tooltip:{callbacks:{label:c=>c.dataset.label+': S/ '+fN(c.raw)}} },
         scales:{ y:{beginAtZero:true,ticks:{callback:v=>fN(v)}}, x:{ticks:{font:{size:9},maxRotation:60}} }
       }
     });
