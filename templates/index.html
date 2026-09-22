@@ -4086,7 +4086,7 @@ function renderAdmLiberado(fc){
   });
 
   const filasProyecto = Object.entries(porProyecto)
-    .sort((a,b)=>(b[1].cobS+b[1].cobD*3.5)-(a[1].cobS+a[1].cobD*3.5))
+    .sort((a,b)=>a[0].localeCompare(b[0]))
     .map(([proy,d])=>{
       const pS = d.cobS ? Math.round(d.libS/d.cobS*100) : 0;
       const pD = d.cobD ? Math.round(d.libD/d.cobD*100) : 0;

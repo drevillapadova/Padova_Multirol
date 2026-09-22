@@ -189,11 +189,10 @@ def _normalizar_proyectos(registros):
                 r = dict(r)
                 r["Proyecto"] = f"LOMAS DE CARABAYLLO {num}"
                 result.append(r)
-            else:
-                # Sin etapa identificable (prospectos/visitas): conservar genérico
-                r = dict(r)
-                r["Proyecto"] = "LOMAS DE CARABAYLLO"
-                result.append(r)
+            # Etapas anteriores (1, 2, 3) o sin etapa identificable: fuera de
+            # alcance del dashboard (solo se maneja Lomas 4 y 5) - se descartan
+            # en vez de quedar como un 3er proyecto "LOMAS DE CARABAYLLO"
+            # genérico ambiguo en las tablas por proyecto.
         elif proj in _ALLOWED_PROJECTS:
             result.append(r)
     return result
