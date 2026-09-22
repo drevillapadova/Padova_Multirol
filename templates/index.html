@@ -4653,6 +4653,7 @@ function _renderAdmMetaCharts(fc, ingDep){
   if(window._admFcChartMetaS) window._admFcChartMetaS.destroy();
   const ctxMetaS = document.getElementById('adm-fc-chart-meta-soles');
   if(ctxMetaS){
+    ctxMetaS.style.cursor='pointer';
     window._admFcChartMetaS = new Chart(ctxMetaS, {
       type:'bar',
       data:{ labels: mesLabelsMeta, datasets:[
@@ -4660,6 +4661,11 @@ function _renderAdmMetaCharts(fc, ingDep){
         { label:'Meta S/', data:dataMetaS, backgroundColor:'rgba(244,162,40,0.85)', borderRadius:4, borderSkipped:false, datalabels:_dlCfg('S/') },
       ]},
       options:{ responsive:true, maintainAspectRatio:false,
+        onClick: (evt, elements) => {
+          const el = elements.find(e=>e.datasetIndex===0); // solo la barra "Cobrado real"
+          if(!el) return;
+          _admAbrirCobradoMes(ingDep, monedaByUnidad, MESES_META[el.index], false, mesLabelsMeta[el.index]);
+        },
         plugins:{ legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:8}}, tooltip:{callbacks:{label:c=>c.dataset.label+': S/ '+fN(c.raw)}} },
         scales:{ y:{beginAtZero:true,ticks:{callback:v=>fN(v)}}, x:{ticks:{font:{size:9},maxRotation:60}} }
       }
@@ -4672,6 +4678,7 @@ function _renderAdmMetaCharts(fc, ingDep){
   if(window._admFcChartMetaD) window._admFcChartMetaD.destroy();
   const ctxMetaD = document.getElementById('adm-fc-chart-meta-dolares');
   if(ctxMetaD){
+    ctxMetaD.style.cursor='pointer';
     window._admFcChartMetaD = new Chart(ctxMetaD, {
       type:'bar',
       data:{ labels: mesLabelsMeta, datasets:[
@@ -4679,6 +4686,11 @@ function _renderAdmMetaCharts(fc, ingDep){
         { label:'Meta $', data:dataMetaD, backgroundColor:'rgba(244,162,40,0.85)', borderRadius:4, borderSkipped:false, datalabels:_dlCfg('$') },
       ]},
       options:{ responsive:true, maintainAspectRatio:false,
+        onClick: (evt, elements) => {
+          const el = elements.find(e=>e.datasetIndex===0); // solo la barra "Cobrado real"
+          if(!el) return;
+          _admAbrirCobradoMes(ingDep, monedaByUnidad, MESES_META[el.index], true, mesLabelsMeta[el.index]);
+        },
         plugins:{ legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:8}}, tooltip:{callbacks:{label:c=>c.dataset.label+': $ '+fN(c.raw)}} },
         scales:{ y:{beginAtZero:true,ticks:{callback:v=>fN(v)}}, x:{ticks:{font:{size:9},maxRotation:60}} }
       }
@@ -4687,6 +4699,40 @@ function _renderAdmMetaCharts(fc, ingDep){
   const cumplimD = document.getElementById('adm-fc-cumplim-dolares');
   if(cumplimD) cumplimD.innerHTML = _admCumplimientoRow(mesLabelsMeta, dataRealD, dataMetaD)
     || '<div style="text-align:center;color:var(--ink-4);font-size:12px;padding:4px 0">Sin meses con meta cargada</div>';
+}
+
+// Clic en la barra "Cobrado real" (S/ o $) del gráfico Cobrado vs. Meta: quién
+// pagó ese mes, según Ingreso x Depósito. Reusa el popup genérico de columnas
+// dinámicas de Marketing (_abrirModalFunnelEtapa) porque Ingreso x Depósito
+// trae campos propios (Nombres_Titular, Nro_Documento_Identidad, etc.)
+// distintos a los de Flujo de Caja, que es lo que arma el otro popup de Cobranza.
+function _admAbrirCobradoMes(ingDep, monedaByUnidad, ym, esUSD, mesLabel){
+  const filas = (ingDep||[]).filter(dep=>{
+    const fecha = String(dep.Fecha_Pago||dep.Fecha_Programada||'').trim();
+    if(fecha.slice(0,7) !== ym) return false;
+    const key = String(dep.Proyecto||'').trim().toUpperCase()+'|'+String(dep.NroInmueble_1||'').trim().toUpperCase();
+    return ((monedaByUnidad[key]||'').includes('DOLAR')) === esUSD;
+  });
+  const _monto = r => parseFloat(r.Monto_Cuota_Pagado)||parseFloat(r.Monto_Pagado_Real)||0;
+  const simbolo = esUSD?'$':'S/';
+  const fMonto = n => simbolo+' '+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const total = filas.reduce((a,r)=>a+_monto(r),0);
+
+  const cols = [
+    {label:'Cliente', get:r=>(typeof _flTitleCase==='function'?_flTitleCase(_flLimpiarNombre(r.Nombres_Titular||'')):String(r.Nombres_Titular||''))||'—'},
+    {label:'DNI', get:r=>String(r.Nro_Documento_Identidad||'—'), align:'center'},
+    {label:'N° Dpto.', get:r=>String(r.NroInmueble_1||'—'), align:'center'},
+    {label:'Proyecto', get:r=>String(r.Proyecto||'—')},
+    {label:'Fecha Pago', get:r=>_flFmtFecha(r.Fecha_Pago||r.Fecha_Programada), align:'center', sortVal:r=>_flIsoFecha(r.Fecha_Pago||r.Fecha_Programada)},
+    {label:'Monto Pagado', get:r=>fMonto(_monto(r)), align:'right', sortVal:r=>_monto(r)},
+  ];
+
+  _abrirModalFunnelEtapa(
+    'Cobrado real — '+mesLabel+' ('+simbolo+')',
+    {label:'Total cobrado', val:fMonto(total), color:'#14AFBE'},
+    {label:'Pagos', val:fN(filas.length), color:'#F4A228'},
+    filas, cols
+  );
 }
 
 function renderCobranzaRealChart(fc, ingDep, FX){
