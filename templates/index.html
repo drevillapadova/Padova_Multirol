@@ -3773,10 +3773,14 @@ function renderAdmVentas(){
   if(proj) ingDep = ingDep.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
   if(_tipo) ingDep = ingDep.filter(r=>normStr(r.TipoInmueble_1||'').includes(_tipo));
 
-  // Monto total acumulado de ventas (sin filtro año/mes) para comparar con cobrado
+  // "Ventas totales"/"Monto de ventas" del KPI de arriba: respeta el período
+  // seleccionado (Desde/Hasta), igual que Cobrado/Pendiente más abajo.
+  const _admDesdeTop = document.getElementById('adm-date-desde')?.value||'';
+  const _admHastaTop = document.getElementById('adm-date-hasta')?.value||'';
   let vTodas = D.ventas||[];
   if(proj)  vTodas = vTodas.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
   if(_tipo) vTodas = vTodas.filter(r=>_matchTipo(r,_tipo));
+  if(_admDesdeTop||_admHastaTop) vTodas = vTodas.filter(r=>_matchDateRange(r.FechaVenta||r.FechaEntrega_Minuta||'', _admDesdeTop, _admHastaTop));
   const montoTotal = vTodas.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
 
   document.getElementById('adm-sub').textContent = 'Actualizado: '+D.updatedAt+' · Cobranzas y contratos';
@@ -3813,10 +3817,34 @@ function renderAdmVentas(){
   const fUsd_fc = n => '$ '+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
   const FX_FC = 3.5; // solo para ordenar/blend visual (% avance, gráficos); los KPIs quedan en moneda nativa
 
-  const cobradoS_fc   = fc.filter(r=>!_esUSD_fc(r)).reduce((a,r)=>a+_n_fc(r.Pagos_Recibido),0);
-  const cobradoD_fc   = fc.filter(r=> _esUSD_fc(r)).reduce((a,r)=>a+_n_fc(r.Pagos_Recibido),0);
-  const pendienteS_fc = fc.filter(r=>!_esUSD_fc(r)).reduce((a,r)=>a+_n_fc(r.Saldo_Por_Cobrar),0);
-  const pendienteD_fc = fc.filter(r=> _esUSD_fc(r)).reduce((a,r)=>a+_n_fc(r.Saldo_Por_Cobrar),0);
+  // Cobrado/Pendiente (y sus unidades, abajo) también respetan el mismo
+  // filtro de período que "Ventas totales"/"Monto de ventas" (_admDesdeTop/
+  // _admHastaTop, leído arriba).
+  const _admDesde = _admDesdeTop, _admHasta = _admHastaTop;
+  const fcPeriodo = (_admDesde||_admHasta) ? fc.filter(r=>_matchDateRange(r.FechaVenta, _admDesde, _admHasta)) : fc;
+
+  // "Cobrado S/"/"Cobrado $": pagos REALMENTE recibidos dentro del período
+  // (Ingreso x Depósito, por Fecha_Pago) — no el total histórico de Pagos_Recibido
+  // de expedientes vendidos en el período (eso es otra cosa: cuánto han pagado
+  // EN TOTAL los clientes que compraron en el período, no cuánto entró de caja
+  // este período). Mismo cálculo que la barra "Cobrado real" del gráfico de
+  // abajo, para que ambos números coincidan siempre.
+  const monedaByUnidadKPI = {};
+  fc.forEach(r=>{
+    const key = String(r.Proyecto||'').trim().toUpperCase()+'|'+String(r.NroInmueble_1||'').trim().toUpperCase();
+    if(key!=='|' && !(key in monedaByUnidadKPI)) monedaByUnidadKPI[key] = String(r.Tipo_Moneda||'').toUpperCase();
+  });
+  let cobradoS_fc = 0, cobradoD_fc = 0, nPagosS = 0, nPagosD = 0;
+  ingDep.forEach(dep=>{
+    const fecha = String(dep.Fecha_Pago||dep.Fecha_Programada||'').trim();
+    if((_admDesde||_admHasta) && !_matchDateRange(fecha, _admDesde, _admHasta)) return;
+    const key = String(dep.Proyecto||'').trim().toUpperCase()+'|'+String(dep.NroInmueble_1||'').trim().toUpperCase();
+    const esUSD = (monedaByUnidadKPI[key]||'').includes('DOLAR');
+    const monto = parseFloat(dep.Monto_Cuota_Pagado)||0;
+    if(esUSD){ cobradoD_fc += monto; nPagosD++; } else { cobradoS_fc += monto; nPagosS++; }
+  });
+  const pendienteS_fc = fcPeriodo.filter(r=>!_esUSD_fc(r)).reduce((a,r)=>a+_n_fc(r.Saldo_Por_Cobrar),0);
+  const pendienteD_fc = fcPeriodo.filter(r=> _esUSD_fc(r)).reduce((a,r)=>a+_n_fc(r.Saldo_Por_Cobrar),0);
 
   // Unidades (no filas), no solo el monto — pedido en la reunión con Camila/Mariana:
   // "¿en cuántas unidades?" para cobrado y pendiente, separado por moneda igual que
@@ -3838,31 +3866,49 @@ function renderAdmVentas(){
   const _contarUnidadesFC = (rows, tipoFiltro, predFila) =>
     rows.reduce((n,r)=> predFila(r) ? n+_contarUnidadesRow(r, tipoFiltro) : n, 0);
   const fcParaConteo = fcProjFiltrado.filter(r=>{ const s=String(r.FechaVenta||'').trim(); return s && s!=='nan' && s!=='None'; });
-  const unidCobradasS    = _contarUnidadesFC(fcParaConteo, _tipo, r=>!_esUSD_fc(r) &&  _pagada(r));
-  const unidCobradasD    = _contarUnidadesFC(fcParaConteo, _tipo, r=> _esUSD_fc(r) &&  _pagada(r));
-  const unidPendientesS  = _contarUnidadesFC(fcParaConteo, _tipo, r=>!_esUSD_fc(r) && !_pagada(r));
-  const unidPendientesD  = _contarUnidadesFC(fcParaConteo, _tipo, r=> _esUSD_fc(r) && !_pagada(r));
+  // Unidades "Pendiente" de los KPIs de arriba y de "Distribución por
+  // financiamiento" (Total cartera) respetan el mismo período que el resto.
+  const fcParaConteoPeriodo = (_admDesde||_admHasta) ? fcParaConteo.filter(r=>_matchDateRange(r.FechaVenta, _admDesde, _admHasta)) : fcParaConteo;
+  const unidPendientesS  = _contarUnidadesFC(fcParaConteoPeriodo, _tipo, r=>!_esUSD_fc(r) && !_pagada(r));
+  const unidPendientesD  = _contarUnidadesFC(fcParaConteoPeriodo, _tipo, r=> _esUSD_fc(r) && !_pagada(r));
 
-  // Estado por tipo de financiamiento (Flujo de Caja)
+  // Estado por tipo de financiamiento (Flujo de Caja). "Pendiente" sigue por
+  // expediente vendido en el período (cohorte, Saldo_Por_Cobrar). "Cobrado"
+  // ahora es pagos reales del período (Ingreso x Depósito) — igual que el KPI
+  // de arriba y el gráfico "Cobrado real", para que todo el tab hable el
+  // mismo idioma (antes esta tabla usaba el histórico de Pagos_Recibido de
+  // solo las ventas del período, un número distinto que confundía).
   const finMapFC = {};
-  fc.forEach(r=>{
+  fcPeriodo.forEach(r=>{
     const tipo = String(r.TipoFinanciamiento||'').trim() || 'Sin dato';
     if(!finMapFC[tipo]) finMapFC[tipo] = {clientesCobrados:0, clientesPendientes:0, cobS:0, cobD:0, penS:0, penD:0};
     const saldo = _n_fc(r.Saldo_Por_Cobrar);
     const nUnid = _contarUnidadesRow(r, _tipo);
     if(saldo<=0.01) finMapFC[tipo].clientesCobrados+=nUnid; else finMapFC[tipo].clientesPendientes+=nUnid;
-    if(_esUSD_fc(r)){
-      finMapFC[tipo].cobD += _n_fc(r.Pagos_Recibido);
-      finMapFC[tipo].penD += saldo;
-    } else {
-      finMapFC[tipo].cobS += _n_fc(r.Pagos_Recibido);
-      finMapFC[tipo].penS += saldo;
-    }
+    if(_esUSD_fc(r)) finMapFC[tipo].penD += saldo; else finMapFC[tipo].penS += saldo;
+  });
+  // TipoFinanciamiento por unidad (Ingreso x Depósito no lo trae) — se busca
+  // en TODO Flujo de Caja, no solo fcPeriodo, porque un pago de este mes
+  // puede venir de un expediente vendido en otro período.
+  const tipoFinByUnidad = {};
+  fc.forEach(r=>{
+    const key = String(r.Proyecto||'').trim().toUpperCase()+'|'+String(r.NroInmueble_1||'').trim().toUpperCase();
+    if(key!=='|' && !(key in tipoFinByUnidad)) tipoFinByUnidad[key] = String(r.TipoFinanciamiento||'').trim() || 'Sin dato';
+  });
+  ingDep.forEach(dep=>{
+    const fecha = String(dep.Fecha_Pago||dep.Fecha_Programada||'').trim();
+    if((_admDesde||_admHasta) && !_matchDateRange(fecha, _admDesde, _admHasta)) return;
+    const key = String(dep.Proyecto||'').trim().toUpperCase()+'|'+String(dep.NroInmueble_1||'').trim().toUpperCase();
+    const tipo = tipoFinByUnidad[key] || 'Sin dato';
+    if(!finMapFC[tipo]) finMapFC[tipo] = {clientesCobrados:0, clientesPendientes:0, cobS:0, cobD:0, penS:0, penD:0};
+    const esUSD = (monedaByUnidadKPI[key]||'').includes('DOLAR');
+    const monto = parseFloat(dep.Monto_Cuota_Pagado)||0;
+    if(esUSD) finMapFC[tipo].cobD += monto; else finMapFC[tipo].cobS += monto;
   });
   // Se guarda en window para que el clic en "Cobrado completo"/"Pendientes" de
   // la tabla (un <span> con onclick embebido en un string HTML) pueda acceder a
   // este mismo fc filtrado sin tener que serializarlo en el propio atributo.
-  window._admFcParaFinanciamiento = fc;
+  window._admFcParaFinanciamiento = fcPeriodo;
   const FIN_COLORS=['#60a5fa','#a78bfa','#fbbf24','#f87171','#34d399','#38bdf8','#fb923c'];
   const _blendFC = d => d.cobS + d.cobD*FX_FC + d.penS + d.penD*FX_FC;
   const finRows=Object.entries(finMapFC).sort((a,b)=>_blendFC(b[1])-_blendFC(a[1])).map(([tipo,d],i)=>{
@@ -3886,16 +3932,23 @@ function renderAdmVentas(){
     </tr>`;
   }).join('')||`<tr><td colspan="8" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos de financiamiento</td></tr>`;
 
-  const totBlendFC = cobradoS_fc + cobradoD_fc*FX_FC + pendienteS_fc + pendienteD_fc*FX_FC;
-  const totPctFC   = totBlendFC ? Math.min(Math.round((cobradoS_fc+cobradoD_fc*FX_FC)/totBlendFC*100),100) : 0;
-  const totClientesCobrados    = _contarUnidadesFC(fcParaConteo, _tipo, r=>_pagada(r));
-  const totClientesPendientes  = _contarUnidadesFC(fcParaConteo, _tipo, r=>!_pagada(r));
+  // "Distribución por financiamiento" (tabla de abajo) sigue en base
+  // Pagos_Recibido/Saldo_Por_Cobrar de Flujo de Caja (finMapFC, por expediente
+  // vendido en el período) — su pie de tabla debe sumar exacto sus propias
+  // filas, así que usa estos totales derivados de finMapFC, no el nuevo
+  // "Cobrado S/" de arriba (que ahora es otra cosa: pagos reales del período).
+  const finTotalCobS = Object.values(finMapFC).reduce((a,d)=>a+d.cobS,0);
+  const finTotalCobD = Object.values(finMapFC).reduce((a,d)=>a+d.cobD,0);
+  const totBlendFC = finTotalCobS + finTotalCobD*FX_FC + pendienteS_fc + pendienteD_fc*FX_FC;
+  const totPctFC   = totBlendFC ? Math.min(Math.round((finTotalCobS+finTotalCobD*FX_FC)/totBlendFC*100),100) : 0;
+  const totClientesCobrados    = _contarUnidadesFC(fcParaConteoPeriodo, _tipo, r=>_pagada(r));
+  const totClientesPendientes  = _contarUnidadesFC(fcParaConteoPeriodo, _tipo, r=>!_pagada(r));
 
   document.getElementById('adm-kpis').innerHTML=`
-    ${kpi('Ventas totales',`${fN(vTodas.length)} <span class="unit">und.</span>`,'Escrituras firmadas acumuladas')}
-    ${kpi('Monto de ventas',fFull(montoTotal),'Acumulado · todas las ventas')}
-    ${kpi('Cobrado S/',cobradoS_fc?fFull(cobradoS_fc):'—',`${fN(unidCobradasS)} unidades cobradas`)}
-    ${kpi('Cobrado $',cobradoD_fc?fUsd_fc(cobradoD_fc):'—',`${fN(unidCobradasD)} unidades cobradas`)}
+    ${kpi('Ventas totales',`${fN(vTodas.length)} <span class="unit">und.</span>`,(_admDesdeTop||_admHastaTop)?'Escrituras firmadas · período filtrado':'Escrituras firmadas · todo el histórico')}
+    ${kpi('Monto de ventas',fFull(montoTotal),(_admDesdeTop||_admHastaTop)?'Período filtrado':'Todo el histórico')}
+    ${kpi('Cobrado S/',cobradoS_fc?fFull(cobradoS_fc):'—',`${fN(nPagosS)} pagos recibidos`)}
+    ${kpi('Cobrado $',cobradoD_fc?fUsd_fc(cobradoD_fc):'—',`${fN(nPagosD)} pagos recibidos`)}
     ${kpi('Pendiente S/',pendienteS_fc?fFull(pendienteS_fc):'—',`${fN(unidPendientesS)} unidades por cobrar`)}
     ${kpi('Pendiente $',pendienteD_fc?fUsd_fc(pendienteD_fc):'—',`${fN(unidPendientesD)} unidades por cobrar`)}
   `;
@@ -3903,7 +3956,7 @@ function renderAdmVentas(){
   document.getElementById('adm-content').innerHTML = `
   <div class="section-title"><h2>Estado por tipo de financiamiento</h2><div class="hint">Clientes · cobrado vs. pendiente por moneda · Flujo de Caja</div></div>
   <div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>Distribución por financiamiento</h3><p>Cobrado/Pendiente = Pagos_Recibido / Saldo_Por_Cobrar de Flujo de Caja, por moneda nativa · <b style="color:var(--brand)">clic en un número para ver el detalle</b></p></div></div>
+    <div class="card-hd"><div><h3>Distribución por financiamiento</h3><p>Cobrado = pagos reales (Ingreso x Depósito) · Pendiente = Saldo_Por_Cobrar de Flujo de Caja, por moneda nativa${(_admDesdeTop||_admHastaTop)?' · período filtrado':' · todo el histórico'} · <b style="color:var(--brand)">clic en un número para ver el detalle</b></p></div></div>
     <table class="tbl" style="table-layout:fixed;width:100%">
       <thead><tr>
         <th style="width:19%">Financiamiento</th>
@@ -3920,9 +3973,9 @@ function renderAdmVentas(){
         <td style="text-transform:uppercase;letter-spacing:.03em">Total cartera</td>
         <td style="text-align:center">${totClientesCobrados}</td>
         <td style="text-align:center">${totClientesPendientes}</td>
-        <td style="text-align:center">${cobradoS_fc?fFull(cobradoS_fc):'—'}</td>
+        <td style="text-align:center">${finTotalCobS?fFull(finTotalCobS):'—'}</td>
         <td style="text-align:center">${pendienteS_fc?fFull(pendienteS_fc):'—'}</td>
-        <td style="text-align:center">${cobradoD_fc?fUsd_fc(cobradoD_fc):'—'}</td>
+        <td style="text-align:center">${finTotalCobD?fUsd_fc(finTotalCobD):'—'}</td>
         <td style="text-align:center">${pendienteD_fc?fUsd_fc(pendienteD_fc):'—'}</td>
         <td style="text-align:center">${totPctFC}%</td>
       </tr></tfoot>
@@ -3931,10 +3984,10 @@ function renderAdmVentas(){
   <div style="margin-bottom:26px">
     <div class="card">
       <div class="card-hd">
-        <div><h3>Proyección de cobros — por mes</h3><p>Suma mensual de Flujo de Caja · en rojo, meses ya vencidos · USD a S/ referencial ×${FX_FC}</p></div>
+        <div><h3>Proyección de cobros — por mes</h3><p>Vencido (pendiente y ya pasó su mes) · Cobrado real (Ingreso x Depósito) · Proyectado (Flujo de Caja, a futuro) · USD a S/ referencial ×${FX_FC}</p></div>
         <button class="chip" onclick="toggleProyeccionTabla()" style="font-size:12px;padding:6px 14px;flex-shrink:0">Detalle</button>
       </div>
-      <div style="height:260px;padding:8px 16px 16px"><canvas id="adm-fc-chart-mes"></canvas></div>
+      <div style="height:280px;padding:8px 16px 16px"><canvas id="adm-fc-chart-mes"></canvas></div>
     </div>
   </div>
   <div class="card" id="adm-fc-tabla-card" style="margin-bottom:26px;display:none">
@@ -3957,15 +4010,9 @@ function renderAdmVentas(){
       <div class="adm-cumplim-row" id="adm-fc-cumplim-dolares"></div>
     </div>
   </div>
-  <div class="section-title"><h2>Cobranza mensual — real vs. proyectada</h2><div class="hint">Pasado = depósitos reales (Ingreso x Depósito) · Futuro = proyección (Flujo de Caja)</div></div>
-  <div class="card" style="margin-bottom:26px">
-    <div class="card-hd"><div><h3>Cobrado real (hasta hoy) + proyectado (a futuro)</h3><p>Por mes · USD a S/ referencial ×${FX_FC}</p></div></div>
-    <div style="height:280px;padding:8px 16px 16px"><canvas id="adm-fc-chart-real"></canvas></div>
-  </div>
   `;
   renderFlujoCajaCharts(fc, FX_FC, ingDep);
   renderProyeccionTabla(fc, ingDep);
-  renderCobranzaRealChart(fc, ingDep, FX_FC);
 }
 
 // Meses de Flujo de Caja (Ene 2025 – Dic 2027) recortados al filtro de fechas de
@@ -4210,7 +4257,7 @@ function _renderAdmLiberadoLista(){
 // ── PESTAÑA "DETALLE" (Cobranza): buscador de cliente → pagos hechos y por
 // haber. Cruza Flujo de Caja (el expediente: venta/saldo/tipo financiamiento)
 // con Ingreso x Depósito (el libro de pagos reales, con fecha) por unidad
-// (Proyecto+NroInmueble_1, mismo cruce que ya usa renderCobranzaRealChart).
+// (Proyecto+NroInmueble_1, mismo cruce que ya usa renderFlujoCajaCharts).
 let _admDetalleSearch = '';
 let _admDetalleSel = null;
 let _admDetalleFC = [];     // cache de la última renderAdmDetalle, para refiltrar en cada tecla sin re-render completo (perdería el foco del input)
@@ -4494,6 +4541,16 @@ function renderFlujoCajaCharts(fc, FX, ingDep){
     return String(r.Tipo_Moneda||'').toUpperCase().includes('DOLAR') ? n*FX : n;
   };
 
+  // Moneda por unidad (Proyecto|NroInmueble_1 → Tipo_Moneda), para el desglose
+  // nativo de Ingreso x Depósito (Cobrado real) — Ingreso x Depósito no trae
+  // su propia columna de moneda, así que se infiere por la unidad, igual que
+  // en el resto de esta pestaña.
+  const monedaByUnidad = {};
+  fc.forEach(r=>{
+    const key = String(r.Proyecto||'').trim().toUpperCase()+'|'+String(r.NroInmueble_1||'').trim().toUpperCase();
+    if(key!=='|' && !(key in monedaByUnidad)) monedaByUnidad[key] = String(r.Tipo_Moneda||'').toUpperCase();
+  });
+
   if(window._admFcChartMes) window._admFcChartMes.destroy();
   const ctxMes = document.getElementById('adm-fc-chart-mes');
   if(ctxMes){
@@ -4509,31 +4566,62 @@ function renderFlujoCajaCharts(fc, FX, ingDep){
     },0);
     const mesDataS = MESES_FC.map(col => _nativoPorMoneda(col,false));
     const mesDataD = MESES_FC.map(col => _nativoPorMoneda(col,true));
+
+    // Cobrado real (Ingreso x Depósito, por mes según Fecha_Pago) — mismo
+    // cálculo que antes tenía su propio gráfico aparte ("Cobrado real +
+    // proyectado"), fusionado acá para no repetir la misma línea de tiempo
+    // en 2 cards distintas.
+    const realPorMes = {}, realPorMesS = {}, realPorMesD = {};
+    (ingDep||[]).forEach(r=>{
+      const fecha = String(r.Fecha_Pago||r.Fecha_Programada||'').trim();
+      const ym = fecha.slice(0,7);
+      if(!/^\d{4}-\d{2}$/.test(ym)) return;
+      const key = String(r.Proyecto||'').trim().toUpperCase()+'|'+String(r.NroInmueble_1||'').trim().toUpperCase();
+      const esUSD = (monedaByUnidad[key]||'').includes('DOLAR');
+      const monto = parseFloat(r.Monto_Cuota_Pagado)||0;
+      realPorMes[ym] = (realPorMes[ym]||0) + (esUSD?monto*FX:monto);
+      if(esUSD) realPorMesD[ym]=(realPorMesD[ym]||0)+monto; else realPorMesS[ym]=(realPorMesS[ym]||0)+monto;
+    });
+
     // "Vencido" = cuota programada en un mes que ya pasó y que Flujo de Caja
     // sigue mostrando como pendiente (si ya se hubiera cobrado, no aparecería
-    // ahí) — se distingue en rojo de la proyección normal (mes actual en
-    // adelante), que se queda en azul.
+    // ahí). "Cobrado real" = lo efectivamente recibido ese mes (Ingreso x
+    // Depósito), hasta el mes actual inclusive. "Proyectado" = lo programado
+    // en Flujo de Caja desde el mes actual en adelante. El mes actual sale en
+    // Cobrado real Y Proyectado a la vez (lo ya cobrado este mes, junto a lo
+    // que falta programado para completarlo).
     const hoyYM = new Date().toISOString().slice(0,7);
     const dataVencido = MESES_YM.map((ym,i) => ym < hoyYM ? mesData[i] : null);
+    const dataReal = MESES_YM.map(ym => ym<=hoyYM ? (realPorMes[ym]||0) : null);
     const dataProyectado = MESES_YM.map((ym,i) => ym >= hoyYM ? mesData[i] : null);
+    const dataRealS = MESES_YM.map(ym => realPorMesS[ym]||0);
+    const dataRealD = MESES_YM.map(ym => realPorMesD[ym]||0);
+
     ctxMes.style.cursor='pointer';
     window._admFcChartMes = new Chart(ctxMes, {
       type:'bar',
       data:{ labels:mesLabels, datasets:[
         { label:'Vencido', data:dataVencido, backgroundColor:'rgba(239,68,68,0.8)', borderRadius:4, borderSkipped:false },
-        { label:'Proyección de cobro', data:dataProyectado, backgroundColor:'rgba(96,165,250,0.75)', borderRadius:4, borderSkipped:false },
+        { label:'Cobrado real', data:dataReal, backgroundColor:'rgba(52,211,153,0.85)', borderRadius:4, borderSkipped:false },
+        { label:'Proyectado', data:dataProyectado, backgroundColor:'rgba(96,165,250,0.75)', borderRadius:4, borderSkipped:false },
       ]},
       options:{ responsive:true, maintainAspectRatio:false,
         onClick: (evt, elements) => {
           if(!elements.length) return;
-          _abrirModalCuotasMes(fc, MESES_FC[elements[0].index], mesLabels[elements[0].index], FX, ingDep, MESES_YM[elements[0].index]);
+          const el = elements[0];
+          if(el.datasetIndex===1){ // barra "Cobrado real": quién pagó, según Ingreso x Depósito
+            _admAbrirCobradoMes(ingDep, monedaByUnidad, MESES_YM[el.index], null, mesLabels[el.index]);
+          } else { // "Vencido" o "Proyectado": detalle por expediente, según Flujo de Caja
+            _abrirModalCuotasMes(fc, MESES_FC[el.index], mesLabels[el.index], FX, ingDep, MESES_YM[el.index]);
+          }
         },
         plugins:{ legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:8}}, tooltip:{callbacks:{
           label:c=>{
             const i=c.dataIndex, prefix=c.dataset.label;
+            const [ns, nd] = prefix==='Cobrado real' ? [dataRealS[i], dataRealD[i]] : [mesDataS[i], mesDataD[i]];
             const lines=[];
-            if(mesDataS[i]>0.01) lines.push(prefix+' — S/ '+fN(mesDataS[i]));
-            if(mesDataD[i]>0.01) lines.push(prefix+' — $ '+fN(mesDataD[i]));
+            if(ns>0.01) lines.push(prefix+' — S/ '+fN(ns));
+            if(nd>0.01) lines.push(prefix+' — $ '+fN(nd));
             return lines.length?lines:[prefix+': S/ 0'];
           }
         }} },
@@ -4706,17 +4794,27 @@ function _renderAdmMetaCharts(fc, ingDep){
 // dinámicas de Marketing (_abrirModalFunnelEtapa) porque Ingreso x Depósito
 // trae campos propios (Nombres_Titular, Nro_Documento_Identidad, etc.)
 // distintos a los de Flujo de Caja, que es lo que arma el otro popup de Cobranza.
+// esUSD: true/false para filtrar a una sola moneda (gráficos Soles/Dólares
+// separados), o null para traer ambas mezcladas (gráfico fusionado "Vencido /
+// Cobrado real / Proyectado", que no separa por moneda en la barra).
 function _admAbrirCobradoMes(ingDep, monedaByUnidad, ym, esUSD, mesLabel){
+  const _esUSDRow = r => {
+    const key = String(r.Proyecto||'').trim().toUpperCase()+'|'+String(r.NroInmueble_1||'').trim().toUpperCase();
+    return (monedaByUnidad[key]||'').includes('DOLAR');
+  };
   const filas = (ingDep||[]).filter(dep=>{
     const fecha = String(dep.Fecha_Pago||dep.Fecha_Programada||'').trim();
     if(fecha.slice(0,7) !== ym) return false;
-    const key = String(dep.Proyecto||'').trim().toUpperCase()+'|'+String(dep.NroInmueble_1||'').trim().toUpperCase();
-    return ((monedaByUnidad[key]||'').includes('DOLAR')) === esUSD;
+    return esUSD===null ? true : _esUSDRow(dep)===esUSD;
   });
   const _monto = r => parseFloat(r.Monto_Cuota_Pagado)||parseFloat(r.Monto_Pagado_Real)||0;
-  const simbolo = esUSD?'$':'S/';
-  const fMonto = n => simbolo+' '+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const total = filas.reduce((a,r)=>a+_monto(r),0);
+  const fMonto = (n,simbolo) => simbolo+' '+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  let totalS=0, totalD=0;
+  filas.forEach(r=>{ if(_esUSDRow(r)) totalD+=_monto(r); else totalS+=_monto(r); });
+  const totalLabel = esUSD===null
+    ? [totalS>0?fMonto(totalS,'S/'):null, totalD>0?fMonto(totalD,'$'):null].filter(Boolean).join(' · ') || 'S/ 0'
+    : fMonto(esUSD?totalD:totalS, esUSD?'$':'S/');
 
   const cols = [
     {label:'Cliente', get:r=>(typeof _flTitleCase==='function'?_flTitleCase(_flLimpiarNombre(r.Nombres_Titular||'')):String(r.Nombres_Titular||''))||'—'},
@@ -4724,70 +4822,15 @@ function _admAbrirCobradoMes(ingDep, monedaByUnidad, ym, esUSD, mesLabel){
     {label:'N° Dpto.', get:r=>String(r.NroInmueble_1||'—'), align:'center'},
     {label:'Proyecto', get:r=>String(r.Proyecto||'—')},
     {label:'Fecha Pago', get:r=>_flFmtFecha(r.Fecha_Pago||r.Fecha_Programada), align:'center', sortVal:r=>_flIsoFecha(r.Fecha_Pago||r.Fecha_Programada)},
-    {label:'Monto Pagado', get:r=>fMonto(_monto(r)), align:'right', sortVal:r=>_monto(r)},
+    {label:'Monto Pagado', get:r=>fMonto(_monto(r), _esUSDRow(r)?'$':'S/'), align:'right', sortVal:r=>_monto(r)},
   ];
 
   _abrirModalFunnelEtapa(
-    'Cobrado real — '+mesLabel+' ('+simbolo+')',
-    {label:'Total cobrado', val:fMonto(total), color:'#14AFBE'},
+    'Cobrado real — '+mesLabel+(esUSD===null?'':' ('+(esUSD?'$':'S/')+')'),
+    {label:'Total cobrado', val:totalLabel, color:'#14AFBE'},
     {label:'Pagos', val:fN(filas.length), color:'#F4A228'},
     filas, cols
   );
-}
-
-function renderCobranzaRealChart(fc, ingDep, FX){
-  const ctx = document.getElementById('adm-fc-chart-real');
-  if(!ctx) return;
-
-  const MESES = _mesesFlujoCaja().map(m=>({ label:m.labelLargo, ym:m.ym, col:m.col }));
-
-  // Moneda por unidad, tomada de Flujo de Caja (Proyecto|NroInmueble_1 → Tipo_Moneda)
-  const monedaByUnidad = {};
-  fc.forEach(r=>{
-    const key = String(r.Proyecto||'').trim().toUpperCase()+'|'+String(r.NroInmueble_1||'').trim().toUpperCase();
-    if(key!=='|' && !(key in monedaByUnidad)) monedaByUnidad[key] = String(r.Tipo_Moneda||'').toUpperCase();
-  });
-
-  // Cobrado real por mes (Ingreso x Depósito): cada fila = 1 depósito con su fecha
-  const realByMonth = {};
-  (ingDep||[]).forEach(r=>{
-    const fecha = String(r.Fecha_Pago||r.Fecha_Programada||'').trim();
-    const ym = fecha.slice(0,7);
-    if(!/^\d{4}-\d{2}$/.test(ym)) return;
-    const key = String(r.Proyecto||'').trim().toUpperCase()+'|'+String(r.NroInmueble_1||'').trim().toUpperCase();
-    const esUSD = (monedaByUnidad[key]||'').includes('DOLAR');
-    const monto = parseFloat(r.Monto_Cuota_Pagado)||0;
-    if(!realByMonth[ym]) realByMonth[ym]=0;
-    realByMonth[ym] += esUSD ? monto*FX : monto;
-  });
-
-  const hoyYM = new Date().toISOString().slice(0,7);
-  const _convCol = (r,col) => {
-    const n = parseFloat(r[col]);
-    // <=0.01 son residuos de redondeo de Evolta en expedientes ya 100% pagados.
-    if(isNaN(n) || n<=0.01) return 0;
-    return String(r.Tipo_Moneda||'').toUpperCase().includes('DOLAR') ? n*FX : n;
-  };
-
-  // El mes actual queda entre las dos series (ya no es "futuro" estricto, pero
-  // recién empieza y "real" casi siempre es 0 al inicio) — sin esto, ese mes no
-  // mostraba ninguna barra. Se incluye también en "proyectado" para que el mes en
-  // curso muestre lo cobrado real hasta hoy junto a lo proyectado para todo el mes.
-  const dataReal = MESES.map(m => m.ym<=hoyYM ? (realByMonth[m.ym]||0) : null);
-  const dataProy = MESES.map(m => m.ym>=hoyYM ? fc.reduce((s,r)=>s+_convCol(r,m.col),0) : null);
-
-  if(window._admCobranzaRealChart) window._admCobranzaRealChart.destroy();
-  window._admCobranzaRealChart = new Chart(ctx, {
-    type:'bar',
-    data:{ labels: MESES.map(m=>m.label), datasets:[
-      { label:'Cobrado real (Ingreso x Depósito)', data:dataReal, backgroundColor:'rgba(52,211,153,0.8)', borderRadius:4, borderSkipped:false },
-      { label:'Proyectado (Flujo de Caja)', data:dataProy, backgroundColor:'rgba(96,165,250,0.5)', borderRadius:4, borderSkipped:false },
-    ]},
-    options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:8}}, tooltip:{callbacks:{label:c=>c.dataset.label+': S/ '+fN(c.raw)}} },
-      scales:{ y:{beginAtZero:true,ticks:{callback:v=>fN(v)}}, x:{ticks:{font:{size:9},maxRotation:60}} }
-    }
-  });
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -5149,6 +5192,14 @@ function _cobMesRenderTabla(){
 function cerrarModalDetalle(){
   document.getElementById('cob-mes-overlay')?.classList.remove('open');
 }
+// Descarga la tabla del popup tal como se ve en pantalla (respeta el filtro
+// de búsqueda activo), reusando el exportador de Excel ya usado en Marketing.
+function _cobMesExportarExcel(){
+  const titulo = document.getElementById('cob-mes-titulo-mes')?.textContent || 'cobranza';
+  const slug = titulo.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') || 'cobranza';
+  _exportarTablaExcel('#cob-mes-table', 'cobranza_'+slug);
+}
 document.addEventListener('keydown', e=>{
   if(e.key==='Escape') cerrarModalDetalle();
 });
@@ -5162,7 +5213,7 @@ document.addEventListener('keydown', e=>{
 // proyectado (su suma da exacto Saldo_Por_Cobrar), no hay pagos históricos ahí,
 // así que el pago real de ese mes se busca en Ingreso x Depósito (Fecha_Pago +
 // Monto_Cuota_Pagado), cruzando por Proyecto+NroInmueble_1 igual que hace
-// renderCobranzaRealChart.
+// renderFlujoCajaCharts.
 function _abrirModalCuotasMes(fc, mesCol, mesLabel, FX, ingDep, mesYM){
   // >0.01 (no >0): expedientes ya 100% pagados a veces quedan con un residuo
   // de redondeo tipo "0.01" en algún mes de Flujo de Caja — no es plata real
@@ -6714,7 +6765,10 @@ loadAll();
 <div class="cob-overlay" id="cob-mes-overlay" onclick="if(event.target===this)cerrarModalDetalle()">
   <div class="cob-mes-modal">
     <button class="cob-mes-x" onclick="cerrarModalDetalle()">✕</button>
-    <h2 class="cob-mes-title" id="cob-mes-titulo-mes">—</h2>
+    <div style="display:flex;align-items:center;gap:10px;margin:0 34px 18px 0">
+      <h2 class="cob-mes-title" id="cob-mes-titulo-mes" style="margin:0;flex:1;min-width:0">—</h2>
+      <button onclick="_cobMesExportarExcel()" title="Descargar Excel" style="flex-shrink:0;background:var(--bg);border:1px solid var(--line);color:var(--ink-2);font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif">⬇ Excel</button>
+    </div>
     <div class="cob-mes-kpis">
       <div class="cob-mes-kpi"><div class="k-lbl" id="cob-mes-kpi-total-lbl">Deuda Pendiente Mes</div><div class="k-val" id="cob-mes-kpi-total" style="color:#14AFBE">—</div></div>
       <div class="cob-mes-kpi"><div class="k-lbl" id="cob-mes-kpi-clientes-lbl">Clientes</div><div class="k-val" id="cob-mes-kpi-clientes" style="color:#F4A228">—</div></div>
@@ -6723,7 +6777,7 @@ loadAll();
       <input type="text" class="sp-search" id="cob-mes-search" placeholder="Buscar por nombre o N° Dpto..." oninput="_cobMesBuscar(this.value)">
     </div>
     <div class="cob-mes-tablewrap">
-      <table class="tbl" style="width:100%">
+      <table class="tbl" id="cob-mes-table" style="width:100%">
         <thead style="position:sticky;top:0;background:var(--panel);z-index:2"><tr>
           <th style="text-align:left">Cliente</th>
           <th style="text-align:center">N° Dpto.</th>
