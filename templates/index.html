@@ -4093,7 +4093,10 @@ function renderAdmLiberado(fc){
       else   { liberadoS+=pagado; porProyecto[proj].libS+=pagado; }
       const ym = _fechaEscrituraDe(r);
       if(ym) montoPorMes[ym] = (montoPorMes[ym]||0) + (esD?pagado*FX_LIB:pagado);
-    } else {
+    } else if(_n(r.Saldo_Por_Cobrar)<=0.01){
+      // Solo los que ya pagaron el 100% (Saldo_Por_Cobrar=0) van a "Pendientes
+      // de escriturar" — un cliente que recién pagó una cuota inicial y le
+      // falta pagar meses no debería estar ahí (aún no le toca escriturar).
       pendientes.push(r);
     }
   });
@@ -4168,7 +4171,7 @@ function renderAdmLiberado(fc){
     <div style="height:260px;padding:8px 16px 16px">${rangoMeses.length?'<canvas id="adm-liberado-chart-mes"></canvas>':'<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--ink-4);font-size:13px">Sin escrituras firmadas todavía</div>'}</div>
   </div>
   <div class="card">
-    <div class="card-hd"><div><h3>Pendientes de escriturar</h3><p>Cobrado pero sin Escritura Pública aún · ${fN(pendientes.length)} expedientes, ordenados por monto</p></div></div>
+    <div class="card-hd"><div><h3>Pendientes de escriturar</h3><p>Pagado 100% pero sin Escritura Pública aún · ${fN(pendientes.length)} expedientes, ordenados por monto</p></div></div>
     <div style="padding:14px 18px">
       <input type="text" class="sp-search" id="adm-liberado-search" style="width:100%;max-width:480px" placeholder="Buscar por nombre, DNI o N° Dpto..." value="${_escapeHtml(_admLiberadoSearch)}" oninput="_admLiberadoBuscar(this.value)">
     </div>

@@ -417,11 +417,15 @@ def get_driver(download_dir):
         "profile.default_content_setting_values.automatic_downloads": 1
     }
     options.add_experimental_option("prefs", prefs)
-    if IS_CLOUD:
-        return webdriver.Chrome(options=options)
-    else:
-        service = Service(ChromeDriverManager().install())
-        return webdriver.Chrome(service=service, options=options)
+    # ChromeDriverManager().install() en ambos entornos (antes solo en Windows):
+    # el runner de GitHub Actions trae un chromedriver viejo preinstalado en el
+    # PATH del sistema, y dejar que Selenium lo detecte solo (sin especificar
+    # service) puede terminar usando ese binario desactualizado en vez de bajar
+    # el que coincide con la versión de Chrome recién instalada — eso rompía el
+    # ETL con "SessionNotCreatedException: ChromeDriver only supports Chrome
+    # version X" cada vez que el runner actualizaba Chrome a una versión nueva.
+    service = Service(ChromeDriverManager().install())
+    return webdriver.Chrome(service=service, options=options)
 
 
 def clean_environment(directory, extension="*.xlsx"):
