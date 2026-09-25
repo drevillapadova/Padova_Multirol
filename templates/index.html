@@ -3991,6 +3991,10 @@ function renderAdmVentas(){
       <div class="adm-cumplim-row" id="adm-fc-cumplim-mes" style="padding-bottom:16px"></div>
     </div>
   </div>
+  <div class="card" style="margin-bottom:26px">
+    <div class="card-hd"><div><h3>Cobranza por canal</h3><p>Pagos recibidos en el período, según quién gestiona la venta · <b style="color:var(--brand)">clic en una card para ver el detalle</b></p></div></div>
+    <div id="adm-canal-cobranza-wrap" style="padding:6px 18px 16px"></div>
+  </div>
   <div class="card" id="adm-fc-tabla-card" style="margin-bottom:26px;display:none">
     <div class="card-hd" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
       <div><h3>Proyección de cobros — detalle por mes</h3><p>Mismos 3 estados y montos que el gráfico de arriba (USD a S/ referencial ×${FX_FC}), abiertos por tipo de financiamiento</p></div>
@@ -4001,6 +4005,98 @@ function renderAdmVentas(){
   `;
   renderFlujoCajaCharts(fc, FX_FC, ingDep);
   renderProyeccionTabla(fc, ingDep, FX_FC);
+  _renderAdmCanalCobranza(fc, ingDep, FX_FC);
+}
+
+// Cobranza por canal: agrupa los pagos de Ingreso x Depósito según quién
+// gestiona la venta. "Vendedor" solo está en Flujo de Caja (Ingreso x
+// Depósito no lo trae), así que se busca por unidad, igual que TipoFinanciamiento
+// o moneda en el resto de Cobranza. Usher y Óptima son empresas tercerizadas
+// que manejan ciertos vendedores/proyectos; el resto cae en Proper (la
+// inmobiliaria directa).
+const _CANAL_VENDEDOR = {
+  'Usher':  ['anthony','antony','roy','jair','stefany','stephanie','niria','usher'],
+  'Óptima': ['nancy'],
+  'Proper': ['proper'],
+};
+function _canalDeVendedor(vendedor){
+  const nombre = normStr(vendedor||'');
+  for(const [canal, nombres] of Object.entries(_CANAL_VENDEDOR)){
+    if(nombres.some(n=>new RegExp('\\b'+n+'\\b').test(nombre))) return canal;
+  }
+  return 'Otros';
+}
+let _admCanalPorCanal = {};       // canal -> {count, monto, filas} — cache para el popup de detalle
+let _admCanalVendedorByUnidad = {};
+let _admCanalMonedaByUnidad = {};
+function _renderAdmCanalCobranza(fc, ingDep, FX){
+  const wrap = document.getElementById('adm-canal-cobranza-wrap');
+  if(!wrap) return;
+  const vendedorByUnidad = {}, monedaByUnidadCanal = {};
+  fc.forEach(r=>{
+    const key = _admKeyUnidad(r);
+    if(key==='||') return;
+    if(!(key in vendedorByUnidad)) vendedorByUnidad[key] = r.Vendedor||'';
+    if(!(key in monedaByUnidadCanal)) monedaByUnidadCanal[key] = String(r.Tipo_Moneda||'').toUpperCase();
+  });
+  const desde = document.getElementById('adm-date-desde')?.value||'';
+  const hasta = document.getElementById('adm-date-hasta')?.value||'';
+  const porCanal = {};
+  (ingDep||[]).forEach(dep=>{
+    const fecha = String(dep.Fecha_Pago||dep.Fecha_Programada||'').trim();
+    if((desde||hasta) && !_matchDateRange(fecha, desde, hasta)) return;
+    const monto = _detNum(dep.Monto_Cuota_Pagado);
+    if(monto<=0.01) return;
+    const key = _admKeyUnidad(dep);
+    const canal = _canalDeVendedor(vendedorByUnidad[key]);
+    const esUSD = (monedaByUnidadCanal[key]||'').includes('DOLAR');
+    if(!porCanal[canal]) porCanal[canal] = {count:0, monto:0, filas:[]};
+    porCanal[canal].count++;
+    porCanal[canal].monto += esUSD ? monto*FX : monto;
+    porCanal[canal].filas.push(dep);
+  });
+  _admCanalPorCanal = porCanal;
+  _admCanalVendedorByUnidad = vendedorByUnidad;
+  _admCanalMonedaByUnidad = monedaByUnidadCanal;
+
+  const entradas = Object.entries(porCanal).sort((a,b)=>b[1].monto-a[1].monto);
+  wrap.innerHTML = entradas.length ? `<div style="display:flex;flex-wrap:wrap;gap:10px">${
+    entradas.map(([canal,d])=>`
+      <div onclick="_admAbrirCanalDetalle('${canal}')" style="flex:1;min-width:160px;cursor:pointer;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px">
+        <div style="font-size:11px;font-weight:700;color:var(--ink-4);text-transform:uppercase;letter-spacing:.04em">${canal}</div>
+        <div style="font-size:18px;font-weight:700;color:var(--ink);margin-top:4px">S/ ${fN(d.monto)}</div>
+        <div style="font-size:11.5px;color:var(--ink-3);margin-top:2px">${fN(d.count)} pagos · ver detalle</div>
+      </div>`).join('')
+  }</div>` : '<div style="text-align:center;color:var(--ink-4);font-size:13px;padding:10px 0">Sin pagos en el período</div>';
+}
+// Clic en una card de "Cobranza por canal": lista de pagos (Ingreso x Depósito)
+// de ese canal en el período filtrado. Reusa el popup genérico de columnas
+// dinámicas de Marketing (_abrirModalFunnelEtapa), igual que hacía el popup
+// "Cobrado real" que existía antes de fusionar los gráficos de Cobranza.
+function _admAbrirCanalDetalle(canal){
+  const d = _admCanalPorCanal[canal];
+  if(!d) return;
+  const cols = [
+    {label:'Cliente', get:r=>(typeof _flTitleCase==='function'?_flTitleCase(_flLimpiarNombre(r.Nombres_Titular||'')):String(r.Nombres_Titular||''))||'—'},
+    {label:'DNI', get:r=>String(r.Nro_Documento_Identidad||'—'), align:'center'},
+    {label:'N° Dpto.', get:r=>String(r.NroInmueble_1||'—'), align:'center'},
+    {label:'Proyecto', get:r=>String(r.Proyecto||'—')},
+    {label:'Vendedor', get:r=>{
+      const v = _admCanalVendedorByUnidad[_admKeyUnidad(r)];
+      return v ? ((typeof _flTitleCase==='function'?_flTitleCase(v):v)) : '—';
+    }},
+    {label:'Fecha Pago', get:r=>_flFmtFecha(r.Fecha_Pago||r.Fecha_Programada), align:'center', sortVal:r=>_flIsoFecha(r.Fecha_Pago||r.Fecha_Programada)},
+    {label:'Monto Pagado', align:'right', get:r=>{
+      const esUSD = (_admCanalMonedaByUnidad[_admKeyUnidad(r)]||'').includes('DOLAR');
+      return (esUSD?'$':'S/')+' '+_detFmtMonto(_detNum(r.Monto_Cuota_Pagado));
+    }, sortVal:r=>_detNum(r.Monto_Cuota_Pagado)},
+  ];
+  _abrirModalFunnelEtapa(
+    'Cobranza por canal — '+canal,
+    {label:'Total cobrado', val:'S/ '+_detFmtMonto(d.monto), color:'#14AFBE'},
+    {label:'Pagos', val:fN(d.count), color:'#F4A228'},
+    d.filas, cols
+  );
 }
 
 // Meses de Flujo de Caja (Ene 2025 – Dic 2027) recortados al filtro de fechas de
@@ -4044,6 +4140,16 @@ function _unidadesDeRow(r, maxSlots){
 
 let _admLiberadoSearch = '';
 let _admLiberadoPendientes = []; // cache para refiltrar sin perder el foco del buscador
+// Colapsada por defecto: al mostrarle el dashboard a Gerencia General no debe
+// verse de entrada la lista granular de expedientes, solo los totales.
+let _admLiberadoPendientesVisible = false;
+function _toggleAdmLiberadoPendientes(){
+  _admLiberadoPendientesVisible = !_admLiberadoPendientesVisible;
+  const body = document.getElementById('adm-liberado-pendientes-body');
+  const arrow = document.getElementById('adm-liberado-pendientes-arrow');
+  if(body) body.style.display = _admLiberadoPendientesVisible ? '' : 'none';
+  if(arrow) arrow.textContent = _admLiberadoPendientesVisible ? '▾ Ocultar' : '▸ Ver pendientes de escriturar ('+fN(_admLiberadoPendientes.length)+')';
+}
 
 function _admProgBar(pct){
   const color = pct>=90?'var(--ok)':pct>=60?'var(--warn)':'var(--bad)';
@@ -4171,21 +4277,29 @@ function renderAdmLiberado(fc){
     <div style="height:260px;padding:8px 16px 16px">${rangoMeses.length?'<canvas id="adm-liberado-chart-mes"></canvas>':'<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--ink-4);font-size:13px">Sin escrituras firmadas todavía</div>'}</div>
   </div>
   <div class="card">
-    <div class="card-hd"><div><h3>Pendientes de escriturar</h3><p>Pagado 100% pero sin Escritura Pública aún · ${fN(pendientes.length)} expedientes, ordenados por monto</p></div></div>
-    <div style="padding:14px 18px">
-      <input type="text" class="sp-search" id="adm-liberado-search" style="width:100%;max-width:480px" placeholder="Buscar por nombre, DNI o N° Dpto..." value="${_escapeHtml(_admLiberadoSearch)}" oninput="_admLiberadoBuscar(this.value)">
+    <div class="card-hd" style="cursor:pointer" onclick="_toggleAdmLiberadoPendientes()">
+      <div>
+        <h3>Pendientes de escriturar</h3>
+        <p>Pagado 100% pero sin Escritura Pública aún</p>
+      </div>
+      <button class="chip" id="adm-liberado-pendientes-arrow" style="font-size:12px;padding:6px 14px;flex-shrink:0">${_admLiberadoPendientesVisible?'▾ Ocultar':'▸ Ver pendientes de escriturar ('+fN(pendientes.length)+')'}</button>
     </div>
-    <div style="overflow:auto">
-      <table class="tbl" style="width:100%">
-        <thead><tr>
-          <th style="text-align:left">Cliente</th>
-          <th style="text-align:center">DNI</th>
-          <th style="text-align:center">N° Dpto.</th>
-          <th style="text-align:left">Proyecto</th>
-          <th style="text-align:right">Monto Cobrado</th>
-        </tr></thead>
-        <tbody id="adm-liberado-lista"></tbody>
-      </table>
+    <div id="adm-liberado-pendientes-body" ${_admLiberadoPendientesVisible?'':'style="display:none"'}>
+      <div style="padding:14px 18px" onclick="event.stopPropagation()">
+        <input type="text" class="sp-search" id="adm-liberado-search" style="width:100%;max-width:480px" placeholder="Buscar por nombre, DNI o N° Dpto..." value="${_escapeHtml(_admLiberadoSearch)}" oninput="_admLiberadoBuscar(this.value)">
+      </div>
+      <div style="overflow:auto" onclick="event.stopPropagation()">
+        <table class="tbl" style="width:100%">
+          <thead><tr>
+            <th style="text-align:left">Cliente</th>
+            <th style="text-align:center">DNI</th>
+            <th style="text-align:center">N° Dpto.</th>
+            <th style="text-align:left">Proyecto</th>
+            <th style="text-align:right">Monto Cobrado</th>
+          </tr></thead>
+          <tbody id="adm-liberado-lista"></tbody>
+        </table>
+      </div>
     </div>
   </div>`;
 
@@ -4305,10 +4419,10 @@ function _cronogramaCuotas(ingDep){
 // cronograma (Ingreso x Depósito) sabe que se pagó de una cuota programada ese
 // mes (0 si no rastrea nada ahí). "Monto Cuota" = Por Pagar + Monto Pagado:
 // reconstruye el total original SUMANDO lo ya pagado sobre lo que falta, sin
-// restarle nada a Flujo de Caja. "fechaProgramada" es el día exacto (no solo
-// el mes) SOLO cuando el cronograma lo sabe — Flujo de Caja no tiene día, así
-// que si la cuota nunca se tocó, no hay fecha exacta que mostrar.
-// Montos en moneda nativa (sin convertir).
+// restarle nada a Flujo de Caja. "fechaProgramada" es el día exacto en que
+// vencía (no solo el mes), SOLO cuando el cronograma lo rastrea — Flujo de
+// Caja no tiene día, así que si la cuota nunca se tocó, no hay fecha exacta
+// que mostrar. Montos en moneda nativa (sin convertir).
 function _cuotaHibrida(r, mesCol, ym, cronograma){
   const porPagar = _detNum(r[mesCol]);
   const c = (cronograma[_admKeyUnidad(r)]||{})[ym];
@@ -5180,56 +5294,85 @@ function _abrirModalCuotasMes(fc, mesCol, mesLabel, FX, ingDep, mesYM){
 }
 
 // Clic en la barra apilada "Cobrado" + "Por cobrar" (un solo popup para las 2,
-// ya que ahora son una misma barra): cada fila es un expediente con su Monto
-// Cuota/Pagado/Por Pagar de ese mes puntual, salidos del cronograma real
-// (Ingreso x Depósito) cuando existe, o de Flujo de Caja si esa cuota nunca se
-// tocó — ver _cuotaHibrida.
+// ya que ahora son una misma barra). Población = exactamente la misma que
+// antes de tener cronograma: expedientes con algo TODAVÍA pendiente este mes
+// según Flujo de Caja (Vencido/Por cobrar) + pagos reales cuya Fecha_Pago cae
+// en este mes (Cobrado) — NO expedientes cuya cuota vencía este mes pero se
+// pagó en otro (eso hacía aparecer, ej., una cuota de octubre 2026 pagada en
+// diciembre 2025 como si fuera "de octubre", cuando en realidad esa plata
+// entró en diciembre y debe verse en el popup de diciembre).
+// El cronograma (Ingreso x Depósito) solo se usa para MOSTRAR el monto
+// correcto de Monto Cuota en las filas que sí pertenecen a este mes — no para
+// decidir quién aparece.
 function _abrirModalCobradoPorCobrar(fc, mesCol, mesLabel, FX, ingDep, mesYM){
   const cronograma = _cronogramaCuotas(ingDep);
   const _h = r => _cuotaHibrida(r, mesCol, mesYM, cronograma);
 
-  // Población: cualquier expediente de Flujo de Caja con algo programado este
-  // mes (cronograma o, si nunca se tocó, la columna de Flujo de Caja).
-  const filasBase = (fc||[]).filter(r=>_h(r).montoCuota>1);
+  const filasConPendiente = (fc||[]).filter(r=>_detNum(r[mesCol])>1);
 
-  // Huérfanos (rarísimo, mala data de Evolta): el cronograma sabe de una cuota
-  // este mes para una unidad que no tiene NINGUNA fila en Flujo de Caja (ni
-  // siquiera por otro mes) — se arma una fila mínima con los datos que sí trae
-  // Ingreso x Depósito, para no perder esa plata del total.
-  const depPorUnidad = {};
-  (ingDep||[]).forEach(dep=>{ const key=_admKeyUnidad(dep); if(!depPorUnidad[key]) depPorUnidad[key]=dep; });
-  const keysConFC = new Set((fc||[]).map(_admKeyUnidad));
-  const filasExtra = [];
-  Object.keys(cronograma).forEach(key=>{
-    if(keysConFC.has(key) || !cronograma[key][mesYM]) return;
-    const dep = depPorUnidad[key];
-    if(!dep) return;
-    filasExtra.push({ Titular:dep.Nombres_Titular, Proyecto:dep.Proyecto, NroInmueble_1:dep.NroInmueble_1,
-      NroDocumentoTitular:dep.Nro_Documento_Identidad, TotalVenta:0, Tipo_Moneda:'', Saldo_Por_Cobrar:0, [mesCol]:0 });
+  // Pagos reales con Fecha_Pago en este mes puntual (puede ser una cuota
+  // programada para OTRO mes, pagada adelantada o atrasada).
+  const pagadoEsteMes = {}; // key -> monto pagado este mes (transaccional)
+  const depPorUnidad = {};  // key -> una fila de Ingreso x Depósito de este mes, para armar la fila si no hay match en Flujo de Caja
+  (ingDep||[]).forEach(dep=>{
+    const fecha = String(dep.Fecha_Pago||dep.Fecha_Programada||'').trim();
+    if(fecha.slice(0,7) !== mesYM) return;
+    const key = _admKeyUnidad(dep);
+    const monto = _detNum(dep.Monto_Cuota_Pagado) || _detNum(dep.Monto_Pagado_Real);
+    pagadoEsteMes[key] = (pagadoEsteMes[key]||0) + monto;
+    if(!depPorUnidad[key]) depPorUnidad[key] = dep;
   });
-  const filas = filasBase.concat(filasExtra);
+
+  const keysConPendiente = new Set(filasConPendiente.map(_admKeyUnidad));
+  const fcByKey = {};
+  (fc||[]).forEach(r=>{ const k=_admKeyUnidad(r); if(k!=='||' && !(k in fcByKey)) fcByKey[k]=r; });
+  const filasExtra = [];
+  const keysExtra = new Set();
+  Object.keys(pagadoEsteMes).forEach(key=>{
+    if(keysConPendiente.has(key)) return; // ya está por el lado "Por cobrar"
+    let r = fcByKey[key];
+    // Sin match en Flujo de Caja (rarísimo, mala data de Evolta): se arma una
+    // fila mínima con los datos que sí trae Ingreso x Depósito.
+    if(!r){
+      const dep = depPorUnidad[key];
+      r = { Titular:dep.Nombres_Titular, Proyecto:dep.Proyecto, NroInmueble_1:dep.NroInmueble_1,
+            NroDocumentoTitular:dep.Nro_Documento_Identidad, TotalVenta:0, Tipo_Moneda:'', Saldo_Por_Cobrar:0, [mesCol]:0 };
+    }
+    filasExtra.push(r); keysExtra.add(key);
+  });
+  const filas = filasConPendiente.concat(filasExtra);
+
+  // Monto Cuota/Pagado/Por Pagar: para "Por cobrar" (Flujo de Caja) sale del
+  // cronograma de ESE mes, como siempre. Para "Cobrado sin nada pendiente ya"
+  // (filasExtra) no tiene sentido mostrar el monto de una cuota que vencía en
+  // otro mes — se muestra lo que realmente se pagó ESTE mes.
+  const _montoCuotaDe = r => keysExtra.has(_admKeyUnidad(r)) ? (pagadoEsteMes[_admKeyUnidad(r)]||0) : _h(r).montoCuota;
+  const _montoPagadoDe = r => keysExtra.has(_admKeyUnidad(r)) ? (pagadoEsteMes[_admKeyUnidad(r)]||0) : _h(r).montoPagado;
+  const _porPagarDe = r => keysExtra.has(_admKeyUnidad(r)) ? 0 : _h(r).porPagar;
+  // Fecha Programada real: para filasExtra puede ser de OTRO mes (eso es
+  // justamente lo que explica por qué aparece acá) — se toma directo de
+  // Ingreso x Depósito en vez del cronograma (que solo indexa por el mes que
+  // se le pida). Para "Por cobrar" sale del cronograma de este mes.
+  const _fechaProgramadaDe = r => {
+    const key = _admKeyUnidad(r);
+    if(keysExtra.has(key)) return String(depPorUnidad[key]?.Fecha_Programada||'').trim().slice(0,10)||null;
+    return _h(r).fechaProgramada;
+  };
 
   // Blend USD a S/ (mismo FX que el gráfico) porque "filas" mezcla expedientes
   // en soles y en dólares — sumarlos tal cual mezclaría monedas distintas.
-  const totalPagado = filas.reduce((a,r)=>{ const {montoPagado}=_h(r); return a+(_detEsUSD(r)?montoPagado*FX:montoPagado); },0);
-  const totalPorPagar = filas.reduce((a,r)=>{ const {porPagar}=_h(r); return a+(_detEsUSD(r)?porPagar*FX:porPagar); },0);
-  // "Cuota completada"/"Cuota pendiente": Por Pagar ~0 significa que ya se
-  // terminó de pagar la cuota programada de ESE mes puntual (no que el
-  // expediente entero esté saldado — puede seguir debiendo meses futuros).
+  const totalPagado = filas.reduce((a,r)=>a+(_detEsUSD(r)?_montoPagadoDe(r)*FX:_montoPagadoDe(r)),0);
+  const totalPorPagar = filas.reduce((a,r)=>a+(_detEsUSD(r)?_porPagarDe(r)*FX:_porPagarDe(r)),0);
+  const _fFecha = f => { if(!f) return '—'; const [y,m,dd]=f.split('-'); return `${dd}/${m}/${y.slice(2)}`; };
   const cols = [
     {label:'Cliente', get:r=>_detTitular(r)},
-    {label:'Estado', align:'center', get:r=>_h(r).porPagar<=0.01
+    {label:'DNI', align:'center', get:r=>String(r.NroDocumentoTitular||'—')},
+    {label:'Estado', align:'center', get:r=>_porPagarDe(r)<=0.01
       ? '<span class="pill g">Cuota completada</span>'
       : '<span class="pill b">Cuota pendiente</span>'},
     // Día exacto de vencimiento — solo se sabe cuando el cronograma (Ingreso x
     // Depósito) rastrea esa cuota; Flujo de Caja no tiene día, solo mes.
-    {label:'Fecha Programada', align:'center', get:r=>{
-      const f = _h(r).fechaProgramada;
-      if(!f) return '—';
-      const [y,m,dd] = f.split('-');
-      return `${dd}/${m}/${y.slice(2)}`;
-    }},
-    {label:'DNI', align:'center', get:r=>String(r.NroDocumentoTitular||'—')},
+    {label:'Fecha Programada', align:'center', get:r=>_fFecha(_fechaProgramadaDe(r))},
     {label:'N° Dpto.', align:'center', get:r=>String(r.NroInmueble_1||'—')},
     // Torre solo tiene sentido en proyectos con varios edificios (Sunny, Lomas
     // 4/5, Domingo Orué) — en Litoral y Helio ese campo solo repite el nombre
@@ -5238,10 +5381,10 @@ function _abrirModalCobradoPorCobrar(fc, mesCol, mesLabel, FX, ingDep, mesYM){
       const conTorre = ['SUNNY','LOMAS DE CARABAYLLO 4','LOMAS DE CARABAYLLO 5','DOMINGO ORUE'];
       return conTorre.includes(String(r.Proyecto||'').trim().toUpperCase()) ? String(r.Nombre_Tipo_Construccion_1||'—') : '—';
     }},
-    {label:'Monto Cuota', align:'center', get:r=>_detMonto(_h(r).montoCuota, _detEsUSD(r))},
+    {label:'Monto Cuota', align:'center', get:r=>_detMonto(_montoCuotaDe(r), _detEsUSD(r))},
     {label:'Moneda', align:'center', get:r=>_detMonedaBadge(_detEsUSD(r))},
-    {label:'Monto Pagado', align:'center', get:r=>_detMonto(_h(r).montoPagado, _detEsUSD(r))},
-    {label:'Monto por Pagar', align:'center', get:r=>{ const v=_h(r).porPagar, esUSD=_detEsUSD(r); return `<span style="font-weight:600;color:${v>0.01?'var(--bad)':'var(--ok)'}">${esUSD?'$':'S/'} ${_detFmtMonto(v)}</span>`; }},
+    {label:'Monto Pagado', align:'center', get:r=>_detMonto(_montoPagadoDe(r), _detEsUSD(r))},
+    {label:'Monto por Pagar', align:'center', get:r=>{ const v=_porPagarDe(r), esUSD=_detEsUSD(r); return `<span style="font-weight:600;color:${v>0.01?'var(--bad)':'var(--ok)'}">${esUSD?'$':'S/'} ${_detFmtMonto(v)}</span>`; }},
   ];
   _abrirModalDetalle(
     mesLabel,
