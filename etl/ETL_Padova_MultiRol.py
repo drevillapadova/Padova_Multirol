@@ -846,9 +846,11 @@ def execute_ingreso_deposito_extraction(driver, wait):
 # ("Dashboard Cobranza") que ya trae solo las columnas necesarias
 # (Proyecto, NroInmueble, FechaEscrituraPublica, etc.). Igual que Ingreso
 # x Depósito, la descarga tiene tope de 1 año, así que se pide por año.
-# Proyecto se deja en su default ("--Todos--") — el filtro a los 6
-# proyectos del dashboard ya lo aplica _leer_por_año() en main() como con
-# los demás reportes. Tipo Operación sí es obligatorio: "Ventas".
+# Proyecto NO viene en "--Todos--" por defecto en este reporte (a diferencia
+# de lo que se asumía antes) — al elegir el Modelo Reporte "Dashboard
+# Cobranza" el formulario recarga y el selector de Proyecto queda fijo en
+# "Helio - Santa Beatriz" (el último usado al guardar ese modelo), así que
+# hay que forzar "Todos" explícitamente o el reporte solo trae Helio.
 
 def execute_escritura_year(driver, wait, año):
     print(f"\n>> [ESCRITURA {año}] Procesando...")
@@ -871,6 +873,31 @@ def execute_escritura_year(driver, wait, año):
             print("   !! Warning: no se encontró el dropdown 'Modelo Reporte' con la opción Dashboard Cobranza")
     except Exception as e:
         print(f"   !! Warning Modelo Reporte: {e}")
+
+    # Proyecto: forzar "Todos" — el formulario NO lo deja en "--Todos--" por
+    # defecto en este reporte, queda fijo en el último proyecto usado al
+    # guardar el Modelo Reporte (Helio - Santa Beatriz), y sin este paso el
+    # reporte solo trae ese proyecto. Mismo patrón que execute_stock_extraction.
+    try:
+        try:
+            proyecto_select_el = driver.find_element(By.ID, "ProyectoId")
+        except Exception:
+            proyecto_select_el = None
+        if not proyecto_select_el:
+            fallback = _selects_por_opciones(driver, ["Todos"])
+            proyecto_select_el = fallback[0] if fallback else None
+        if proyecto_select_el:
+            proyecto_select = Select(proyecto_select_el)
+            try: proyecto_select.select_by_visible_text("Todos")
+            except Exception:
+                try: proyecto_select.select_by_visible_text("TODOS")
+                except Exception: proyecto_select.select_by_index(0)
+            print("   -> Proyecto: 'Todos' seleccionado")
+            time.sleep(1)
+        else:
+            print("   !! Warning: no se encontró el selector de Proyecto")
+    except Exception as e:
+        print(f"   !! Warning Proyecto: {e}")
 
     # Tipo Operación: obligatorio, seleccionar "Ventas"
     try:
