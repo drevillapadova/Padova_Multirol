@@ -874,25 +874,37 @@ def execute_escritura_year(driver, wait, año):
     except Exception as e:
         print(f"   !! Warning Modelo Reporte: {e}")
 
-    # Proyecto: forzar "Todos" — el formulario NO lo deja en "--Todos--" por
+    # Proyecto: forzar la opción "todos" — el formulario NO lo deja ahí por
     # defecto en este reporte, queda fijo en el último proyecto usado al
     # guardar el Modelo Reporte (Helio - Santa Beatriz), y sin este paso el
-    # reporte solo trae ese proyecto. Mismo patrón que execute_stock_extraction.
+    # reporte solo trae ese proyecto. El texto exacto de la opción varía
+    # ("-Todos-", "--Todos--", etc.) así que se busca normalizando (sin
+    # guiones ni espacios, en minúscula) en vez de asumir un formato fijo.
+    def _es_opcion_todos(texto):
+        return texto.strip().strip('-').strip().lower() == "todos"
     try:
         try:
             proyecto_select_el = driver.find_element(By.ID, "ProyectoId")
         except Exception:
             proyecto_select_el = None
         if not proyecto_select_el:
-            fallback = _selects_por_opciones(driver, ["Todos"])
-            proyecto_select_el = fallback[0] if fallback else None
+            for sel in driver.find_elements(By.TAG_NAME, "select"):
+                opts = [o.text for o in sel.find_elements(By.TAG_NAME, "option")]
+                if any(_es_opcion_todos(o) for o in opts):
+                    proyecto_select_el = sel
+                    break
         if proyecto_select_el:
             proyecto_select = Select(proyecto_select_el)
-            try: proyecto_select.select_by_visible_text("Todos")
-            except Exception:
-                try: proyecto_select.select_by_visible_text("TODOS")
-                except Exception: proyecto_select.select_by_index(0)
-            print("   -> Proyecto: 'Todos' seleccionado")
+            opt_todos = next(
+                (o.text for o in proyecto_select_el.find_elements(By.TAG_NAME, "option") if _es_opcion_todos(o.text)),
+                None
+            )
+            if opt_todos:
+                proyecto_select.select_by_visible_text(opt_todos)
+                print(f"   -> Proyecto: '{opt_todos}' seleccionado")
+            else:
+                proyecto_select.select_by_index(0)
+                print("   !! Warning: no se encontró la opción 'todos' por texto, se usó índice 0")
             time.sleep(1)
         else:
             print("   !! Warning: no se encontró el selector de Proyecto")
