@@ -4160,18 +4160,32 @@ function _admProgBar(pct){
 }
 
 function renderAdmLiberado(fc){
-  const escrituraFirmadaKeys = new Set();
+  // Período (Desde/Hasta de arriba) aplica SOLO a "Liberado": expedientes cuya
+  // Escritura Pública se firmó dentro del rango — igual criterio que el
+  // gráfico "Dinero liberado por mes". "Cobrado Total" y "Pendiente de
+  // Liberar" se quedan siempre en total histórico (no tienen una fecha propia
+  // con la que filtrar, y filtrarlos por FechaVenta hacía que un cliente que
+  // compró hace tiempo pero escrituró este mes no apareciera en nada).
+  const _desdeLib = document.getElementById('adm-date-desde')?.value||'';
+  const _hastaLib = document.getElementById('adm-date-hasta')?.value||'';
+  const _periodoLibActivo = !!(_desdeLib||_hastaLib);
+
+  const escrituraFirmadaKeys = new Set();      // TODAS las escrituras firmadas (para el backlog real)
+  const escrituraEnPeriodoKeys = new Set();    // solo las firmadas dentro del período (si hay uno activo)
   const escrituraFechaPorUnidad = {}; // key unidad -> "AAAA-MM" de FechaEscrituraPublica, para el gráfico mensual
   (D.escrituraPublica||[]).forEach(row=>{
     const fecha = String(row.FechaEscrituraPublica||'').trim();
     if(!fecha || fecha==='nan' || fecha==='None') return;
     const ym = fecha.slice(0,7);
+    const enPeriodo = !_periodoLibActivo || _matchDateRange(fecha, _desdeLib, _hastaLib);
     _unidadesDeRow(row, 4).forEach(k=>{
       escrituraFirmadaKeys.add(k);
+      if(enPeriodo) escrituraEnPeriodoKeys.add(k);
       if(/^\d{4}-\d{2}$/.test(ym) && !(k in escrituraFechaPorUnidad)) escrituraFechaPorUnidad[k] = ym;
     });
   });
   const _tieneEscritura = r => _unidadesDeRow(r, 6).some(k=>escrituraFirmadaKeys.has(k));
+  const _tieneEscrituraMostrada = r => _unidadesDeRow(r, 6).some(k=>escrituraEnPeriodoKeys.has(k));
   const _fechaEscrituraDe = r => {
     for(const k of _unidadesDeRow(r, 6)){ if(escrituraFechaPorUnidad[k]) return escrituraFechaPorUnidad[k]; }
     return null;
@@ -4181,11 +4195,12 @@ function renderAdmLiberado(fc){
   const fS = n => 'S/ '+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
   const fD = n => '$ '+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 
-  let cobradoS=0, cobradoD=0, liberadoS=0, liberadoD=0;
+  let cobradoS=0, cobradoD=0, liberadoS=0, liberadoD=0, liberadoMostradoS=0, liberadoMostradoD=0;
   const porProyecto = {};
   const pendientes = [];
   const FX_LIB = 3.5; // solo para blendear el gráfico mensual (una sola serie, no por moneda)
   const montoPorMes = {};
+  const filasPorMes = {}; // ym -> expedientes liberados ese mes, para el popup de detalle
   fc.forEach(r=>{
     const pagado = _n(r.Pagos_Recibido);
     if(pagado<=0) return;
@@ -4194,16 +4209,26 @@ function renderAdmLiberado(fc){
     if(!porProyecto[proj]) porProyecto[proj] = {cobS:0,cobD:0,libS:0,libD:0};
     if(esD){ cobradoD+=pagado; porProyecto[proj].cobD+=pagado; }
     else   { cobradoS+=pagado; porProyecto[proj].cobS+=pagado; }
-    if(_tieneEscritura(r)){
-      if(esD){ liberadoD+=pagado; porProyecto[proj].libD+=pagado; }
-      else   { liberadoS+=pagado; porProyecto[proj].libS+=pagado; }
+    const tieneGlobal = _tieneEscritura(r);
+    if(tieneGlobal){
+      if(esD) liberadoD+=pagado; else liberadoS+=pagado;
       const ym = _fechaEscrituraDe(r);
-      if(ym) montoPorMes[ym] = (montoPorMes[ym]||0) + (esD?pagado*FX_LIB:pagado);
+      if(ym){
+        montoPorMes[ym] = (montoPorMes[ym]||0) + (esD?pagado*FX_LIB:pagado);
+        if(!filasPorMes[ym]) filasPorMes[ym] = [];
+        filasPorMes[ym].push(r);
+      }
     } else if(_n(r.Saldo_Por_Cobrar)<=0.01){
       // Solo los que ya pagaron el 100% (Saldo_Por_Cobrar=0) van a "Pendientes
       // de escriturar" — un cliente que recién pagó una cuota inicial y le
       // falta pagar meses no debería estar ahí (aún no le toca escriturar).
       pendientes.push(r);
+    }
+    // "Mostrado" = lo que se ve en el KPI/tabla "Liberado": si hay período
+    // activo, solo cuenta si la escritura se firmó DENTRO de ese rango.
+    if(_periodoLibActivo ? _tieneEscrituraMostrada(r) : tieneGlobal){
+      if(esD){ liberadoMostradoD+=pagado; porProyecto[proj].libD+=pagado; }
+      else   { liberadoMostradoS+=pagado; porProyecto[proj].libS+=pagado; }
     }
   });
 
@@ -4220,9 +4245,14 @@ function renderAdmLiberado(fc){
       m++; if(m>12){ m=1; y++; }
     }
   }
+  // Pendiente de Liberar SIEMPRE contra el backlog real (liberado global),
+  // nunca contra el "mostrado" del período — si no, un mes sin escrituras
+  // firmadas mostraría como "pendiente" plata que en realidad ya se liberó
+  // en otro período.
   const pendienteS = cobradoS-liberadoS, pendienteD = cobradoD-liberadoD;
-  const pctLibS = cobradoS ? Math.round(liberadoS/cobradoS*100) : 0;
-  const pctLibD = cobradoD ? Math.round(liberadoD/cobradoD*100) : 0;
+  // El % es sobre lo MOSTRADO (coincide con el número grande de la card).
+  const pctLibS = cobradoS ? Math.round(liberadoMostradoS/cobradoS*100) : 0;
+  const pctLibD = cobradoD ? Math.round(liberadoMostradoD/cobradoD*100) : 0;
 
   _admLiberadoPendientes = pendientes.slice().sort((a,b)=>{
     const va=_n(a.Pagos_Recibido)*(_esUSD(a)?3.5:1), vb=_n(b.Pagos_Recibido)*(_esUSD(b)?3.5:1);
@@ -4236,11 +4266,11 @@ function renderAdmLiberado(fc){
       const pD = d.cobD ? Math.round(d.libD/d.cobD*100) : 0;
       return `<tr>
         <td style="text-align:left">${proy}</td>
-        <td style="text-align:right">${d.cobS?fS(d.cobS):'—'}</td>
-        <td style="text-align:right;color:var(--ok);font-weight:600">${d.libS?fS(d.libS):'—'}</td>
+        <td style="text-align:center">${d.cobS?fS(d.cobS):'—'}</td>
+        <td style="text-align:center;color:var(--ok);font-weight:600">${d.libS?fS(d.libS):'—'}</td>
         <td style="text-align:center">${d.cobS?_admProgBar(pS):'—'}</td>
-        <td style="text-align:right">${d.cobD?fD(d.cobD):'—'}</td>
-        <td style="text-align:right;color:var(--ok);font-weight:600">${d.libD?fD(d.libD):'—'}</td>
+        <td style="text-align:center">${d.cobD?fD(d.cobD):'—'}</td>
+        <td style="text-align:center;color:var(--ok);font-weight:600">${d.libD?fD(d.libD):'—'}</td>
         <td style="text-align:center">${d.cobD?_admProgBar(pD):'—'}</td>
       </tr>`;
     }).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--ink-4);padding:20px">Sin datos</td></tr>';
@@ -4248,25 +4278,25 @@ function renderAdmLiberado(fc){
   const wrap = document.getElementById('adm-content');
   if(!wrap) return;
   wrap.innerHTML = `
-  <div class="section-title"><h2>Dinero Liberado</h2><div class="hint">Cobrado = recibido del cliente (Flujo de Caja) · Liberado = ya con Escritura Pública firmada — plata real de la empresa</div></div>
+  <div class="section-title"><h2>Dinero Liberado</h2><div class="hint">Cobrado y Pendiente = total histórico · Liberado = ${_periodoLibActivo?'período filtrado, por fecha de Escritura Pública':'total histórico, Escritura Pública firmada'}</div></div>
   <div class="kpi-row kpi-6" style="margin-bottom:16px">
-    ${kpi('Cobrado Total S/', fS(cobradoS), 'Recibido de clientes')}
-    ${kpi('Cobrado Total $', fD(cobradoD), 'Recibido de clientes')}
-    ${kpi('💰 Liberado S/', fS(liberadoS), pctLibS+'% del cobrado · Escritura firmada')}
-    ${kpi('💰 Liberado $', fD(liberadoD), pctLibD+'% del cobrado · Escritura firmada')}
-    ${kpi('Pendiente de Liberar S/', fS(pendienteS), 'Cobrado sin Escritura aún')}
-    ${kpi('Pendiente de Liberar $', fD(pendienteD), 'Cobrado sin Escritura aún')}
+    ${kpi('Cobrado Total S/', fS(cobradoS), 'Recibido de clientes · total histórico')}
+    ${kpi('Cobrado Total $', fD(cobradoD), 'Recibido de clientes · total histórico')}
+    ${kpi('💰 Liberado S/', fS(liberadoMostradoS), pctLibS+'% del cobrado · '+(_periodoLibActivo?'escrituras firmadas en el período':'Escritura firmada'))}
+    ${kpi('💰 Liberado $', fD(liberadoMostradoD), pctLibD+'% del cobrado · '+(_periodoLibActivo?'escrituras firmadas en el período':'Escritura firmada'))}
+    ${kpi('Pendiente de Liberar S/', fS(pendienteS), 'Cobrado sin Escritura aún · total histórico')}
+    ${kpi('Pendiente de Liberar $', fD(pendienteD), 'Cobrado sin Escritura aún · total histórico')}
   </div>
   <div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>Por proyecto</h3><p>Cobrado vs. Liberado, por moneda nativa</p></div></div>
+    <div class="card-hd"><div><h3>Por proyecto</h3><p>Cobrado (total histórico) vs. Liberado (${_periodoLibActivo?'período filtrado':'total histórico'}), por moneda nativa</p></div></div>
     <table class="tbl" style="width:100%">
       <thead><tr>
         <th style="text-align:left">Proyecto</th>
-        <th style="text-align:right">Cobrado S/</th>
-        <th style="text-align:right">Liberado S/</th>
+        <th style="text-align:center">Cobrado S/</th>
+        <th style="text-align:center">Liberado S/</th>
         <th style="text-align:center">% Liberado S/</th>
-        <th style="text-align:right">Cobrado $</th>
-        <th style="text-align:right">Liberado $</th>
+        <th style="text-align:center">Cobrado $</th>
+        <th style="text-align:center">Liberado $</th>
         <th style="text-align:center">% Liberado $</th>
       </tr></thead>
       <tbody>${filasProyecto}</tbody>
@@ -4304,13 +4334,16 @@ function renderAdmLiberado(fc){
   </div>`;
 
   _renderAdmLiberadoLista();
-  _renderAdmLiberadoChart(rangoMeses);
+  _renderAdmLiberadoChart(rangoMeses, filasPorMes);
 }
 
-function _renderAdmLiberadoChart(rangoMeses){
+let _admLiberadoFilasPorMes = {}; // ym -> expedientes, cache para el popup de detalle del gráfico
+function _renderAdmLiberadoChart(rangoMeses, filasPorMes){
+  _admLiberadoFilasPorMes = filasPorMes||{};
   if(window._admLiberadoChart){ window._admLiberadoChart.destroy(); window._admLiberadoChart=null; }
   const ctx = document.getElementById('adm-liberado-chart-mes');
   if(!ctx || !rangoMeses.length) return;
+  ctx.style.cursor='pointer';
   window._admLiberadoChart = new Chart(ctx, {
     type:'bar',
     data:{ labels: rangoMeses.map(m=>m.label), datasets:[
@@ -4319,10 +4352,41 @@ function _renderAdmLiberadoChart(rangoMeses){
           font:{family:"'Plus Jakarta Sans',sans-serif", size:9, weight:'700'}, formatter: v=>'S/ '+_fCompact(v) } },
     ]},
     options:{ responsive:true, maintainAspectRatio:false,
+      onClick:(evt, elements)=>{
+        if(!elements.length) return;
+        const i = elements[0].index;
+        _admAbrirLiberadoMes(rangoMeses[i].ym, rangoMeses[i].label);
+      },
       plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>'S/ '+fN(c.raw)}} },
       scales:{ y:{beginAtZero:true,ticks:{callback:v=>fN(v)}}, x:{ticks:{font:{size:9},maxRotation:60}} }
     }
   });
+}
+
+// Clic en una barra de "Dinero liberado por mes": detalle de expedientes cuya
+// Escritura Pública se firmó ese mes puntual.
+function _admAbrirLiberadoMes(ym, mesLabel){
+  const filas = _admLiberadoFilasPorMes[ym]||[];
+  const FX_LIB = 3.5;
+  const totalMes = filas.reduce((a,r)=>{
+    const monto = _detNum(r.Pagos_Recibido);
+    return a + (_detEsUSD(r)?monto*FX_LIB:monto);
+  },0);
+  const cols = [
+    {label:'Cliente', get:r=>_detTitular(r)},
+    {label:'DNI', align:'center', get:r=>String(r.NroDocumentoTitular||'—')},
+    {label:'N° Dpto.', align:'center', get:r=>String(r.NroInmueble_1||'—')},
+    {label:'Proyecto', align:'center', get:r=>String(r.Proyecto||'—')},
+    {label:'Moneda', align:'center', get:r=>_detMonedaBadge(_detEsUSD(r))},
+    {label:'Monto Liberado', align:'center', get:r=>_detMonto(_detNum(r.Pagos_Recibido), _detEsUSD(r))},
+  ];
+  _abrirModalDetalle(
+    'Liberado — '+mesLabel,
+    {label:'Total Liberado', val:'S/ '+_detFmtMonto(totalMes), color:'#34D399'},
+    {label:'Clientes', val:fN(filas.length), color:'#F4A228'},
+    filas,
+    cols
+  );
 }
 
 function _admLiberadoBuscar(v){
