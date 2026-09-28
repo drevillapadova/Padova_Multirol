@@ -320,7 +320,7 @@ COLS_STOCK = [
 ]
 
 COLS_PROSPECTOS = [
-    'Proyecto','TipoInmueble','Nombres','ApellidoPaterno',
+    'Proyecto','Etapa','TipoInmueble','Nombres','ApellidoPaterno',
     'NroDocumento','CorreoElectronico','ComoSeEntero','NivelInteres',
     'FechaRegistro','Fecha_PrimeraAccion','Cant_Acciones',
     'Estado','SubEstado','Estado_Tarea','Titulo_TareaNueva','Fecha_UltimaAccion','Fecha_TareaNueva',

@@ -2513,6 +2513,10 @@ function _flCalcPeriodo(proj, from, to){
   if(_flExcludeExt) vi=vi.filter(r=>!_esRegistroProper(r));
   let sp=_flSeparacionesUnicas(D.stock||[]);
   sp=sp.filter(r=>normStr(r.TipoInmueble||'').includes('departamento')); // igual que Ventas: solo Departamento, no estacionamiento/depósito/etc.
+  // "Separaciones" = vigentes, no cuenta las que se devolvieron — _flSeparacionesUnicas
+  // ya se quedó con el estado MÁS RECIENTE por cliente+unidad+mes, así que si ese
+  // estado final es DEVUELTA, la separación ya no está activa.
+  sp=sp.filter(r=>normStr(r.Estado||'').trim()!=='devuelta');
   if(proj) sp=sp.filter(r=>matchProj(r.Proyecto, proj));
   if(from||to) sp=sp.filter(r=>_matchDateRange(r.FechaSepDefinitiva, from, to));
   if(_flExcludeExt) sp=sp.filter(r=>!_esRegistroProper(r));
@@ -5994,9 +5998,10 @@ function toggleDark(){
   Chart.defaults.borderColor=on?'#334155':'#e5e7eb';
   Chart.defaults.plugins.tooltip.backgroundColor=on?'#1e293b':'#ffffff';
   // Re-render active panel charts
-  ['_dirDonut','_dirVisChart','_flEvoChart','_dirTrendChart','_dirMontoChart','_dirProjBar'].forEach(k=>{if(window[k])try{window[k].destroy();window[k]=null;}catch(e){}});
+  ['_dirDonut','_dirVisChart','_flEvoChart','_dirTrendChart','_dirMontoChart','_dirProjBar','_admFcChartMes','_admLiberadoChart'].forEach(k=>{if(window[k])try{window[k].destroy();window[k]=null;}catch(e){}});
   try{renderDirector();}catch(e){}
   try{if(typeof renderFunnelMkt!=='undefined')renderFunnelMkt();}catch(e){}
+  try{if(typeof renderAdmVentas!=='undefined')renderAdmVentas();}catch(e){}
 }
 // Restore dark mode on load
 (function(){
