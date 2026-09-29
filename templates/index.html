@@ -2407,6 +2407,7 @@ function _isDigital(canal){
 const FL_DIM_OPTS = [
   {val:'subestado', lbl:'Sub-Estado',       stages:['leads','contactados','visita'],    fn: r=>String(r.SubEstado||'Sin estado').trim()},
   {val:'canal',     lbl:'Canal',            stages:null,                               fn: r=>String(r.ComoSeEntero||'Sin canal').trim()},
+  {val:'forma',     lbl:'Forma de Contacto',stages:null,                               fn: r=>String(r.FormaContacto||'').trim()||'Sin dato'},
   {val:'asesor',    lbl:'Asesor',           stages:null,                               fn: r=>toShort(String(r.Responsable||r.Asesor||r.Vendedor||'Sin asesor').trim())},
   {val:'proyecto',  lbl:'Proyecto',         stages:null,                               fn: r=>String(r.Proyecto||'Sin proyecto').trim()},
   {val:'nivel',     lbl:'Nivel de Interés', stages:null,                               fn: r=>String(r.NivelInteres||'Sin nivel').trim()},
@@ -3197,6 +3198,29 @@ function renderFunnelMkt(){
       formatter: v=>fN(v),
     });
 
+    // Clic en un punto de la línea: abre el mismo popup de detalle del Funnel con los
+    // registros de ese día/mes. Cada modo del gráfico pasa un "resolve(datasetIndex,
+    // index)" que devuelve {etapa, filas, titulo, kpi2Lbl, kpi2Val}.
+    const EVO_COLS={leads:FL_LEAD_COLS, contactados:FL_LEAD_COLS, visita:FL_VISITA_COLS, separacion:FL_SEP_COLS, venta:FL_VENTA_COLS};
+    const _evoEnPeriodo=(iso,key,monthly)=>!!iso && (monthly ? iso.slice(0,7)===key : iso===key);
+    const _evoHit=ds=>{ ds.forEach(d=>{d.pointHitRadius=10;}); return ds; };
+    const _evoHover=(e,_a,chart)=>{
+      const h=chart.getElementsAtEventForMode(e,'nearest',{intersect:true},false);
+      if(e.native&&e.native.target) e.native.target.style.cursor=h.length?'pointer':'default';
+    };
+    const _evoClick=resolve=>(e,_a,chart)=>{
+      const els=chart.getElementsAtEventForMode(e,'nearest',{intersect:true},true);
+      if(!els.length) return;
+      const res=resolve(els[0].datasetIndex, els[0].index);
+      if(!res) return;
+      _abrirModalFunnelEtapa(
+        res.titulo,
+        {label:'Clientes en este punto', val:fN(res.filas.length), color:'#14AFBE'},
+        {label:res.kpi2Lbl, val:res.kpi2Val, color:'#F4A228'},
+        res.filas, EVO_COLS[res.etapa]
+      );
+    };
+
     // ── Modo "varias etapas" (sin comparar): una línea por cada etapa elegida,
     // agregada según el filtro de proyecto activo (no desglosa por proyecto —
     // cruzarlo también por proyecto sería ilegible con varias líneas).
@@ -3250,8 +3274,14 @@ function renderFunnelMkt(){
         window._flEvoChart=new Chart(ctx,{
           type:'line',
           plugins:[ChartDataLabels],
-          data:{labels:xLabelsT, datasets:datasetsT},
+          data:{labels:xLabelsT, datasets:_evoHit(datasetsT)},
           options:{
+            onClick:_evoClick((di,i)=>{
+              const st=selectedStages[di]; const per=periods[i]; if(!st||!per) return null;
+              return {etapa:st.val, filas:st.data.filter(r=>_evoEnPeriodo(st.dateF(r),per,isMonthly)),
+                titulo:st.lbl+' · '+_fmtPeriodoGen(per,isMonthly), kpi2Lbl:isMonthly?'Mes':'Día', kpi2Val:_fmtPeriodoGen(per,isMonthly)};
+            }),
+            onHover:_evoHover,
             responsive:true,maintainAspectRatio:false,
             interaction:{mode:'index',intersect:false},
             plugins:{
@@ -3366,8 +3396,16 @@ function renderFunnelMkt(){
           window._flEvoChart=new Chart(ctx,{
             type:'line',
             plugins:[ChartDataLabels],
-            data:{labels:xLabelsCmp, datasets:datasetsTodasCmp},
+            data:{labels:xLabelsCmp, datasets:_evoHit(datasetsTodasCmp)},
             options:{
+            onClick:_evoClick((di,i)=>{
+                const st=selectedStages[di>>1]; if(!st) return null;
+                const esB=(di&1)===1; const from=esB?fromB:fromA;
+                const filas=(esB?st.dataB:st.data).filter(r=>{const iso=st.dateF(r); return iso && (cmpMonthly?_diffMeses(from,iso):_diffDias(from,iso))===i;});
+                return {etapa:st.val, filas, titulo:st.lbl+' · Período '+(esB?'B':'A')+' · '+(cmpMonthly?'Mes ':'Día ')+(i+1),
+                  kpi2Lbl:'Período', kpi2Val:(esB?lblB:lblA)||(esB?'B':'A')};
+              }),
+            onHover:_evoHover,
               responsive:true,maintainAspectRatio:false,
               interaction:{mode:'index',intersect:false},
               plugins:{
@@ -3441,8 +3479,15 @@ function renderFunnelMkt(){
         window._flEvoChart=new Chart(ctx,{
           type:'line',
           plugins:[ChartDataLabels],
-          data:{labels:xLabelsCmp, datasets:datasetsCmp},
+          data:{labels:xLabelsCmp, datasets:_evoHit(datasetsCmp)},
           options:{
+            onClick:_evoClick((di,i)=>{
+              const esB=di===1; const from=esB?fromB:fromA;
+              const filas=(esB?evoBaseB:evoBase).filter(r=>{const iso=_evoDateF(r); return iso && (cmpMonthly?_diffMeses(from,iso):_diffDias(from,iso))===i;});
+              return {etapa:evoStageOpt.val, filas, titulo:evoStageOpt.lbl+' · Período '+(esB?'B':'A')+' · '+(cmpMonthly?'Mes ':'Día ')+(i+1),
+                kpi2Lbl:'Período', kpi2Val:(esB?lblB:lblA)||(esB?'B':'A')};
+            }),
+            onHover:_evoHover,
             responsive:true,maintainAspectRatio:false,
             interaction:{mode:'index',intersect:false},
             plugins:{
@@ -3577,8 +3622,16 @@ function renderFunnelMkt(){
       window._flEvoChart=new Chart(ctx,{
         type:'line',
         plugins:[ChartDataLabels],
-        data:{labels:xLabels, datasets},
+        data:{labels:xLabels, datasets:_evoHit(datasets)},
         options:{
+            onClick:_evoClick((di,i)=>{
+            const per=periods[i]; const ds=datasets[di]; if(!per||!ds) return null;
+            const p=ds.label; const todos=(p==='Total leads')||!!proj;
+            const filas=evoBase.filter(r=>_evoEnPeriodo(_evoDateF(r),per,_isMonthly) && (todos || String(r.Proyecto||'Sin proyecto').trim()===p));
+            return {etapa:evoStageOpt.val, filas, titulo:evoStageOpt.lbl+' · '+_fmtPeriodo(per)+(todos?'':' · '+p),
+              kpi2Lbl:_isMonthly?'Mes':'Día', kpi2Val:_fmtPeriodo(per)};
+          }),
+            onHover:_evoHover,
           responsive:true,maintainAspectRatio:false,
           interaction:{mode:'index',intersect:false},
           plugins:{

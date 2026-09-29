@@ -300,7 +300,7 @@ COLS_VENTAS = [
     'Fecha_Registro_Sistema','FechaProspecto',
     'Estado','EstadoOC','NombresTitular','NroDocumentoTitular',
     'Genero','RangoEdad','Distrito_Procedencia',
-    'ComoSeEntero','NivelInteres','PerfilCrediticio',
+    'ComoSeEntero','FormaContacto','NivelInteres','PerfilCrediticio',
     'TipoFinanciamiento','EntidadFinanciamiento',
     'Vendedor','Puesto','Proyecto','Etapa',
     'TipoInmueble','Modelo','NroInmueble','NroPiso',
@@ -315,13 +315,13 @@ COLS_STOCK = [
     'Proyecto','Etapa','Edificio','TipoInmueble','Modelo','NroInmuebleActual','NroPiso','Vista',
     'Estado','Moneda','PrecioVenta','PrecioLista','PrecioVentaSoles',
     'AreaTechada','AreaLibre','NroDormitorios','FechaSepDefinitiva','PrecioM2',
-    'NroDocumento','Nombres','Correo','Distrito','NivelInteres','ComoSeEntero',
+    'NroDocumento','Nombres','Correo','Distrito','NivelInteres','ComoSeEntero','FormaContacto',
     'Vendedor',
 ]
 
 COLS_PROSPECTOS = [
     'Proyecto','Etapa','TipoInmueble','Nombres','ApellidoPaterno',
-    'NroDocumento','CorreoElectronico','ComoSeEntero','NivelInteres',
+    'NroDocumento','CorreoElectronico','ComoSeEntero','FormaContacto','NivelInteres',
     'FechaRegistro','Fecha_PrimeraAccion','Cant_Acciones',
     'Estado','SubEstado','Estado_Tarea','Titulo_TareaNueva','Fecha_UltimaAccion','Fecha_TareaNueva',
     'Responsable','Responsable_Anterior','Motivo_Cerrado_Actual',
@@ -331,7 +331,7 @@ COLS_PROSPECTOS = [
 
 COLS_VISITAS = [
     'Proyecto','Etapa','TipoInmueble','NombresTitular','NroDocTitular',
-    'CorreoElectronico','Distrito_Procedencia','ComoSeEntero','Vendedor',
+    'CorreoElectronico','Distrito_Procedencia','ComoSeEntero','FormaContacto','Vendedor',
     'FechaVisita','Fecha_CitaProspecto','Descrip_UltimaAccion','VisitaUnicaxMesProyecto',
 ]
 
