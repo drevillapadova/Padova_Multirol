@@ -1964,6 +1964,8 @@ function renderDirector(){
       const data=visMonths.map(k=>{
         const[ky,km]=k.split('-').map(Number);
         return (D.visitas||[]).filter(r=>{
+          if(!normStr(r.TipoInmueble||'').includes('departamento'))return false; // solo Departamento, como el Funnel
+          if(String(r.VisitaUnicaxMesProyecto||'').toUpperCase()!=='SI')return false; // 1 visita por cliente/proyecto/mes, como el Funnel
           if(!matchProj(r.Proyecto,p))return false;
           const d=parseDate(r.FechaVisita||'');if(!d)return false;
           return d.getFullYear()===ky&&d.getMonth()+1===km;
@@ -1981,6 +1983,8 @@ function renderDirector(){
       const cells=hmMonths.map(k=>{
         const[ky,km]=k.split('-').map(Number);
         const vis=(D.visitas||[]).filter(r=>{
+          if(!normStr(r.TipoInmueble||'').includes('departamento'))return false; // solo Departamento, como el Funnel
+          if(String(r.VisitaUnicaxMesProyecto||'').toUpperCase()!=='SI')return false; // 1 visita por cliente/proyecto/mes, como el Funnel
           if(!matchProj(r.Proyecto,p))return false;
           const d=parseDate(r.FechaVisita||'');if(!d)return false;
           return d.getFullYear()===ky&&d.getMonth()+1===km;
@@ -2397,6 +2401,12 @@ function _isProperVendedor(r){
   const v = normStr(String(r.Responsable||r.Vendedor||r.Asesor||'')).trim();
   return v==='proper proper' || v==='proper';
 }
+// "Contactado" = el lead ya fue contactado alguna vez: Sub-Estado CONTACTADO, o ya avanzó
+// a VISITA / SEPARACION / VENTA (para llegar ahí tuvo que ser contactado).
+function _esContactado(r){
+  const s=normStr(r.SubEstado||'');
+  return s.includes('contactado') || s.includes('visita') || s.includes('separacion') || s.includes('venta');
+}
 function _esRegistroProper(r){ return _isProper(r.ComoSeEntero) || _isProperVendedor(r); }
 function _isDigital(canal){
   const c=normStr(canal||'');
@@ -2509,6 +2519,7 @@ function _flCalcPeriodo(proj, from, to){
   if(_flExcludeExt) pr=pr.filter(r=>!_esRegistroProper(r));
   const lb=pr.filter(r=>String(r.LeadUnicoxMesProyecto||'').toUpperCase()==='SI');
   let vi=(D.visitas||[]).filter(r=>String(r.VisitaUnicaxMesProyecto||'').toUpperCase()==='SI');
+  vi=vi.filter(r=>normStr(r.TipoInmueble||'').includes('departamento')); // igual que Separaciones y Ventas: el funnel es solo Departamento
   if(proj) vi=vi.filter(r=>matchProj(r.Proyecto, proj));
   if(from||to) vi=vi.filter(r=>_matchDateRange(r.FechaVisita, from, to));
   if(_flExcludeExt) vi=vi.filter(r=>!_esRegistroProper(r));
@@ -2528,7 +2539,7 @@ function _flCalcPeriodo(proj, from, to){
     leadsTotal:lb.length,
     leadsDNI:lb.filter(r=>{const d=String(r.NroDocumento||'').trim();return d&&d!=='nan'&&d!=='None'&&d!=='0';}).length,
     leadsDigital:lb.filter(r=>_isDigital(r.ComoSeEntero)).length,
-    prospectos:lb.filter(r=>normStr(r.SubEstado||'').includes('contactado')).length,
+    prospectos:lb.filter(_esContactado).length,
     citasN:lb.filter(r=>_validDate(r.FechaCitado)).length,
     visitasN:vi.length, separacionesN:sp.length, ventasN:ve.length,
     medTR:trV.length?trV[Math.floor(trV.length/2)]:null,
@@ -3011,7 +3022,7 @@ function renderFunnelMkt(){
   if(_flTab==='cruce'){
     const FL_STAGE_OPTS=[
       {val:'leads',       lbl:'TODOS LOS LEADS', fn:_=>leadBase},
-      {val:'contactados', lbl:'CONTACTADOS',      fn:_=>leadBase.filter(r=>{const s=normStr(r.SubEstado||'');return s.includes('contactad');})},
+      {val:'contactados', lbl:'CONTACTADOS',      fn:_=>leadBase.filter(_esContactado)},
       {val:'visita',      lbl:'CON VISITA',       fn:_=>visF},
       {val:'separacion',  lbl:'SEPARADOS',        fn:_=>sepBase},
       {val:'venta',       lbl:'VENDIDOS',         fn:_=>ventaBase},
@@ -3048,7 +3059,7 @@ function renderFunnelMkt(){
     EVO_CANALES_ACTUALES = EVO_CANALES;
     const EVO_STAGES=[
       {val:'leads',      lbl:'Leads',            data:leadBase.filter(_evoCanalFiltro), dataB:((B?.lb)||[]).filter(_evoCanalFiltro), dateF:r=>_toISO(r.FechaRegistro)},
-      {val:'contactados',lbl:'Contactados',      data:leadBase.filter(r=>normStr(r.SubEstado||'').includes('contactad')).filter(_evoCanalFiltro), dataB:((B?.lb)||[]).filter(r=>normStr(r.SubEstado||'').includes('contactad')).filter(_evoCanalFiltro), dateF:r=>_toISO(r.FechaRegistro)},
+      {val:'contactados',lbl:'Contactados',      data:leadBase.filter(_esContactado).filter(_evoCanalFiltro), dataB:((B?.lb)||[]).filter(_esContactado).filter(_evoCanalFiltro), dateF:r=>_toISO(r.FechaRegistro)},
       {val:'visita',     lbl:'Con visita',       data:visF.filter(_evoCanalFiltro),    dataB:((B?.visF)||[]).filter(_evoCanalFiltro), dateF:r=>_toISO(r.FechaVisita)},
       {val:'separacion', lbl:'Separados',        data:sepBase.filter(_evoCanalFiltro), dataB:((B?.sp)||[]).filter(_evoCanalFiltro), dateF:r=>_toISO(r.FechaSepDefinitiva)},
       {val:'venta',      lbl:'Vendidos',         data:ventaBase.filter(_evoCanalFiltro), dataB:((B?.ve)||[]).filter(_evoCanalFiltro), dateF:r=>_toISO(r.FechaVenta||r.FechaEntrega_Minuta)},
@@ -3103,6 +3114,7 @@ function renderFunnelMkt(){
         <select onchange="_flEvoGranularidad=this.value;renderFunnelMkt()" style="${_ffsE};font-size:11px;font-weight:600;padding:4px 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink-2);cursor:pointer">
           <option value="auto"${_flEvoGranularidad==='auto'?' selected':''}>Auto</option>
           <option value="dias"${_flEvoGranularidad==='dias'?' selected':''}>Días</option>
+          <option value="semana"${_flEvoGranularidad==='semana'?' selected':''}>Semana</option>
           <option value="mes"${_flEvoGranularidad==='mes'?' selected':''}>Mes</option>
         </select>
       </div>
@@ -3121,18 +3133,25 @@ function renderFunnelMkt(){
     };
     const EVO_DIAS_MAX_MESES=4; // hasta 4 meses de rango, se sigue mostrando por día
 
+    const _lunesDe=iso=>{
+      const d=new Date(iso+'T00:00:00');
+      d.setDate(d.getDate()-((d.getDay()+6)%7));
+      return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    };
     // Agrupa un dayMap {iso:{clave:n}} en días u meses (relleno de huecos incluido).
     // Diario mientras el rango no supere EVO_DIAS_MAX_MESES, mensual si lo supera.
     // Compartido por el modo "por proyecto" y el modo "todas las etapas" para no
     // duplicar la lógica.
     function _flFillPeriods(dayMap){
       const dates=Object.keys(dayMap).sort();
-      if(!dates.length) return {periodMap:{}, periods:[], isMonthly:false, allDates:dates};
-      const isMonthly=_flEvoGranularidad==='dias' ? false
-        : _flEvoGranularidad==='mes' ? true
-        : _flMonthsSpan(dates[0], dates[dates.length-1])>EVO_DIAS_MAX_MESES;
+      if(!dates.length) return {periodMap:{}, periods:[], isMonthly:false, gran:'dia', allDates:dates};
+      const gran=_flEvoGranularidad==='dias' ? 'dia'
+        : _flEvoGranularidad==='semana' ? 'semana'
+        : _flEvoGranularidad==='mes' ? 'mes'
+        : (_flMonthsSpan(dates[0], dates[dates.length-1])>EVO_DIAS_MAX_MESES ? 'mes' : 'dia');
+      const _isoDe=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
       let periodMap, periods;
-      if(isMonthly){
+      if(gran==='mes'){
         periodMap={};
         dates.forEach(iso=>{
           const mk=iso.slice(0,7);
@@ -3152,26 +3171,52 @@ function renderFunnelMkt(){
           }
           periods=_full;
         } else { periods=_mks; }
+      } else if(gran==='semana'){
+        // Semana = lunes a domingo; la clave es la fecha (ISO) del lunes.
+        periodMap={};
+        dates.forEach(iso=>{
+          const wk=_lunesDe(iso);
+          if(!periodMap[wk]) periodMap[wk]={};
+          Object.entries(dayMap[iso]).forEach(([k,n])=>{ periodMap[wk][k]=(periodMap[wk][k]||0)+n; });
+        });
+        const _wks=Object.keys(periodMap).sort();
+        const _full=[];
+        const cur=new Date(_wks[0]+'T00:00:00');
+        const last=new Date(_wks[_wks.length-1]+'T00:00:00');
+        while(cur<=last){
+          const wk=_isoDe(cur);
+          if(!periodMap[wk]) periodMap[wk]={};
+          _full.push(wk);
+          cur.setDate(cur.getDate()+7);
+        }
+        periods=_full;
       } else {
         periodMap=dayMap;
         const _full=[];
         const cur=new Date(dates[0]+'T00:00:00');
         const last=new Date(dates[dates.length-1]+'T00:00:00');
         while(cur<=last){
-          const iso=cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0');
+          const iso=_isoDe(cur);
           if(!periodMap[iso]) periodMap[iso]={};
           _full.push(iso);
           cur.setDate(cur.getDate()+1);
         }
         periods=_full;
       }
-      return {periodMap, periods, isMonthly, allDates:dates};
+      return {periodMap, periods, isMonthly:gran==='mes', gran, allDates:dates};
     }
     const MM=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
-    const _fmtPeriodoGen=(d,isMonthly)=>{
-      if(isMonthly){ const[y,m]=d.split('-'); return MM[+m]+' '+y; }
-      const[y,m,dd]=d.split('-'); return dd+' '+MM[+m];
+    // g: 'dia' | 'semana' | 'mes' (true/false se aceptan por compatibilidad = mes/día)
+    const _fmtPeriodoGen=(d,g)=>{
+      const gran=g===true?'mes':g===false?'dia':g;
+      if(gran==='mes'){ const[y,m]=d.split('-'); return MM[+m]+' '+y; }
+      const[y,m,dd]=d.split('-');
+      return (gran==='semana'?'Sem ':'')+dd+' '+MM[+m];
     };
+    const _granTit=g=>g==='mes'?'mensual':g==='semana'?'semanal':'diaria';
+    const _granKpi=g=>g==='mes'?'mensual':g==='semana'?'semanal':'diario';
+    const _granUni=g=>g==='mes'?'mes':g==='semana'?'semana':'día';
+    const _granUniCap=g=>g==='mes'?'Mes':g==='semana'?'Semana':'Día';
 
     // Etiquetas de dato sobre las líneas del gráfico de Evolución: se ocultan solas
     // cuando el total de "etiquetas a dibujar" (líneas × puntos) es demasiado alto
@@ -3202,7 +3247,7 @@ function renderFunnelMkt(){
     // registros de ese día/mes. Cada modo del gráfico pasa un "resolve(datasetIndex,
     // index)" que devuelve {etapa, filas, titulo, kpi2Lbl, kpi2Val}.
     const EVO_COLS={leads:FL_LEAD_COLS, contactados:FL_LEAD_COLS, visita:FL_VISITA_COLS, separacion:FL_SEP_COLS, venta:FL_VENTA_COLS};
-    const _evoEnPeriodo=(iso,key,monthly)=>!!iso && (monthly ? iso.slice(0,7)===key : iso===key);
+    const _evoEnPeriodo=(iso,key,gran)=>!!iso && (gran==='mes' ? iso.slice(0,7)===key : gran==='semana' ? _lunesDe(iso)===key : iso===key);
     const _evoHit=ds=>{ ds.forEach(d=>{d.pointHitRadius=10;}); return ds; };
     const _evoHover=(e,_a,chart)=>{
       const h=chart.getElementsAtEventForMode(e,'nearest',{intersect:true},false);
@@ -3233,14 +3278,14 @@ function renderFunnelMkt(){
           dayMapTodas[iso][st.val]=(dayMapTodas[iso][st.val]||0)+1;
         });
       });
-      const {periodMap, periods, isMonthly, allDates}=_flFillPeriods(dayMapTodas);
+      const {periodMap, periods, gran, allDates}=_flFillPeriods(dayMapTodas);
       if(!allDates.length){
         document.getElementById('fl-content').innerHTML=
           '<div class="card" style="margin-bottom:12px;padding-bottom:10px;overflow:visible">'+evoStageSel+'</div>'
           +'<div class="card" style="margin-bottom:16px;padding:40px;text-align:center;color:var(--ink-4);font-size:13px">Sin datos para el período seleccionado</div>';
         return;
       }
-      const xLabelsT=periods.map(d=>isMonthly?_fmtPeriodoGen(d,true):(periods.length>90?d.slice(5).replace('-','/'):_fmtPeriodoGen(d,false)));
+      const xLabelsT=periods.map(d=>gran!=='dia'?_fmtPeriodoGen(d,gran):(periods.length>90?d.slice(5).replace('-','/'):_fmtPeriodoGen(d,'dia')));
       const datasetsT=selectedStages.map(st=>({
         label:st.lbl,
         data:periods.map(d=>periodMap[d]?.[st.val]||0),
@@ -3261,7 +3306,7 @@ function renderFunnelMkt(){
         '<div class="card" style="margin-bottom:12px;padding-bottom:10px;overflow:visible">'+evoStageSel+'</div>'
         +'<div class="card" style="margin-bottom:16px">'
           +'<div class="card-hd">'
-            +'<div><h3>Evolución '+(isMonthly?'mensual':'diaria')+' · '+selectedStages.map(s=>s.lbl).join(', ')+'</h3><p>'+(lblA||'Todo el período')+' · '+(proj||'todos los proyectos')+'</p></div>'
+            +'<div><h3>Evolución '+_granTit(gran)+' · '+selectedStages.map(s=>s.lbl).join(', ')+'</h3><p>'+(lblA||'Todo el período')+' · '+(proj||'todos los proyectos')+'</p></div>'
             +'<div style="display:flex;flex-direction:column;gap:5px;min-width:180px">'+legendT+'</div>'
           +'</div>'
           +'<div style="height:340px;padding:8px 16px 16px"><canvas id="fl-evo-chart"></canvas></div>'
@@ -3278,8 +3323,8 @@ function renderFunnelMkt(){
           options:{
             onClick:_evoClick((di,i)=>{
               const st=selectedStages[di]; const per=periods[i]; if(!st||!per) return null;
-              return {etapa:st.val, filas:st.data.filter(r=>_evoEnPeriodo(st.dateF(r),per,isMonthly)),
-                titulo:st.lbl+' · '+_fmtPeriodoGen(per,isMonthly), kpi2Lbl:isMonthly?'Mes':'Día', kpi2Val:_fmtPeriodoGen(per,isMonthly)};
+              return {etapa:st.val, filas:st.data.filter(r=>_evoEnPeriodo(st.dateF(r),per,gran)),
+                titulo:st.lbl+' · '+_fmtPeriodoGen(per,gran), kpi2Lbl:_granUniCap(gran), kpi2Val:_fmtPeriodoGen(per,gran)};
             }),
             onHover:_evoHover,
             responsive:true,maintainAspectRatio:false,
@@ -3338,17 +3383,20 @@ function renderFunnelMkt(){
       // Mensual si CUALQUIERA de los 2 rangos supera EVO_DIAS_MAX_MESES, para que
       // ambas líneas usen la misma granularidad (salvo que el usuario haya forzado
       // días o mes con el botón de granularidad).
-      const cmpMonthly=_flEvoGranularidad==='dias' ? false
-        : _flEvoGranularidad==='mes' ? true
-        : (_flMonthsSpan(fromA,toA)>EVO_DIAS_MAX_MESES || _flMonthsSpan(fromB,toB)>EVO_DIAS_MAX_MESES);
+      const cmpGran=_flEvoGranularidad==='dias' ? 'dia'
+        : _flEvoGranularidad==='semana' ? 'semana'
+        : _flEvoGranularidad==='mes' ? 'mes'
+        : ((_flMonthsSpan(fromA,toA)>EVO_DIAS_MAX_MESES || _flMonthsSpan(fromB,toB)>EVO_DIAS_MAX_MESES) ? 'mes' : 'dia');
       const _diffDias=(f,t)=>Math.round((new Date(t+'T00:00:00')-new Date(f+'T00:00:00'))/86400000);
+      const _diffSem=(f,t)=>Math.floor(_diffDias(f,t)/7);
       const _diffMeses=(f,t)=>{const[fy,fm]=f.slice(0,7).split('-').map(Number);const[ty,tm]=t.slice(0,7).split('-').map(Number);return(ty-fy)*12+(tm-fm);};
+      const _idxRel=(f,t)=>cmpGran==='mes'?_diffMeses(f,t):cmpGran==='semana'?_diffSem(f,t):_diffDias(f,t);
 
       function _serieRelativa(rows, dateF, from){
         const map={};
         rows.forEach(r=>{
           const iso=dateF(r); if(!iso) return;
-          const idx=cmpMonthly?_diffMeses(from,iso):_diffDias(from,iso);
+          const idx=_idxRel(from,iso);
           if(idx<0) return;
           map[idx]=(map[idx]||0)+1;
         });
@@ -3356,11 +3404,11 @@ function renderFunnelMkt(){
       }
       const mapA=_serieRelativa(evoBase, _evoDateF, fromA);
       const mapB=_serieRelativa(evoBaseB, _evoDateF, fromB);
-      const lenA=(cmpMonthly?_diffMeses(fromA,toA):_diffDias(fromA,toA))+1;
-      const lenB=(cmpMonthly?_diffMeses(fromB,toB):_diffDias(fromB,toB))+1;
+      const lenA=_idxRel(fromA,toA)+1;
+      const lenB=_idxRel(fromB,toB)+1;
       const nPuntos=Math.max(lenA,lenB);
       const idxs=Array.from({length:nPuntos},(_,i)=>i);
-      const xLabelsCmp=idxs.map(i=>cmpMonthly?('Mes '+(i+1)):('Día '+(i+1)));
+      const xLabelsCmp=idxs.map(i=>_granUniCap(cmpGran)+' '+(i+1));
 
       // ── Varias etapas + comparar: 2 líneas por etapa elegida (A/B) — color por
       // etapa, sólida = Período A, punteada = Período B.
@@ -3383,7 +3431,7 @@ function renderFunnelMkt(){
           '<div class="card" style="margin-bottom:12px;padding-bottom:10px;overflow:visible">'+evoStageSel+'</div>'
           +'<div class="card" style="margin-bottom:16px">'
             +'<div class="card-hd">'
-              +'<div><h3>Evolución '+(cmpMonthly?'mensual':'diaria')+' · '+selectedStages.map(s=>s.lbl).join(', ')+'</h3><p>Período A ('+lblA+', línea sólida) vs Período B ('+lblB+', línea punteada) · alineado por '+(cmpMonthly?'mes':'día')+' relativo</p></div>'
+              +'<div><h3>Evolución '+_granTit(cmpGran)+' · '+selectedStages.map(s=>s.lbl).join(', ')+'</h3><p>Período A ('+lblA+', línea sólida) vs Período B ('+lblB+', línea punteada) · alineado por '+_granUni(cmpGran)+' relativo</p></div>'
               +'<div style="display:flex;flex-direction:column;gap:5px;min-width:150px">'+legendTodasCmp+'</div>'
             +'</div>'
             +'<div style="height:360px;padding:8px 16px 16px"><canvas id="fl-evo-chart"></canvas></div>'
@@ -3401,8 +3449,8 @@ function renderFunnelMkt(){
             onClick:_evoClick((di,i)=>{
                 const st=selectedStages[di>>1]; if(!st) return null;
                 const esB=(di&1)===1; const from=esB?fromB:fromA;
-                const filas=(esB?st.dataB:st.data).filter(r=>{const iso=st.dateF(r); return iso && (cmpMonthly?_diffMeses(from,iso):_diffDias(from,iso))===i;});
-                return {etapa:st.val, filas, titulo:st.lbl+' · Período '+(esB?'B':'A')+' · '+(cmpMonthly?'Mes ':'Día ')+(i+1),
+                const filas=(esB?st.dataB:st.data).filter(r=>{const iso=st.dateF(r); return iso && (_idxRel(from,iso))===i;});
+                return {etapa:st.val, filas, titulo:st.lbl+' · Período '+(esB?'B':'A')+' · '+(_granUniCap(cmpGran)+' ')+(i+1),
                   kpi2Lbl:'Período', kpi2Val:(esB?lblB:lblA)||(esB?'B':'A')};
               }),
             onHover:_evoHover,
@@ -3460,13 +3508,13 @@ function renderFunnelMkt(){
         '<div class="card" style="margin-bottom:12px;padding-bottom:10px;overflow:visible">'+evoStageSel+'</div>'
         +'<div class="kpi-row kpi-4" style="margin-bottom:16px">'
           +_evoKpiCmp(evoStageOpt.lbl, fN(totA)+' <span style="font-size:12px;color:var(--ink-3)">vs</span> '+fN(totB), 'total A vs B', '#3b82f6')
-          +_evoKpiCmp('Promedio '+(cmpMonthly?'mensual':'diario'), avgA+' <span style="font-size:12px;color:var(--ink-3)">vs</span> '+avgB, 'A vs B', '#14AFBE')
+          +_evoKpiCmp('Promedio '+_granKpi(cmpGran), avgA+' <span style="font-size:12px;color:var(--ink-3)">vs</span> '+avgB, 'A vs B', '#14AFBE')
           +_evoKpiCmp('Pico', fN(maxA)+' <span style="font-size:12px;color:var(--ink-3)">vs</span> '+fN(maxB), 'A vs B', '#F4A228')
           +_evoKpiCmp('Diferencia total', `<span style="color:${deltaColor}">${deltaIcon} ${fN(Math.abs(deltaTot))}</span>`, (deltaPct!=null?(deltaPct>0?'+':'')+deltaPct+'% vs B':'A vs B'), deltaColor)
         +'</div>'
         +'<div class="card" style="margin-bottom:16px">'
           +'<div class="card-hd">'
-            +'<div><h3>Evolución '+(cmpMonthly?'mensual':'diaria')+' · '+evoStageOpt.lbl+'</h3><p>Período A ('+lblA+') vs Período B ('+lblB+') · alineado por '+(cmpMonthly?'mes':'día')+' relativo</p></div>'
+            +'<div><h3>Evolución '+_granTit(cmpGran)+' · '+evoStageOpt.lbl+'</h3><p>Período A ('+lblA+') vs Período B ('+lblB+') · alineado por '+_granUni(cmpGran)+' relativo</p></div>'
             +legendCmp
           +'</div>'
           +'<div style="height:340px;padding:8px 16px 16px"><canvas id="fl-evo-chart"></canvas></div>'
@@ -3483,8 +3531,8 @@ function renderFunnelMkt(){
           options:{
             onClick:_evoClick((di,i)=>{
               const esB=di===1; const from=esB?fromB:fromA;
-              const filas=(esB?evoBaseB:evoBase).filter(r=>{const iso=_evoDateF(r); return iso && (cmpMonthly?_diffMeses(from,iso):_diffDias(from,iso))===i;});
-              return {etapa:evoStageOpt.val, filas, titulo:evoStageOpt.lbl+' · Período '+(esB?'B':'A')+' · '+(cmpMonthly?'Mes ':'Día ')+(i+1),
+              const filas=(esB?evoBaseB:evoBase).filter(r=>{const iso=_evoDateF(r); return iso && (_idxRel(from,iso))===i;});
+              return {etapa:evoStageOpt.val, filas, titulo:evoStageOpt.lbl+' · Período '+(esB?'B':'A')+' · '+(_granUniCap(cmpGran)+' ')+(i+1),
                 kpi2Lbl:'Período', kpi2Val:(esB?lblB:lblA)||(esB?'B':'A')};
             }),
             onHover:_evoHover,
@@ -3539,9 +3587,9 @@ function renderFunnelMkt(){
       return;
     }
 
-    const {periodMap, periods, isMonthly:_isMonthly, allDates}=_flFillPeriods(dayMap);
-    const _lblGran = _isMonthly ? 'mensual' : 'diario';
-    const _fmtPeriodo = d => _fmtPeriodoGen(d, _isMonthly);
+    const {periodMap, periods, gran:_gran, allDates}=_flFillPeriods(dayMap);
+    const _lblGran = _granKpi(_gran);
+    const _fmtPeriodo = d => _fmtPeriodoGen(d, _gran);
 
     // Construir datasets Chart.js — una línea por proyecto
     const datasets = allProyectos.map((p,i)=>({
@@ -3573,7 +3621,7 @@ function renderFunnelMkt(){
     }
 
     // Formatear etiquetas del eje X — abreviar días si hay muchos, "Mes Año" si es mensual
-    const xLabels = periods.map(d=>_isMonthly?_fmtPeriodo(d):(periods.length>90?d.slice(5).replace('-','/'):_fmtPeriodo(d)));
+    const xLabels = periods.map(d=>_gran!=='dia'?_fmtPeriodo(d):(periods.length>90?d.slice(5).replace('-','/'):_fmtPeriodo(d)));
 
     // Resumen: pico, promedio, tendencia (por período)
     const totPeriodo = periods.map(d=>Object.values(periodMap[d]).reduce((a,b)=>a+b,0));
@@ -3603,8 +3651,8 @@ function renderFunnelMkt(){
       '<div class="card" style="margin-bottom:12px;padding-bottom:10px;overflow:visible">'+evoStageSel+'</div>'
       +'<div class="kpi-row kpi-4" style="margin-bottom:16px">'
         +_evoKpi(evoStageOpt.lbl,fN(evoBase.length),'período seleccionado','#3b82f6')
-        +_evoKpi('Promedio '+_lblGran,avgPer,'registros / '+(_isMonthly?'mes':'día'),'#14AFBE')
-        +_evoKpi('Pico '+_lblGran,`${fN(maxPer)} <span style="font-size:11px;color:var(--ink-3);font-weight:500">${maxPerFecha?_fmtPeriodo(maxPerFecha):'—'}</span>`,'máximo en un '+(_isMonthly?'mes':'día'),'#F4A228')
+        +_evoKpi('Promedio '+_lblGran,avgPer,'registros / '+_granUni(_gran),'#14AFBE')
+        +_evoKpi('Pico '+_lblGran,`${fN(maxPer)} <span style="font-size:11px;color:var(--ink-3);font-weight:500">${maxPerFecha?_fmtPeriodo(maxPerFecha):'—'}</span>`,'máximo en un '+_granUni(_gran),'#F4A228')
         +_evoKpi('Tendencia',`<span style="color:${tendColor}">${tendIcon} ${Math.abs(Math.round(tendencia*10)/10)}</span>`,'vs primera mitad',tendColor)
       +'</div>'
       +'<div class="card" style="margin-bottom:16px">'
@@ -3627,9 +3675,9 @@ function renderFunnelMkt(){
             onClick:_evoClick((di,i)=>{
             const per=periods[i]; const ds=datasets[di]; if(!per||!ds) return null;
             const p=ds.label; const todos=(p==='Total leads')||!!proj;
-            const filas=evoBase.filter(r=>_evoEnPeriodo(_evoDateF(r),per,_isMonthly) && (todos || String(r.Proyecto||'Sin proyecto').trim()===p));
+            const filas=evoBase.filter(r=>_evoEnPeriodo(_evoDateF(r),per,_gran) && (todos || String(r.Proyecto||'Sin proyecto').trim()===p));
             return {etapa:evoStageOpt.val, filas, titulo:evoStageOpt.lbl+' · '+_fmtPeriodo(per)+(todos?'':' · '+p),
-              kpi2Lbl:_isMonthly?'Mes':'Día', kpi2Val:_fmtPeriodo(per)};
+              kpi2Lbl:_granUniCap(_gran), kpi2Val:_fmtPeriodo(per)};
           }),
             onHover:_evoHover,
           responsive:true,maintainAspectRatio:false,
@@ -5682,11 +5730,19 @@ const FL_VENTA_COLS=[
 let _flPopupState = null; // {titulo, kpi1, kpi2, filas, cols}
 let _flPopupSortIdx = null;
 let _flPopupSortDir = 'asc';
+let _flPopupBusq = ''; // texto normalizado del buscador del popup
+
+function _flPopupBuscar(q){
+  _flPopupBusq = normStr(q||'').trim();
+  _flRenderPopupTable();
+}
 
 function _abrirModalFunnelEtapa(titulo, kpi1, kpi2, filas, cols){
   _flPopupState = {titulo, kpi1, kpi2, filas, cols};
   _flPopupSortIdx = null;
   _flPopupSortDir = 'asc';
+  _flPopupBusq = '';
+  const inp = document.getElementById('fl-cli-search'); if(inp) inp.value = '';
   _flRenderPopupTable();
 }
 
@@ -5749,13 +5805,20 @@ function _flRenderPopupTable(){
     `<th style="text-align:${c.align||'left'};cursor:pointer;user-select:none" onclick="_flPopupSetSort(${i})" title="Ordenar">${c.label}${_sortIco(i)}</th>`
   ).join('');
 
+  // Buscador: coincide contra el texto de todas las columnas visibles (sin tildes
+  // ni mayúsculas). Solo afecta a la tabla (y a su Excel), no a los KPIs ni al desglose.
+  const filasVis = _flPopupBusq
+    ? filas.filter(r=>normStr(cols.map(c=>String(c.get(r)).replace(/<[^>]*>/g,' ')).join(' ')).includes(_flPopupBusq))
+    : filas;
+  const cnt = document.getElementById('fl-cli-search-count');
+  if(cnt) cnt.textContent = _flPopupBusq ? `${filasVis.length} de ${filas.length}` : '';
   let filasOrdenadas;
   if(_flPopupSortIdx===null){
-    filasOrdenadas = filas.slice().sort((a,b)=>_flNombreCompleto(a).localeCompare(_flNombreCompleto(b)));
+    filasOrdenadas = filasVis.slice().sort((a,b)=>_flNombreCompleto(a).localeCompare(_flNombreCompleto(b)));
   } else {
     const col = cols[_flPopupSortIdx];
     const valFn = col.sortVal || col.get;
-    filasOrdenadas = filas.slice().sort((a,b)=>{
+    filasOrdenadas = filasVis.slice().sort((a,b)=>{
       const va=valFn(a), vb=valFn(b);
       const cmp = (typeof va==='number' && typeof vb==='number')
         ? va-vb
@@ -5798,7 +5861,7 @@ function _flAbrirEtapa(stageKey, which){
       filas=d.lb.filter(r=>{const doc=String(r.NroDocumento||'').trim();return doc&&doc!=='nan'&&doc!=='None'&&doc!=='0';});
       titulo='Leads con DNI'; cols=FL_LEAD_COLS; break;
     case 'contactados':
-      filas=d.lb.filter(r=>normStr(r.SubEstado||'').includes('contactado'));
+      filas=d.lb.filter(_esContactado);
       titulo='Contactados'; cols=FL_LEAD_COLS; break;
     case 'citas':
       filas=d.lb.filter(r=>_validDate(r.FechaCitado));
@@ -7110,6 +7173,10 @@ loadAll();
         <div style="font-size:10.5px;font-weight:700;color:var(--ink-4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">Responsable Anterior</div>
         <div id="fl-cli-responsables" style="display:flex;flex-wrap:wrap;gap:6px"></div>
       </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-bottom:8px">
+      <span id="fl-cli-search-count" style="font-size:11.5px;color:var(--ink-3)"></span>
+      <input type="text" class="sp-search" id="fl-cli-search" placeholder="Buscar en la tabla..." oninput="_flPopupBuscar(this.value)">
     </div>
     <div class="cob-mes-tablewrap">
       <table class="tbl" id="fl-cli-table" style="width:100%">
