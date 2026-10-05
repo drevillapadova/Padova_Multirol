@@ -5879,8 +5879,14 @@ function _abrirModalCobradoPorCobrar(fc, mesCol, mesLabel, FX, ingDep, mesYM){
   // cronograma de ESE mes, como siempre. Para "Cobrado sin nada pendiente ya"
   // (filasExtra) no tiene sentido mostrar el monto de una cuota que vencía en
   // otro mes — se muestra lo que realmente se pagó ESTE mes.
-  const _montoCuotaDe = r => keysExtra.has(_admKeyUnidad(r)) ? (pagadoEsteMes[_admKeyUnidad(r)]||0) : _h(r).montoCuota;
-  const _montoPagadoDe = r => keysExtra.has(_admKeyUnidad(r)) ? (pagadoEsteMes[_admKeyUnidad(r)]||0) : _h(r).montoPagado;
+  // "Monto Pagado" = SIEMPRE lo pagado con Fecha_Pago dentro de este mes (igual que
+  // la barra "Cobrado" del gráfico), también para las filas con cuota pendiente.
+  // Antes esas filas tomaban del cronograma lo pagado de las cuotas PROGRAMADAS este
+  // mes aunque se hubieran pagado en otro (ej. Miguel Santiago Garay Castro: pagó
+  // S/ 192,410.05 en septiembre cuotas que vencen el 31/10 y salía como pagado en
+  // octubre). Lo del mes es lo del mes.
+  const _montoPagadoDe = r => pagadoEsteMes[_admKeyUnidad(r)]||0;
+  const _montoCuotaDe = r => keysExtra.has(_admKeyUnidad(r)) ? _montoPagadoDe(r) : _h(r).porPagar + _montoPagadoDe(r);
   const _porPagarDe = r => keysExtra.has(_admKeyUnidad(r)) ? 0 : _h(r).porPagar;
   // Fecha Programada real: para filasExtra puede ser de OTRO mes (eso es
   // justamente lo que explica por qué aparece acá) — se toma directo de
@@ -7674,18 +7680,6 @@ function renderMercadoTipologia(){
     return;
   }
 
-  // filas "TOTAL" de los proyectos propios (Padova) que queden dentro del filtro elegido:
-  // siempre con el total real del proyecto, sin importar el filtro de tipología.
-  const proyectosPropios = [...new Set(filas.filter(f=>f.esPropio).map(f=>f.proyecto))];
-  const filasTotalPropio = proyectosPropios.map(proyecto=>{
-    const proj = projPorNombre.get(proyecto) || {};
-    const ventasProyecto = dataVentas.filter(v=>v.proyecto===proyecto);
-    const meses = {};
-    ventasProyecto.forEach(v=>{ const ym=(v.fecha_venta||'').slice(0,7); if(ym) meses[ym]=(meses[ym]||0)+1; });
-    const stockEst = Math.max(0, (proj.unidades_totales||0) - ventasProyecto.length);
-    return { proyecto, unidadesTotales: proj.unidades_totales||0, stockEst, meses };
-  });
-
   // meses a mostrar en el heatmap: SIEMPRE los últimos "periodoMeses" meses calendario
   // COMPLETOS (con celda vacía si no hubo ventas ese mes) — no incluye el mes actual,
   // que todavía está a mitad y no es comparable con un mes cerrado.
@@ -7696,8 +7690,8 @@ function renderMercadoTipologia(){
       mesesOrdenados.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
     }
   }
-  const maxMes = Math.max(1, ...filas.flatMap(f=>mesesOrdenados.map(ym=>f.meses[ym]||0)), ...filasTotalPropio.flatMap(f=>mesesOrdenados.map(ym=>f.meses[ym]||0)));
-  const maxStock = Math.max(1, ...filas.map(f=>f.stockEst), ...filasTotalPropio.map(f=>f.stockEst));
+  const maxMes = Math.max(1, ...filas.flatMap(f=>mesesOrdenados.map(ym=>f.meses[ym]||0)));
+  const maxStock = Math.max(1, ...filas.map(f=>f.stockEst));
   // "Prom. mensual" = promedio de unidades vendidas sobre los mismos meses que se ven en el heatmap
   const promMensualDe = meses => mesesOrdenados.length ? mesesOrdenados.reduce((s,ym)=>s+(meses[ym]||0),0)/mesesOrdenados.length : 0;
 
@@ -7725,17 +7719,6 @@ function renderMercadoTipologia(){
       <td>${fSol(f.sM2Lista)}</td>
       <td>${fSol(f.sM2Venta)}</td>
       <td>${fSol(f.ticketProm)}</td>
-      <td>${barraStock(f.stockEst)}</td>
-      ${celdasMeses(f.meses)}
-      <td>${promMensualDe(f.meses).toFixed(1)}</td>
-    </tr>`).join('');
-
-  rowsHtml += filasTotalPropio.map(f=>`
-    <tr class="vp-total-propio">
-      <td class="vp-rowlbl">${f.proyecto} — TOTAL</td>
-      <td></td><td></td>
-      <td>${f.unidadesTotales} total proy.</td>
-      <td></td><td></td><td></td><td></td>
       <td>${barraStock(f.stockEst)}</td>
       ${celdasMeses(f.meses)}
       <td>${promMensualDe(f.meses).toFixed(1)}</td>
