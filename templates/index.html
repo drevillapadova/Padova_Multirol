@@ -2702,6 +2702,7 @@ function _isDigital(canal){
 
 const FL_DIM_OPTS = [
   {val:'subestado', lbl:'Sub-Estado',       stages:['leads','contactados','visita'],    fn: r=>String(r.SubEstado||'Sin estado').trim()},
+  {val:'estado',    lbl:'Estado',           stages:['leads','contactados'],            fn: r=>String(r.Estado||'Sin estado').trim()},
   {val:'canal',     lbl:'Canal',            stages:null,                               fn: r=>String(r.ComoSeEntero||'Sin canal').trim()},
   {val:'forma',     lbl:'Forma de Contacto',stages:null,                               fn: r=>String(r.FormaContacto||'').trim()||'Sin dato'},
   {val:'asesor',    lbl:'Asesor',           stages:null,                               fn: r=>toShort(String(r.Responsable||r.Asesor||r.Vendedor||'Sin asesor').trim())},
