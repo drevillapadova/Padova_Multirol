@@ -795,6 +795,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
   </div>
   <div class="nav-group">Roles</div>
   <div class="nav-item active" onclick="nav('director',this)" title="Comercial"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg><span class="nav-lbl">Comercial</span></div>
+  <div class="nav-item" onclick="nav('pricing',this)" title="Pricing"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg><span class="nav-lbl">Pricing</span></div>
   <div class="nav-item" onclick="nav('admventas',this)" title="Adm. de Ventas"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg><span class="nav-lbl">Adm. de Ventas</span></div>
   <div class="nav-item" onclick="nav('funnelmkt',this)" title="Marketing"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg><span class="nav-lbl">Marketing</span></div>
   <div class="nav-item" onclick="nav('mercado',this)" title="Estudio de Mercado"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4z"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg><span class="nav-lbl">Estudio de Mercado</span></div>
@@ -851,6 +852,31 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
     <button class="tab-btn" id="dir-tab-tendencias" onclick="setDirTab('tendencias',this)">Tendencias</button>
   </div>
   <div id="dir-content"><div class="loading">Cargando...</div></div>
+</div>
+
+<!-- ═══════════ PRICING ═══════════ -->
+<div class="panel" id="panel-pricing">
+  <div class="topbar">
+    <div>
+      <div class="crumbs">Dashboard <span>›</span><b>Pricing</b></div>
+      <h1 class="page-title">Pricing · pm2 vs. tramos</h1>
+      <div class="page-sub" id="pr-sub">Cargando...</div>
+    </div>
+    <div class="toolbar">
+      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
+        <select id="pr-proj" onchange="renderPricing()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO 4</option><option>LOMAS DE CARABAYLLO 5</option><option>DOMINGO ORUE</option></select>
+      </label>
+      <div class="chip refresh" onclick="loadAll(true)">↻ Actualizar</div>
+      <button class="dark-toggle-btn" onclick="toggleDark()" title="Modo oscuro" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all .2s">◑</button>
+    </div>
+  </div>
+  <div class="kpi-row kpi-4" id="pr-kpis"><div class="loading">Cargando datos...</div></div>
+  <div class="tab-bar" id="pr-tab-bar">
+    <button class="tab-btn active" onclick="setPrTab('resumen',this)">Resumen</button>
+    <button class="tab-btn" onclick="setPrTab('ventas',this)">Ventas</button>
+    <button class="tab-btn" onclick="setPrTab('tramos',this)">Tramos</button>
+  </div>
+  <div id="pr-content"><div class="loading">Cargando...</div></div>
 </div>
 
 <!-- ═══════════ ADM. DE VENTAS ═══════════ -->
@@ -1537,6 +1563,7 @@ function _schedNextRefresh(){
 
 function renderAll(){
   renderDirector();
+  renderPricing();
   renderAdmVentas();
   renderFunnelMkt();
   renderStockProy();
@@ -6467,11 +6494,445 @@ function renderStockProy(){
   if(_spSearch) filterSpUnits(_spSearch);
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// PRICING — pm2 vendido de departamentos vs. los tramos de precio
+// ══════════════════════════════════════════════════════════════════════════
+// Un "tramo" es un rango de unidades vendidas (acumuladas por proyecto, solo
+// departamentos, ventas activas — las separaciones no cuentan) con un pm2
+// objetivo. La venta N° k de un proyecto cae en el tramo donde desde<=k<=hasta y
+// se compara contra el pm2 objetivo de ese tramo.
+// pm2 de una venta = Precio de venta en S/ ÷ m² efectivo (área techada + ½ área libre,
+// de Stock) — el mismo criterio que el Resumen comercial.
+// Los tramos se guardan en este navegador (localStorage); se pueden exportar/
+// importar como JSON para llevarlos a otra PC.
+const PR_LS_KEY = 'pricingTramosV1';
+const PR_PROJS = ['HELIO - SANTA BEATRIZ','SUNNY','LITORAL 900','LOMAS DE CARABAYLLO 4','LOMAS DE CARABAYLLO 5','DOMINGO ORUE'];
+const _prCorto = p => p.replace('LOMAS DE CARABAYLLO','LOMAS').replace('HELIO - SANTA BEATRIZ','HELIO');
+let _prTab = 'resumen';
+let _prCfg = null;            // {tol:número(%), tramos:[{p,desde,hasta,pm2}]}
+let _prFiltroEst = 'todas';   // pestaña Ventas: todas | bad | warn | ok
+let _prBusq = '';
+let _prSortIdx = null, _prSortDir = 'desc';
+let _prVentasVis = [];        // filas visibles de la pestaña Ventas (para ordenar sin recalcular)
+
+function _prLoadCfg(){
+  if(_prCfg) return _prCfg;
+  try{
+    const j = JSON.parse(localStorage.getItem(PR_LS_KEY)||'null');
+    if(j && Array.isArray(j.tramos)){ _prCfg = {tol:Number(j.tol)||3, tramos:j.tramos}; return _prCfg; }
+  }catch(e){}
+  _prCfg = {tol:3, tramos:[]};
+  return _prCfg;
+}
+function _prSaveCfg(){ try{ localStorage.setItem(PR_LS_KEY, JSON.stringify(_prCfg)); }catch(e){} }
+
+function setPrTab(tab, el){
+  _prTab = tab;
+  document.querySelectorAll('#pr-tab-bar .tab-btn').forEach(b=>b.classList.remove('active'));
+  if(el) el.classList.add('active');
+  renderPricing();
+}
+
+// Ventas de departamentos por proyecto, ordenadas por fecha, con su n° de venta
+// (k) dentro del proyecto, m², pm2 y descuento ya calculados.
+function _prData(){
+  const stockArea = {};
+  (D.stock||[]).forEach(r=>{
+    const dni = String(r.NroDocumento||'').trim();
+    if(!dni) return;
+    const k = _m2Key(r.Proyecto, r.NroInmuebleActual||r.NroInmueble, dni);
+    if(!(k in stockArea)) stockArea[k] = r;
+  });
+  const porProy = {};
+  (D.ventas||[]).forEach(r=>{
+    if(!normStr(r.TipoInmueble||'').includes('departamento')) return;
+    const p = String(r.Proyecto||'').trim().toUpperCase();
+    (porProy[p] = porProy[p]||[]).push(r);
+  });
+  const out = {};
+  Object.entries(porProy).forEach(([p,arr])=>{
+    const conFecha = arr.map(r=>({r, iso:_toISODate(r.FechaVenta||r.FechaEntrega_Minuta)||''}));
+    conFecha.sort((a,b)=>a.iso.localeCompare(b.iso));
+    out[p] = conFecha.map(({r,iso},i)=>{
+      const precio = Number(r.PrecioVentaSoles||r.PrecioVenta||0);
+      const area = stockArea[_m2Key(r.Proyecto, r.NroInmueble, r.NroDocumentoTitular)];
+      const m2 = area ? _m2Efectivo(area) : 0;
+      const base = Number(r.PrecioBase||0), venta = Number(r.PrecioVenta||0);
+      return {
+        r, p, seq:i+1, iso, precio, m2,
+        pm2: (precio>0 && m2>0) ? precio/m2 : null,
+        desc: (base>0 && venta>0) ? 1-venta/base : null,
+        nro: String(r.NroInmueble||'').replace(/\.0+$/,'') || '—',
+      };
+    });
+  });
+  return out;
+}
+
+// Cruza cada venta con su tramo y la clasifica: ok (≥ objetivo), warn (hasta la
+// tolerancia por debajo), bad (más abajo que la tolerancia = "bajo el piso").
+function _prAnalizar(){
+  const cfg = _prLoadCfg();
+  const tol = (Number(cfg.tol)||0)/100;
+  const data = _prData();
+  const res = {};
+  PR_PROJS.forEach(p=>{
+    const ventas = data[p]||[];
+    const tramos = cfg.tramos.filter(t=>t.p===p).map(t=>({
+      p, desde:Number(t.desde)||1,
+      hasta:(t.hasta===''||t.hasta==null||isNaN(Number(t.hasta))) ? Infinity : Number(t.hasta),
+      pm2:Number(t.pm2)||0,
+    })).filter(t=>t.pm2>0).sort((a,b)=>a.desde-b.desde);
+    tramos.forEach((t,i)=>{ t.n=i+1; });
+    ventas.forEach(s=>{
+      const t = tramos.find(x=>s.seq>=x.desde && s.seq<=x.hasta) || null;
+      s.tramo = t;
+      s.obj = t ? t.pm2 : null;
+      s.piso = t ? t.pm2*(1-tol) : null;
+      s.desv = (s.pm2!=null && t) ? s.pm2/t.pm2-1 : null;
+      s.est = s.pm2==null ? 'sinarea' : !t ? 'sintramo' : (s.pm2>=t.pm2 ? 'ok' : (s.pm2>=s.piso ? 'warn' : 'bad'));
+      s.dejado = (s.pm2!=null && t && s.pm2<t.pm2) ? (t.pm2-s.pm2)*s.m2 : 0;
+    });
+    res[p] = {p, ventas, tramos};
+  });
+  return res;
+}
+
+const _prPm2 = v => v==null ? '—' : 'S/ '+fN(Math.round(v));
+const _prPct = (v,dec=1) => v==null ? '—' : (v>0?'+':'')+(v*100).toFixed(dec)+'%';
+const _prPill = est => ({
+  ok:'<span class="pill g">En rango</span>', warn:'<span class="pill w">Cerca</span>', bad:'<span class="pill b">Bajo piso</span>',
+  sintramo:'<span class="pill" style="background:var(--line-2);color:var(--ink-3)">Sin tramo</span>',
+  sinarea:'<span class="pill" style="background:var(--line-2);color:var(--ink-3)">Sin área</span>',
+}[est]||'');
+const _prColorDesv = v => v==null ? 'var(--ink-3)' : v>=0 ? '#16a34a' : '#dc2626';
+
+const PR_COLS = [
+  {label:'#',            get:r=>r._s.seq, align:'center', sortVal:r=>r._s.seq, numeric:true},
+  {label:'F. Venta',     get:r=>_flFmtFecha(r._s.iso), align:'center', sortVal:r=>r._s.iso},
+  {label:'Cliente',      get:_flNombreCompleto},
+  {label:'Proyecto',     get:r=>_prCorto(r._s.p)},
+  {label:'N° Dpto',      get:r=>r._s.nro, align:'center'},
+  {label:'Tramo',        get:r=>r._s.tramo ? 'T'+r._s.tramo.n : '—', align:'center'},
+  {label:'m²',           get:r=>r._s.m2 ? r._s.m2.toFixed(1) : '—', align:'center', sortVal:r=>r._s.m2||0, numeric:true},
+  {label:'Precio venta', get:r=>fFull(r._s.precio), align:'right', sortVal:r=>r._s.precio, numeric:true},
+  {label:'pm2 venta',    get:r=>_prPm2(r._s.pm2), align:'right', sortVal:r=>r._s.pm2||0, numeric:true},
+  {label:'pm2 objetivo', get:r=>_prPm2(r._s.obj), align:'right', sortVal:r=>r._s.obj||0, numeric:true},
+  {label:'Desv.',        get:r=>`<span style="font-weight:700;color:${_prColorDesv(r._s.desv)}">${_prPct(r._s.desv)}</span>`, align:'center', sortVal:r=>r._s.desv==null?-9:r._s.desv, numeric:true},
+  {label:'Dscto.',       get:r=>r._s.desc==null ? '—' : (r._s.desc*100).toFixed(1)+'%', align:'center', sortVal:r=>r._s.desc==null?-9:r._s.desc, numeric:true},
+  {label:'Vendedor',     get:_flAsesor},
+  {label:'Estado',       get:r=>_prPill(r._s.est), align:'center', sortVal:r=>r._s.est},
+];
+const _prFilas = ventas => ventas.map(s=>Object.assign({}, s.r, {_s:s}));
+
+function _prAbrir(titulo, ventas){
+  const pares = ventas.filter(s=>s.pm2!=null).map(s=>({precio:s.precio, m2:s.m2}));
+  const pm = _precioM2Ponderado(pares);
+  _abrirModalFunnelEtapa(titulo,
+    {label:'Ventas', val:fN(ventas.length), color:'#14AFBE'},
+    {label:'pm2 promedio', val:_prPm2(pm), color:'#F4A228'},
+    _prFilas(ventas), PR_COLS);
+}
+// Los onclick de las celdas son texto HTML: las listas de ventas se guardan en un registro.
+let _prPop = {}, _prPopN = 0;
+function _prClk(titulo, ventas){
+  if(!ventas || !ventas.length) return '';
+  const k = 'p'+(++_prPopN);
+  _prPop[k] = {titulo, ventas};
+  return ` onclick="_prAbrirK('${k}')" class="fl-cross-clk" title="Ver detalle"`;
+}
+function _prAbrirK(k){ const q=_prPop[k]; if(q) _prAbrir(q.titulo, q.ventas); }
+
+function renderPricing(soloKpis){
+  const sub = document.getElementById('pr-sub');
+  if(!document.getElementById('panel-pricing')) return;
+  _prPop = {}; _prPopN = 0;
+  const filtro = document.getElementById('pr-proj')?.value||'';
+  const res = _prAnalizar();
+  const proyectos = filtro ? [filtro] : PR_PROJS;
+  const todas = proyectos.flatMap(p=>res[p]?res[p].ventas:[]);
+  if(sub) sub.textContent = 'Actualizado: '+D.updatedAt+' · solo departamentos, ventas activas';
+
+  // ── KPIs ──
+  const conPm2 = todas.filter(s=>s.pm2!=null);
+  const pmGlobal = _precioM2Ponderado(conPm2.map(s=>({precio:s.precio, m2:s.m2})));
+  const evaluadas = todas.filter(s=>s.est==='ok'||s.est==='warn'||s.est==='bad');
+  const bajoPiso = todas.filter(s=>s.est==='bad');
+  const bajoObj = todas.filter(s=>s.dejado>0);
+  const dejado = bajoObj.reduce((a,s)=>a+s.dejado,0);
+  const descs = todas.filter(s=>s.desc!=null);
+  const descProm = descs.length ? descs.reduce((a,s)=>a+s.desc,0)/descs.length : null;
+  const sinArea = todas.length - conPm2.length;
+  document.getElementById('pr-kpis').innerHTML =
+    kpi('Ventas (departamentos)', fN(todas.length), sinArea ? fN(sinArea)+' sin área en Stock (fuera del pm2)' : 'Todas con área')
+    +kpi('pm2 vendido', _prPm2(pmGlobal), 'Ponderado por m²')
+    +kpi('Ventas bajo el piso', evaluadas.length ? `<span style="color:${bajoPiso.length?'var(--bad)':'var(--ok)'}">${fN(bajoPiso.length)}</span> <span class="unit">/ ${fN(evaluadas.length)}</span>` : '—',
+         evaluadas.length ? pct(bajoPiso.length, evaluadas.length)+' de las que tienen tramo' : 'Configura los tramos')
+    +kpi('Dejado vs. objetivo', dejado ? fFull(dejado) : '—', dejado ? fN(bajoObj.length)+' ventas por debajo del pm2 objetivo' : 'Nada por debajo del objetivo')
+    ;
+
+  if(soloKpis) return;
+  const el = document.getElementById('pr-content');
+  if(_prTab==='tramos'){ _prRenderTramos(el, res); return; }
+  if(_prTab==='ventas'){ _prRenderVentas(el, todas); return; }
+  _prRenderResumen(el, res, proyectos, filtro, descProm);
+}
+
+// ── Pestaña Resumen ─────────────────────────────────────────────────────────
+function _prRenderResumen(el, res, proyectos, filtro, descProm){
+  const cfg = _prLoadCfg();
+  const hayTramos = cfg.tramos.length>0;
+  const _th = 'padding:10px 12px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);border-bottom:2px solid var(--line);background:var(--panel);white-space:nowrap';
+  const _td = 'padding:9px 12px;text-align:center;font-size:12px;border-bottom:1px solid var(--line-2);white-space:nowrap';
+  const hoy = new Date();
+  const hace90 = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()-90).toISOString().slice(0,10);
+
+  // Tabla 1: dónde está vendiendo cada proyecto hoy
+  const filas1 = proyectos.map(p=>{
+    const {ventas, tramos} = res[p];
+    const n = ventas.length;
+    const actual = tramos.find(t=>n+1>=t.desde && n+1<=t.hasta) || null;
+    const enTramo = actual ? ventas.filter(s=>s.tramo===actual) : [];
+    const pmT = _precioM2Ponderado(enTramo.filter(s=>s.pm2!=null).map(s=>({precio:s.precio, m2:s.m2})));
+    const desv = (pmT!=null && actual) ? pmT/actual.pm2-1 : null;
+    const quedan = (actual && isFinite(actual.hasta)) ? actual.hasta-n : null;
+    const ult90 = ventas.filter(s=>s.iso>=hace90).length;
+    const ritmo = ult90/3;
+    const meses = (quedan!=null && ritmo>0) ? quedan/ritmo : null;
+    const bad = ventas.filter(s=>s.est==='bad');
+    return {p, ventas, n, actual, pmT, desv, quedan, ritmo, meses, bad};
+  });
+  const t1 = filas1.map(f=>{
+    const nombre = _prCorto(f.p);
+    const rango = f.actual ? `${f.actual.desde}–${isFinite(f.actual.hasta)?f.actual.hasta:'∞'}` : '—';
+    let est = '—';
+    if(f.actual && f.desv!=null) est = f.desv>=0 ? _prPill('ok') : (f.pmT>=f.actual.pm2*(1-(Number(cfg.tol)||0)/100) ? _prPill('warn') : _prPill('bad'));
+    return `<tr>
+      <td style="${_td};text-align:left;font-weight:600;color:var(--ink)">${toTitle(nombre.toLowerCase())}</td>
+      <td${_prClk('Ventas · '+toTitle(nombre.toLowerCase()), f.ventas)} style="${_td};font-weight:600">${f.n}</td>
+      <td style="${_td}">${f.actual?'T'+f.actual.n+' <span style="color:var(--ink-4)">('+rango+')</span>':'—'}</td>
+      <td style="${_td}">${f.actual?_prPm2(f.actual.pm2):'—'}</td>
+      <td style="${_td};font-weight:600">${_prPm2(f.pmT)}</td>
+      <td style="${_td};font-weight:700;color:${_prColorDesv(f.desv)}">${_prPct(f.desv)}</td>
+      <td style="${_td}">${f.quedan!=null?f.quedan:'—'}</td>
+      <td style="${_td}">${f.meses!=null?f.meses.toFixed(1)+' m':'—'} <span style="color:var(--ink-4);font-size:10.5px">${f.ritmo?('· '+f.ritmo.toFixed(1)+' und/mes'):''}</span></td>
+      <td${_prClk('Ventas bajo el piso · '+toTitle(nombre.toLowerCase()), f.bad)} style="${_td};font-weight:700;color:${f.bad.length?'var(--bad)':'var(--ink-4)'}">${f.bad.length}</td>
+      <td style="${_td}">${est}</td>
+    </tr>`;
+  }).join('');
+
+  // Tabla 2: detalle por tramo
+  const t2 = proyectos.flatMap(p=>{
+    const {ventas, tramos} = res[p];
+    const n = ventas.length;
+    return tramos.map(t=>{
+      const vs = ventas.filter(s=>s.tramo===t);
+      const pm = _precioM2Ponderado(vs.filter(s=>s.pm2!=null).map(s=>({precio:s.precio, m2:s.m2})));
+      const desv = pm!=null ? pm/t.pm2-1 : null;
+      const bajoObj = vs.filter(s=>s.est==='warn'||s.est==='bad');
+      const bad = vs.filter(s=>s.est==='bad');
+      const estado = n>=t.hasta ? '<span class="pill g">Cerrado</span>' : (n+1>=t.desde ? '<span class="pill w">En curso</span>' : '<span class="pill" style="background:var(--line-2);color:var(--ink-3)">Pendiente</span>');
+      const tn = toTitle(_prCorto(p).toLowerCase())+' · T'+t.n;
+      return `<tr>
+        <td style="${_td};text-align:left;font-weight:600;color:var(--ink)">${toTitle(_prCorto(p).toLowerCase())}</td>
+        <td style="${_td}">T${t.n}</td>
+        <td style="${_td}">${t.desde}–${isFinite(t.hasta)?t.hasta:'∞'}</td>
+        <td style="${_td}">${_prPm2(t.pm2)}</td>
+        <td${_prClk('Ventas · '+tn, vs)} style="${_td};font-weight:600">${vs.length}</td>
+        <td style="${_td};font-weight:600">${_prPm2(pm)}</td>
+        <td style="${_td};font-weight:700;color:${_prColorDesv(desv)}">${_prPct(desv)}</td>
+        <td${_prClk('Bajo el objetivo · '+tn, bajoObj)} style="${_td}">${bajoObj.length}</td>
+        <td${_prClk('Bajo el piso · '+tn, bad)} style="${_td};font-weight:700;color:${bad.length?'var(--bad)':'var(--ink-4)'}">${bad.length}</td>
+        <td style="${_td}">${estado}</td>
+      </tr>`;
+    });
+  }).join('');
+
+  const aviso = hayTramos ? '' : `<div class="card" style="margin-bottom:16px;padding:18px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="flex:1;min-width:240px"><b>Aún no hay tramos configurados.</b>
+      <div style="font-size:12.5px;color:var(--ink-3);margin-top:3px">Define para cada proyecto los rangos de unidades vendidas y su pm2 objetivo; después se marcan las ventas que salen por debajo.</div></div>
+      <button class="chip" onclick="setPrTab('tramos',document.querySelectorAll('#pr-tab-bar .tab-btn')[2])" style="padding:8px 16px;font-weight:700">Configurar tramos →</button></div>`;
+
+  const graf = filtro
+    ? `<div class="card" style="margin-bottom:16px">
+        <div class="card-hd"><div><h3>pm2 de cada venta vs. el tramo</h3><p>${toTitle(_prCorto(filtro).toLowerCase())} · cada punto es una venta (n° de venta en el eje X) · línea sólida = objetivo, punteada = piso</p></div>
+          <div style="display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--ink-2)">
+            <span><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#16a34a;margin-right:6px"></i>En rango</span>
+            <span><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b;margin-right:6px"></i>Cerca</span>
+            <span><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#dc2626;margin-right:6px"></i>Bajo piso</span>
+          </div></div>
+        <div style="height:320px;padding:8px 16px 16px"><canvas id="pr-chart"></canvas></div></div>`
+    : `<div class="card" style="margin-bottom:16px;padding:18px 20px;color:var(--ink-3);font-size:13px">Elige un proyecto arriba para ver el gráfico de cada venta contra su tramo.</div>`;
+
+  el.innerHTML = aviso + graf
+    +`<div class="card" style="margin-bottom:16px">
+        <div class="card-hd"><div><h3>¿Dónde está vendiendo cada proyecto?</h3><p>Tramo en el que cae la próxima venta · ritmo = ventas de los últimos 90 días ÷ 3${descProm!=null?' · descuento promedio '+(descProm*100).toFixed(1)+'%':''}</p></div></div>
+        <div style="overflow-x:auto"><table class="tbl" style="width:100%">
+          <thead><tr><th style="${_th};text-align:left">Proyecto</th><th style="${_th}">Vendidos</th><th style="${_th}">Tramo actual</th><th style="${_th}">pm2 objetivo</th><th style="${_th}">pm2 vendido</th><th style="${_th}">Desv.</th><th style="${_th}">Quedan</th><th style="${_th}">Se agota en</th><th style="${_th}">Bajo piso</th><th style="${_th}">Estado</th></tr></thead>
+          <tbody>${t1}</tbody></table></div></div>`
+    +`<div class="card" style="margin-bottom:16px">
+        <div class="card-hd"><div><h3>Detalle por tramo</h3><p>pm2 vendido ponderado por m² · clic en un número para ver las ventas</p></div></div>
+        <div style="overflow-x:auto"><table class="tbl" style="width:100%">
+          <thead><tr><th style="${_th};text-align:left">Proyecto</th><th style="${_th}">Tramo</th><th style="${_th}">Ventas n°</th><th style="${_th}">pm2 objetivo</th><th style="${_th}">Vendidas</th><th style="${_th}">pm2 vendido</th><th style="${_th}">Desv.</th><th style="${_th}">Bajo objetivo</th><th style="${_th}">Bajo piso</th><th style="${_th}">Estado</th></tr></thead>
+          <tbody>${t2||`<tr><td colspan="10" style="padding:22px;text-align:center;color:var(--ink-4);font-size:12.5px">Sin tramos configurados para este filtro</td></tr>`}</tbody></table></div></div>`;
+
+  if(filtro) _prDibujarGrafico(res[filtro]);
+}
+
+function _prDibujarGrafico(info){
+  const cv = document.getElementById('pr-chart');
+  if(!cv || !info) return;
+  if(window._prChart){ try{window._prChart.destroy();}catch(e){} window._prChart=null; }
+  const dk = document.documentElement.classList.contains('dark');
+  const gridC = dk?'rgba(51,65,85,.5)':'#F3F4F6', tickC = dk?'#94a3b8':'#6B7280';
+  const ff = "'Plus Jakarta Sans',sans-serif";
+  const COL = {ok:'#16a34a', warn:'#f59e0b', bad:'#dc2626', sintramo:'#94a3b8', sinarea:'#94a3b8'};
+  const pts = info.ventas.filter(s=>s.pm2!=null);
+  const maxX = Math.max(info.ventas.length, ...info.tramos.filter(t=>isFinite(t.hasta)).map(t=>t.hasta), 1);
+  const datasets = [{
+    type:'scatter', label:'Ventas', data:pts.map(s=>({x:s.seq, y:Math.round(s.pm2), s})),
+    backgroundColor:pts.map(s=>COL[s.est]), borderColor:dk?'#0f172a':'#fff', borderWidth:1.5, pointRadius:5, pointHoverRadius:8, pointHitRadius:10, order:1,
+  }];
+  info.tramos.forEach(t=>{
+    const x0 = t.desde-0.5, x1 = (isFinite(t.hasta)?t.hasta:maxX)+0.5;
+    datasets.push({type:'line', label:'Objetivo T'+t.n, data:[{x:x0,y:t.pm2},{x:x1,y:t.pm2}], borderColor:'#3b82f6', borderWidth:2.5, pointRadius:0, fill:false, order:2});
+    const piso = t.pm2*(1-(Number(_prLoadCfg().tol)||0)/100);
+    datasets.push({type:'line', label:'Piso T'+t.n, data:[{x:x0,y:piso},{x:x1,y:piso}], borderColor:'#ef4444', borderWidth:1.5, borderDash:[5,4], pointRadius:0, fill:false, order:3});
+  });
+  window._prChart = new Chart(cv.getContext('2d'), {
+    type:'scatter', data:{datasets},
+    options:{responsive:true, maintainAspectRatio:false,
+      onClick:(e,_a,ch)=>{
+        const el = ch.getElementsAtEventForMode(e,'nearest',{intersect:true},true)[0];
+        if(!el || el.datasetIndex!==0) return;
+        const s = ch.data.datasets[0].data[el.index].s;
+        const vs = s.tramo ? info.ventas.filter(x=>x.tramo===s.tramo) : [s];
+        _prAbrir('Ventas · '+toTitle(_prCorto(s.p).toLowerCase())+(s.tramo?' · T'+s.tramo.n:''), vs);
+      },
+      onHover:(e,_a,ch)=>{ const h=ch.getElementsAtEventForMode(e,'nearest',{intersect:true},false); if(e.native&&e.native.target) e.native.target.style.cursor=(h.length&&h[0].datasetIndex===0)?'pointer':'default'; },
+      plugins:{legend:{display:false}, datalabels:{display:false},
+        tooltip:{filter:c=>c.datasetIndex===0, titleFont:{family:ff,size:11}, bodyFont:{family:ff,size:11}, callbacks:{
+          title:c=>{const s=c[0].raw.s; return 'Venta #'+s.seq+' · Dpto '+s.nro;},
+          label:c=>{const s=c.raw.s; return [' pm2: S/ '+fN(Math.round(s.pm2))+(s.obj?'  (objetivo S/ '+fN(Math.round(s.obj))+', '+_prPct(s.desv)+')':''), ' '+_flNombreCompleto(s.r)+' · '+fFull(s.precio)];},
+        }}},
+      scales:{
+        x:{type:'linear', min:0, max:maxX+1, title:{display:true,text:'N° de venta en el proyecto',color:tickC,font:{family:ff,size:10}}, grid:{color:gridC}, ticks:{precision:0,font:{family:ff,size:10},color:tickC}},
+        y:{title:{display:true,text:'pm2 (S/ por m²)',color:tickC,font:{family:ff,size:10}}, grid:{color:gridC}, ticks:{callback:v=>fN(v),font:{family:ff,size:10},color:tickC}},
+      }}
+  });
+}
+
+// ── Pestaña Ventas ──────────────────────────────────────────────────────────
+function _prRenderVentas(el, todas){
+  const chip = (v,lbl)=>`<button onclick="_prFiltroEst='${v}';renderPricing()" style="font-family:'Plus Jakarta Sans',sans-serif;padding:4px 14px;border-radius:99px;font-size:10.5px;font-weight:700;cursor:pointer;border:1.5px solid ${_prFiltroEst===v?'#3b82f6':'var(--line)'};background:${_prFiltroEst===v?'var(--brand-soft)':'transparent'};color:${_prFiltroEst===v?'var(--brand)':'var(--ink-3)'}">${lbl}</button>`;
+  el.innerHTML = `<div class="card" style="margin-bottom:16px">
+    <div class="card-hd"><div><h3>Ventas de departamentos</h3><p>Cada venta contra el pm2 objetivo de su tramo · clic en una cabecera para ordenar</p></div>
+      <button onclick="_exportarTablaExcel('#pr-tabla','pricing_ventas')" style="background:var(--bg);border:1px solid var(--line);color:var(--ink-2);font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer">⬇ Excel</button></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 18px 0">
+      ${chip('todas','Todas')}${chip('bad','Bajo piso')}${chip('warn','Cerca')}${chip('ok','En rango')}
+      <span id="pr-cnt" style="font-size:11.5px;color:var(--ink-3);margin-left:6px"></span>
+      <input type="text" class="sp-search" id="pr-busq" style="margin-left:auto" placeholder="Buscar cliente, dpto, vendedor..." value="${_escapeHtml(_prBusq)}" oninput="_prBuscar(this.value)">
+    </div>
+    <div class="cob-mes-tablewrap" style="margin:12px 18px 18px;max-height:640px">
+      <table class="tbl" id="pr-tabla" style="width:100%"><thead style="position:sticky;top:0;background:var(--panel);z-index:2"><tr id="pr-thead"></tr></thead><tbody id="pr-tbody"></tbody></table>
+    </div></div>`;
+  _prVentasBase = todas;
+  _prPintarVentas();
+}
+let _prVentasBase = [];
+function _prBuscar(v){ _prBusq = normStr(v||'').trim(); _prPintarVentas(); }
+function _prSort(i){
+  if(_prSortIdx===i) _prSortDir = _prSortDir==='asc'?'desc':'asc';
+  else { _prSortIdx=i; _prSortDir = PR_COLS[i].numeric?'desc':'asc'; }
+  _prPintarVentas();
+}
+function _prPintarVentas(){
+  const tb = document.getElementById('pr-tbody'); if(!tb) return;
+  let vs = _prVentasBase.filter(s=>_prFiltroEst==='todas' || s.est===_prFiltroEst);
+  let filas = _prFilas(vs);
+  if(_prBusq) filas = filas.filter(r=>normStr(PR_COLS.map(c=>String(c.get(r)).replace(/<[^>]*>/g,' ')).join(' ')).includes(_prBusq));
+  if(_prSortIdx===null) filas.sort((a,b)=>b._s.iso.localeCompare(a._s.iso));
+  else {
+    const c = PR_COLS[_prSortIdx], f = c.sortVal||c.get;
+    filas.sort((a,b)=>{ const x=f(a), y=f(b); const cmp=(typeof x==='number'&&typeof y==='number')?x-y:String(x).localeCompare(String(y),undefined,{numeric:true,sensitivity:'base'}); return _prSortDir==='asc'?cmp:-cmp; });
+  }
+  document.getElementById('pr-thead').innerHTML = PR_COLS.map((c,i)=>`<th style="text-align:${c.align||'left'};cursor:pointer;user-select:none;white-space:nowrap" onclick="_prSort(${i})">${c.label}${_prSortIdx===i?(_prSortDir==='asc'?' ↑':' ↓'):''}</th>`).join('');
+  tb.innerHTML = filas.map(r=>`<tr>${PR_COLS.map(c=>`<td style="text-align:${c.align||'left'};white-space:nowrap">${c.get(r)}</td>`).join('')}</tr>`).join('')
+    || `<tr><td colspan="${PR_COLS.length}" style="text-align:center;color:var(--ink-4);padding:20px">Sin ventas</td></tr>`;
+  const cnt = document.getElementById('pr-cnt'); if(cnt) cnt.textContent = fN(filas.length)+' de '+fN(_prVentasBase.length);
+}
+
+// ── Pestaña Tramos (editor) ─────────────────────────────────────────────────
+function _prRenderTramos(el, res){
+  const cfg = _prLoadCfg();
+  const inp = 'width:100%;padding:6px 8px;border:1.5px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font-size:12.5px;font-family:inherit;text-align:center';
+  const bloques = PR_PROJS.map(p=>{
+    const idxs = cfg.tramos.map((t,i)=>t.p===p?i:-1).filter(i=>i>=0).sort((a,b)=>(Number(cfg.tramos[a].desde)||0)-(Number(cfg.tramos[b].desde)||0));
+    const n = (res[p]?.ventas||[]).length;
+    const pm = _precioM2Ponderado((res[p]?.ventas||[]).filter(s=>s.pm2!=null).map(s=>({precio:s.precio, m2:s.m2})));
+    const filas = idxs.map((i,k)=>{
+      const t = cfg.tramos[i];
+      return `<tr>
+        <td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--ink-3)">T${k+1}</td>
+        <td style="padding:6px 10px"><input type="number" min="1" style="${inp}" value="${_escapeHtml(t.desde)}" oninput="_prEditTramo(${i},'desde',this.value)"></td>
+        <td style="padding:6px 10px"><input type="number" min="1" style="${inp}" placeholder="∞" value="${_escapeHtml(t.hasta)}" oninput="_prEditTramo(${i},'hasta',this.value)"></td>
+        <td style="padding:6px 10px"><input type="number" min="0" step="10" style="${inp}" value="${_escapeHtml(t.pm2)}" oninput="_prEditTramo(${i},'pm2',this.value)"></td>
+        <td style="padding:6px 10px;text-align:center"><button onclick="_prDelTramo(${i})" title="Quitar tramo" style="background:transparent;border:none;color:var(--ink-4);font-size:15px;cursor:pointer">✕</button></td>
+      </tr>`;
+    }).join('');
+    return `<div class="card" style="margin-bottom:14px">
+      <div class="card-hd"><div><h3>${toTitle(_prCorto(p).toLowerCase())}</h3><p>${fN(n)} departamentos vendidos · pm2 vendido ${_prPm2(pm)}</p></div>
+        <button class="chip" onclick="_prAddTramo('${p}')" style="padding:6px 14px;font-weight:700">+ Agregar tramo</button></div>
+      ${idxs.length?`<div style="overflow-x:auto"><table class="tbl" style="width:100%;max-width:640px"><thead><tr><th style="text-align:center">Tramo</th><th style="text-align:center">Desde venta n°</th><th style="text-align:center">Hasta venta n°</th><th style="text-align:center">pm2 objetivo (S/)</th><th></th></tr></thead><tbody>${filas}</tbody></table></div>`
+        :`<div style="padding:16px 20px;color:var(--ink-4);font-size:12.5px">Sin tramos. Agrega el primero.</div>`}
+    </div>`;
+  }).join('');
+  el.innerHTML = `<div class="card" style="margin-bottom:14px;padding:16px 20px;display:flex;gap:18px;flex-wrap:wrap;align-items:center">
+      <div><div style="font-weight:700;font-size:13px">Tolerancia bajo el objetivo</div>
+        <div style="font-size:12px;color:var(--ink-3);max-width:420px;margin-top:2px">Una venta hasta este % por debajo del pm2 objetivo sale <b>Cerca</b> (amarillo); más abajo sale <b>Bajo piso</b> (rojo).</div></div>
+      <div style="display:flex;align-items:center;gap:6px"><input type="number" min="0" max="50" step="0.5" style="${inp};width:80px" value="${_escapeHtml(cfg.tol)}" oninput="_prEditTol(this.value)"><span style="font-weight:700">%</span></div>
+      <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="chip" onclick="_prExportar()" style="padding:6px 14px;font-weight:600">⎘ Copiar tramos</button>
+        <button class="chip" onclick="_prImportar()" style="padding:6px 14px;font-weight:600">⇪ Pegar tramos</button></div>
+    </div>
+    <div style="font-size:12px;color:var(--ink-3);margin:0 2px 12px">El n° de venta cuenta los departamentos vendidos de cada proyecto en orden de fecha (1, 2, 3…). Deja "Hasta" vacío para el último tramo (sin tope). Se guarda solo, en este navegador; usa "Copiar tramos" y "Pegar tramos" para llevarlos a otra PC.</div>
+    ${bloques}`;
+}
+function _prEditTol(v){ _prLoadCfg().tol = Number(v)||0; _prSaveCfg(); _prRefrescarKpis(); }
+function _prEditTramo(i, campo, v){ _prLoadCfg().tramos[i][campo] = v; _prSaveCfg(); _prRefrescarKpis(); }
+function _prAddTramo(p){
+  const cfg = _prLoadCfg();
+  const prev = cfg.tramos.filter(t=>t.p===p).sort((a,b)=>(Number(a.desde)||0)-(Number(b.desde)||0));
+  const ult = prev[prev.length-1];
+  const desde = ult ? ((Number(ult.hasta)||Number(ult.desde)||0)+1) : 1;
+  cfg.tramos.push({p, desde, hasta:'', pm2:ult?ult.pm2:''});
+  _prSaveCfg(); renderPricing();
+}
+function _prDelTramo(i){ _prLoadCfg().tramos.splice(i,1); _prSaveCfg(); renderPricing(); }
+// Los KPIs de arriba dependen de los tramos: al editar se recalculan sin repintar el editor (no pierde el foco).
+function _prRefrescarKpis(){ renderPricing(true); }
+function _prExportar(){
+  const txt = JSON.stringify(_prLoadCfg());
+  (navigator.clipboard?.writeText(txt) || Promise.reject()).then(()=>alert('Tramos copiados. Pégalos en la otra PC con "Pegar tramos".')).catch(()=>prompt('Copia este texto:', txt));
+}
+function _prImportar(){
+  const t = prompt('Pega aquí los tramos copiados:');
+  if(!t) return;
+  try{
+    const j = JSON.parse(t);
+    if(!j || !Array.isArray(j.tramos)) throw new Error('formato');
+    _prCfg = {tol:Number(j.tol)||3, tramos:j.tramos.map(x=>({p:String(x.p), desde:x.desde, hasta:x.hasta, pm2:x.pm2}))};
+    _prSaveCfg(); renderPricing();
+  }catch(e){ alert('No se pudo leer: el texto no tiene el formato esperado.'); }
+}
+
+
 function nav(id, el){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('panel-'+id)?.classList.add('active');
   el.classList.add('active');
+  if(id==='pricing') renderPricing();
   if(id==='mercado'){
     // Cada vez que se entra a Estudio de Mercado se resetean los filtros
     // (distrito/inmobiliaria/proyecto/búsqueda/periodo) de las 3 pestañas,
@@ -6492,8 +6953,9 @@ function toggleDark(){
   Chart.defaults.borderColor=on?'#334155':'#e5e7eb';
   Chart.defaults.plugins.tooltip.backgroundColor=on?'#1e293b':'#ffffff';
   // Re-render active panel charts
-  ['_dirDonut','_dirVisChart','_flEvoChart','_dirTrendChart','_dirMontoChart','_dirProjBar','_admFcChartMes','_admLiberadoChart'].forEach(k=>{if(window[k])try{window[k].destroy();window[k]=null;}catch(e){}});
+  ['_prChart','_dirDonut','_dirVisChart','_flEvoChart','_dirTrendChart','_dirMontoChart','_dirProjBar','_admFcChartMes','_admLiberadoChart'].forEach(k=>{if(window[k])try{window[k].destroy();window[k]=null;}catch(e){}});
   try{renderDirector();}catch(e){}
+  try{renderPricing();}catch(e){}
   try{if(typeof renderFunnelMkt!=='undefined')renderFunnelMkt();}catch(e){}
   try{if(typeof renderAdmVentas!=='undefined')renderAdmVentas();}catch(e){}
 }
@@ -7164,7 +7626,15 @@ function renderMercadoTipologia(){
   // mensual (y por lo tanto el "Prom. mensual", que se calcula sobre esos mismos meses).
   // Los precios (S/m² lista/venta) usan siempre una ventana fija de 3 meses, aparte.
   const periodoMeses = _tipologiaPeriodoMeses || 3;
-  const cutoffPrecios = _isoMenosMeses(3);
+  // Los datos de mercado se publican con rezago (el mes cerrado aparece recién
+  // pasada la quincena del mes siguiente). Para no mostrar ese mes como "0" ni
+  // diluir los promedios, la ventana termina en el ÚLTIMO MES QUE YA TIENE DATOS
+  // (como máximo, el último mes calendario completo).
+  const _hoyT = new Date();
+  const ultimoCompleto = (()=>{ const d=new Date(_hoyT.getFullYear(), _hoyT.getMonth()-1, 1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); })();
+  const ultimoConDatos = dataVentasAll.reduce((m,v)=>{ const ym=(v.fecha_venta||'').slice(0,7); return ym>m?ym:m; }, '');
+  const mesFin = (ultimoConDatos && ultimoConDatos<ultimoCompleto) ? ultimoConDatos : ultimoCompleto;
+  const cutoffPrecios = (()=>{ const [y,m]=mesFin.split('-').map(Number); const d=new Date(y, m-1-2, 1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01'; })();
   const fSol = n => n ? 'S/ '+Math.round(n).toLocaleString('es-PE') : '—';
   const fPct = n => n==null ? '—' : (n*100).toFixed(1)+'%';
 
@@ -7220,9 +7690,9 @@ function renderMercadoTipologia(){
   // COMPLETOS (con celda vacía si no hubo ventas ese mes) — no incluye el mes actual,
   // que todavía está a mitad y no es comparable con un mes cerrado.
   const mesesOrdenados = [];
-  { const hoy = new Date();
-    for(let i=periodoMeses; i>=1; i--){
-      const d = new Date(hoy.getFullYear(), hoy.getMonth()-i, 1);
+  { const [fy,fm] = mesFin.split('-').map(Number);
+    for(let i=periodoMeses-1; i>=0; i--){
+      const d = new Date(fy, fm-1-i, 1);
       mesesOrdenados.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
     }
   }
