@@ -496,6 +496,7 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 .cob-mes-kpi{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
 .cob-mes-kpi .k-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-4);margin-bottom:6px;font-family:'Plus Jakarta Sans',sans-serif}
 .cob-mes-kpi .k-val{font-size:19px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-.01em}
+.fl-cross-clk{cursor:pointer}
 .cob-mes-tablewrap{overflow:auto;flex:1;min-height:0;border:1px solid var(--line-2);border-radius:10px}
 
 @media(max-width:1400px){.kpi-6{grid-template-columns:repeat(3,1fr)}.kpi-5{grid-template-columns:repeat(3,1fr)}}
@@ -846,8 +847,8 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
   </div>
   <div class="tab-bar" id="dir-tab-bar">
     <button class="tab-btn active" id="dir-tab-resumen" onclick="setDirTab('resumen',this)">Resumen</button>
+    <button class="tab-btn" id="dir-tab-detalle" onclick="setDirTab('detalle',this)">Detalle</button>
     <button class="tab-btn" id="dir-tab-tendencias" onclick="setDirTab('tendencias',this)">Tendencias</button>
-    <button class="tab-btn tab-ia" id="dir-tab-ia" onclick="setDirTab('ia',this)">✦ Análisis IA</button>
   </div>
   <div id="dir-content"><div class="loading">Cargando...</div></div>
 </div>
@@ -1569,11 +1570,181 @@ function filtrarVentasRango(prefix,sfx=''){
 let _dirTab='resumen';
 let _dirComp=false;
 
+// ── Popups de detalle del Resumen comercial ──────────────────────────────────
+// Reusan el modal del Funnel (_abrirModalFunnelEtapa: buscador, desglose por
+// canal, orden por columna y Excel). Las filas se guardan en un registro porque
+// los onclick de las celdas son texto HTML y no pueden cargar arrays.
+let _dirPop = {}, _dirPopN = 0;
+function _dirAbrirDir(titulo, filas, cols){
+  const esVenta = cols===FL_COM_VENTA_COLS;
+  const kpi2 = esVenta
+    ? {label:'Monto total', val:fFull(filas.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0)), color:'#F4A228'}
+    : {label:'Clientes únicos', val:fN(new Set(filas.map(r=>_flDNI(r)!=='—'?_flDNI(r):_flNombreCompleto(r))).size), color:'#F4A228'};
+  _abrirModalFunnelEtapa(titulo, {label:'Registros', val:fN(filas.length), color:'#14AFBE'}, kpi2, filas, cols);
+}
+// Devuelve los atributos de una celda clicable (vacío si no hay filas).
+function _dirClk(titulo, filas, cols){
+  if(!filas||!filas.length) return '';
+  const k='k'+(++_dirPopN);
+  _dirPop[k]={titulo, filas, cols};
+  return ` onclick="_dirAbrir('${k}')" class="fl-cross-clk" title="Ver detalle"`;
+}
+function _dirAbrir(k){ const q=_dirPop[k]; if(q) _dirAbrirDir(q.titulo, q.filas, q.cols); }
+
 function setDirTab(tab,el){
   _dirTab=tab;
   document.querySelectorAll('#panel-director .tab-btn').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
   renderDirector();
+}
+
+// ── Pestaña Detalle del Resumen comercial: búsqueda de cliente + ficha ──────────
+let _dirDetSearch = '', _dirDetSel = null, _dirDetVentas = [];
+const _dirDetKey = r => String(r.CorrelativoOC||'').trim() || (String(r.Proyecto||'')+'|'+String(r.NroInmueble||'')+'|'+String(r.NroDocumentoTitular||''));
+
+function _renderDirDetalle(vGlob){
+  _dirDetVentas = vGlob;
+  const wrap = document.getElementById('dir-content');
+  if(!wrap) return;
+  if(_dirDetSel && !vGlob.some(r=>_dirDetKey(r)===_dirDetSel)) _dirDetSel = null;
+  wrap.innerHTML = `
+  <div class="section-title"><h2>Detalle por cliente</h2><div class="hint">Busca por nombre, DNI, N° de inmueble o N° de venta</div></div>
+  <div class="card" style="margin-bottom:16px">
+    <div style="padding:14px 18px">
+      <input type="text" class="sp-search" id="dir-detalle-search" style="width:100%;max-width:480px" placeholder="Buscar por nombre, DNI, N° Dpto o N° de venta..." value="${_escapeHtml(_dirDetSearch)}" oninput="_dirDetBuscar(this.value)">
+    </div>
+    <div id="dir-detalle-resultados"></div>
+  </div>
+  <div id="dir-detalle-ficha"></div>`;
+  _dirDetResultados();
+  _dirDetFicha();
+}
+
+function _dirDetBuscar(v){ _dirDetSearch = v; _dirDetResultados(); }
+function _dirDetSeleccionar(key){ _dirDetSel = key; _dirDetResultados(); _dirDetFicha(); }
+
+function _dirDetResultados(){
+  const cont = document.getElementById('dir-detalle-resultados');
+  if(!cont) return;
+  const q = normStr(_dirDetSearch).trim();
+  if(!q){ cont.innerHTML=''; return; }
+  // Una operación (N° de venta) puede traer varias unidades: se lista una sola vez.
+  const grupos = new Map();
+  _dirDetVentas.forEach(r=>{
+    const k=_dirDetKey(r);
+    if(!grupos.has(k)) grupos.set(k, []);
+    grupos.get(k).push(r);
+  });
+  const matches = [...grupos.entries()].filter(([,rows])=>rows.some(r=>
+    normStr([r.NombresTitular, r.NroDocumentoTitular, r.NroInmueble, r.CorrelativoOC].join(' ')).includes(q)
+  )).slice(0,20);
+  cont.innerHTML = matches.map(([key,rows])=>{
+    const r0=rows[0];
+    const dptos=rows.map(x=>String(x.NroInmueble||'').replace(/\.0$/,'')).filter(Boolean).join(', ');
+    const activo=_dirDetSel===key;
+    return `<div onclick='_dirDetSeleccionar(${JSON.stringify(key)})' style="padding:10px 18px;border-top:1px solid var(--line-2);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;${activo?'background:var(--brand-soft)':''}">
+      <span style="font-weight:600;font-size:13px;color:var(--ink)">${_escapeHtml(_flNombreCompleto(r0))}</span>
+      <span style="font-size:11.5px;color:var(--ink-3);white-space:nowrap">DNI ${_escapeHtml(_flDNI(r0))} · ${_escapeHtml(String(r0.Proyecto||'—'))} · Inmueble(s) ${_escapeHtml(dptos||'—')}</span>
+    </div>`;
+  }).join('') || `<div style="padding:14px 18px;color:var(--ink-4);font-size:13px">Sin resultados para "${_escapeHtml(_dirDetSearch)}"</div>`;
+}
+
+function _dirDetFicha(){
+  const el = document.getElementById('dir-detalle-ficha');
+  if(!el) return;
+  if(!_dirDetSel){
+    el.innerHTML = '<div class="card" style="padding:36px 20px;text-align:center;color:var(--ink-4);font-size:13px">Busca y selecciona un cliente para ver el detalle de su compra.</div>';
+    return;
+  }
+  const rows = _dirDetVentas.filter(r=>_dirDetKey(r)===_dirDetSel);
+  if(!rows.length){ el.innerHTML=''; return; }
+  // La unidad "principal" es el departamento; los montos de cuota inicial,
+  // financiamiento y bono vienen repetidos por unidad dentro de la misma operación.
+  const r = rows.find(x=>normStr(x.TipoInmueble||'').includes('departamento')) || rows[0];
+  const cur = _comMoneda(r);
+  const fC = n => `${cur} ${Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+  const fSol = n => 'S/ '+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const val = v => { const t=String(v==null?'':v).trim(); return (t&&t!=='nan'&&t!=='None')?_escapeHtml(t):'—'; };
+  const total = rows.reduce((a,x)=>a+Number(x.PrecioVentaSoles||x.PrecioVenta||0),0);
+  const doc = String(r.NroDocumentoTitular||'').trim();
+  const proy = String(r.Proyecto||'').trim();
+
+  // Línea de tiempo: cruces por DNI (o nombre) + proyecto con Prospectos, Visitas y Stock
+  const nombreNorm = normStr(r.NombresTitular||'');
+  const mismoCli = (d,nom)=> doc ? String(d||'').trim()===doc : (nombreNorm && normStr(nom||'')===nombreNorm);
+  const fechasMin = arr => arr.filter(Boolean).map(f=>String(f)).sort()[0] || null;
+  const fReg = _flFechaRegistroPara(r);
+  const fVis = fechasMin((D.visitas||[]).filter(x=>String(x.Proyecto||'').trim()===proy && mismoCli(x.NroDocTitular,x.NombresTitular)).map(x=>x.FechaVisita));
+  const fSep = fechasMin((D.stock||[]).filter(x=>String(x.Proyecto||'').trim()===proy && mismoCli(x.NroDocumento,x.Nombres)).map(x=>x.FechaSepDefinitiva));
+  const pasos = [
+    ['Registro como lead', fReg],
+    ['Primera visita', fVis],
+    ['Separación', fSep],
+    ['Venta', r.FechaVenta],
+    ['Entrega de minuta', r.FechaEntrega_Minuta],
+  ];
+  if(String(r.FechaDevolucion||'').trim()) pasos.push(['Devolución', r.FechaDevolucion]);
+  const tlRows = pasos.map(([lbl,f])=>`<tr><td style="text-align:left">${lbl}</td><td style="text-align:right;font-family:var(--mono)">${_flFmtFecha(f)}</td></tr>`).join('');
+
+  const kv = (lbl,v)=>`<tr><td style="text-align:left;color:var(--ink-3)">${lbl}</td><td style="text-align:right;font-weight:600">${v}</td></tr>`;
+  const unidRows = rows.map(x=>{
+    const c=_comMoneda(x);
+    return `<tr>
+      <td style="text-align:left">${val(x.TipoInmueble)}</td>
+      <td style="text-align:center">${val(String(x.NroInmueble||'').replace(/\.0$/,''))}</td>
+      <td style="text-align:center">${val(String(x.NroPiso||'').replace(/\.0$/,''))}</td>
+      <td style="text-align:left">${val(x.Modelo)}</td>
+      <td style="text-align:right">${c} ${Number(x.PrecioBase||0).toLocaleString('en-US',{maximumFractionDigits:2})}</td>
+      <td style="text-align:right">${c} ${Number(x.PrecioVenta||0).toLocaleString('en-US',{maximumFractionDigits:2})}</td>
+      <td style="text-align:right;font-weight:600">${fSol(x.PrecioVentaSoles||x.PrecioVenta)}</td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hd"><div><h3>${_escapeHtml(_flNombreCompleto(r))}</h3><p>DNI ${_escapeHtml(_flDNI(r))} · ${_escapeHtml(proy||'—')} · ${val(r.CorrelativoOC)} · ${val(r.Estado)}</p></div></div>
+    <div class="kpi-row kpi-4" style="padding:14px 18px">
+      ${kpi('Monto de la operación', fSol(total), 'Suma de las '+fN(rows.length)+' unidad(es), en S/')}
+      ${kpi('Unidades', fN(rows.length), rows.map(x=>String(x.TipoInmueble||'').trim()).filter(Boolean).join(' · ')||'—')}
+      ${kpi('Financiamiento', val(r.TipoFinanciamiento), val(r.EntidadFinanciamiento))}
+      ${kpi('Vendedor', val(_flTitleCase(r.Vendedor)), 'Canal: '+val(r.ComoSeEntero))}
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hd"><div><h3>Unidades de la operación</h3><p>${fN(rows.length)} unidad(es)</p></div></div>
+    <div style="overflow-x:auto"><table class="tbl" style="width:100%">
+      <thead><tr><th style="text-align:left">Tipo</th><th style="text-align:center">N° Inmueble</th><th style="text-align:center">Piso</th><th style="text-align:left">Modelo</th><th style="text-align:right">Precio base</th><th style="text-align:right">Precio venta</th><th style="text-align:right">Precio venta S/</th></tr></thead>
+      <tbody>${unidRows}</tbody>
+    </table></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="card">
+      <div class="card-hd"><div><h3>Línea de tiempo</h3><p>Del lead a la entrega</p></div></div>
+      <table class="tbl" style="width:100%"><tbody>${tlRows}</tbody></table>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div><h3>Cliente y origen</h3><p>Perfil y canal de captación</p></div></div>
+      <table class="tbl" style="width:100%"><tbody>
+        ${kv('Distrito', val(r.Distrito_Procedencia))}
+        ${kv('Género · Rango de edad', val(r.Genero)+' · '+val(r.RangoEdad))}
+        ${kv('Nivel de interés', val(r.NivelInteres))}
+        ${kv('Perfil crediticio', val(r.PerfilCrediticio))}
+        ${kv('Canal', val(r.ComoSeEntero))}
+        ${kv('Forma de contacto', val(r.FormaContacto))}
+      </tbody></table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><div><h3>Pagos y financiamiento</h3><p>Montos en ${cur==='$'?'dólares':'soles'} (moneda de la operación)</p></div></div>
+    <table class="tbl" style="width:100%"><tbody>
+      ${kv('Separación', fC(r.MontoSeparacion))}
+      ${kv('Cuota inicial', fC(r.MontoCuotaInicial))}
+      ${kv('Cuota inicial pagada', fC(r.MontoPagadoCI)+' · '+val(r.Estado_CI))}
+      ${kv('Financiamiento', fC(r.MontoFinanciamiento))}
+      ${kv('Desembolsado', fC(r.MontoDesembolsado)+' · '+val(r.PorcetanjePagado_SF)+' · '+val(r.EstadoSF))}
+      ${kv('Bono', fC(r.MontoBono)+' · pagado '+fC(r.MontoPagadoBono)+' · '+val(r.EstadoBono))}
+    </tbody></table>
+  </div>`;
 }
 
 function toggleDirComp(){
@@ -1583,6 +1754,20 @@ function toggleDirComp(){
   if(_dirComp){btn.textContent='✕ Comparar';btn.style.background='#f5f3ff';btn.style.color='#a78bfa';rb.style.display='flex';}
   else{btn.textContent='⊕ Comparar';btn.style.background='';btn.style.color='';rb.style.display='none';}
   renderDirector();
+}
+
+// Clic en un punto/barra de los gráficos mensuales de Tendencias → popup con las
+// ventas de ese mes (los 3 meses de proyección no tienen ventas, se ignoran).
+function _dirHoverPtr(e,_a,ch){
+  const h=ch.getElementsAtEventForMode(e,'nearest',{intersect:true},false);
+  if(e.native&&e.native.target) e.native.target.style.cursor=h.length?'pointer':'default';
+}
+function _dirClickMes(els, allMonths, mesMapa, mesMapa_B){
+  const el=els[0]; if(!el||el.index>=allMonths.length) return;
+  const k=allMonths[el.index];
+  const esB=_dirComp && el.datasetIndex===3 && el.element?.options?.borderColor==='#a78bfa';
+  const m=(esB?mesMapa_B:mesMapa)[k]; if(!m||!m.rows||!m.rows.length) return;
+  _dirAbrirDir('Ventas · '+m.mes+(esB?' (Período B)':''), m.rows, FL_COM_VENTA_COLS);
 }
 
 function _rangeLabel(prefix,sfx=''){
@@ -1596,7 +1781,18 @@ function _rangeLabel(prefix,sfx=''){
 // ══════════════════════════════════════════════════════════════════════════
 // DIRECTOR COMERCIAL
 // ══════════════════════════════════════════════════════════════════════════
+let _dirDatesInitDone = false;
 function renderDirector(){
+  // Solo la 1ra vez: "Desde" arranca en el día 1 del mes actual, igual que en
+  // Marketing → Funnel y Cobranza. Después respeta lo que elija o limpie el usuario.
+  if(!_dirDatesInitDone){
+    _dirDatesInitDone = true;
+    const deInput = document.getElementById('dir-date-desde');
+    if(deInput && !deInput.value){
+      const hoy = new Date();
+      deInput.value = hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-01';
+    }
+  }
   const proj = filtrarProj('dir');
   const _tipo = document.getElementById('dir-tipo')?.value||'';
 
@@ -1655,8 +1851,9 @@ function renderDirector(){
     const d=parseDate(r.FechaVenta||r.FechaEntrega_Minuta||'');
     if(!d)return;
     const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    if(!mesMapa[k])mesMapa[k]={mes:MN[d.getMonth()+1]+' '+d.getFullYear(),n:0,monto:0,pares:[]};
+    if(!mesMapa[k])mesMapa[k]={mes:MN[d.getMonth()+1]+' '+d.getFullYear(),n:0,monto:0,pares:[],rows:[]};
     mesMapa[k].n++;
+    mesMapa[k].rows.push(r);
     const precioVenta=Number(r.PrecioVentaSoles||r.PrecioVenta||0);
     mesMapa[k].monto+=precioVenta;
     const m2key=_m2Key(r.Proyecto, r.NroInmueble, r.NroDocumentoTitular);
@@ -1686,7 +1883,7 @@ function renderDirector(){
     let y=yIni, m=mIni;
     while(y<yFin || (y===yFin && m<=mFin)){
       const k=`${y}-${String(m).padStart(2,'0')}`;
-      if(!mesMapa[k]) mesMapa[k]={mes:MN[m]+' '+y,n:0,monto:0,pares:[]};
+      if(!mesMapa[k]) mesMapa[k]={mes:MN[m]+' '+y,n:0,monto:0,pares:[],rows:[]};
       m++; if(m>12){ m=1; y++; }
     }
   }
@@ -1696,6 +1893,7 @@ function renderDirector(){
     const _allParesMeses=mesEntries.flatMap(([,d])=>d.pares||[]);
     const _pm2=_precioM2Ponderado(_allParesMeses);
     totales.pm2=_pm2!=null?Math.round(_pm2):null;
+    totales.rows=mesEntries.flatMap(([,d])=>d.rows||[]);
   }
 
   // Tipologías desde stock — dormitorios + locales comerciales
@@ -1748,7 +1946,8 @@ function renderDirector(){
     const areaArr=sAll.filter(r=>Number(r.AreaTechada||0)>0);
     const area=areaArr.length?Math.round(areaArr.reduce((a,r)=>a+Number(r.AreaTechada||0),0)/areaArr.length):null;
     const lbl=d==='COMERCIO'?'Local':d+'D';
-    return`<div class="typ">
+    const _cTy=_dirClk('Ventas · Tipología '+lbl, vendidas, FL_COM_VENTA_COLS).replace(' class="fl-cross-clk"',' style="cursor:pointer"');
+    return`<div class="typ"${_cTy}>
       <div class="t"><span class="code">${lbl}</span><span style="font-size:11px;color:var(--ink-3)">${area?area+' m² prom.':'—'}</span></div>
       <div class="n">${vendidas.length}</div><div class="r">unidades vendidas</div>
       <div class="typ-stats">
@@ -1766,13 +1965,15 @@ function renderDirector(){
       const d=parseDate(r.FechaVenta||r.FechaEntrega_Minuta||'');
       if(!d)return;
       const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-      if(!mesMapa_B[k])mesMapa_B[k]={mes:MN[d.getMonth()+1]+' '+d.getFullYear(),n:0,monto:0};
+      if(!mesMapa_B[k])mesMapa_B[k]={mes:MN[d.getMonth()+1]+' '+d.getFullYear(),n:0,monto:0,rows:[]};
       mesMapa_B[k].n++;
+      mesMapa_B[k].rows.push(r);
       mesMapa_B[k].monto+=Number(r.PrecioVentaSoles||r.PrecioVenta||0);
     });
   }
   const mesEntries_B=Object.entries(mesMapa_B).sort((a,b)=>b[0].localeCompare(a[0]));
   const totB=mesEntries_B.reduce((a,[,d])=>({n:a.n+d.n,monto:a.monto+d.monto}),{n:0,monto:0});
+  totB.rows=mesEntries_B.flatMap(([,d])=>d.rows||[]);
 
   const _delta=(a,b)=>{if(!b)return'';const p=Math.round((a-b)/b*100);return p>0?`<span class="delta-up">↑${p}%</span>`:p<0?`<span class="delta-down">↓${Math.abs(p)}%</span>`:`<span class="delta-neu">—</span>`;};
 
@@ -1782,6 +1983,11 @@ function renderDirector(){
   const CHART_COLORS=['#60a5fa','#a78bfa','#34d399','#fbbf24','#f472b6','#fb923c','#f87171'];
   const ALL_PROJS=['HELIO - SANTA BEATRIZ','SUNNY','LITORAL 900','LOMAS DE CARABAYLLO 4','LOMAS DE CARABAYLLO 5','DOMINGO ORUE'];
   const SHOW_PROJS=proj?[proj]:ALL_PROJS;
+
+  if(_dirTab==='detalle'){
+    _renderDirDetalle(vGlob);
+    return;
+  }
 
   if(_dirTab==='resumen'){
     const lblA=_rangeLabel('dir',''), lblB=_dirComp?_rangeLabel('dir','-b'):'';
@@ -1798,23 +2004,26 @@ function renderDirector(){
     const _thS='padding:10px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);border-bottom:2px solid var(--line);background:var(--panel)';
     const _thL='padding:10px 14px;text-align:left;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);border-bottom:2px solid var(--line);background:var(--panel)';
 
-    const _projRowHTML=r=>{
+    const _projRowHTML=(r,lbl)=>{
       const barW=r.cumplPct!==null?Math.min(r.cumplPct,100):0;
       const barCol=r.cumplPct===null?'#e2e8f0':r.cumplPct>=80?'#34d399':r.cumplPct>=50?'#fbbf24':'#f87171';
       const name=r.p.replace('LOMAS DE CARABAYLLO','LOMAS').replace('HELIO - SANTA BEATRIZ','HELIO');
       const isTotal=r.p==='TOTAL';
       const rowStyle=isTotal?'font-weight:700;border-top:2px solid var(--line);background:var(--panel)':'';
+      const _ttl=isTotal?'Todos los proyectos':toTitle(name.toLowerCase());
+      const _cV=_dirClk('Ventas · '+_ttl+' · '+lbl, r._rows, FL_COM_VENTA_COLS);
+      const _cS=_dirClk('Separaciones · '+_ttl+' · '+lbl, r._seps, FL_SEP_COLS);
       return '<tr style="'+rowStyle+'">'
         +'<td style="'+_tdL+';color:'+(isTotal?'var(--ink)':'var(--ink-2)')+';font-weight:'+(isTotal?'700':'500')+'">'+toTitle(name.toLowerCase())+'</td>'
-        +'<td style="'+_tdC+';font-weight:'+(isTotal?'700':'500')+';color:var(--ink)">'+r.n+'</td>'
+        +'<td'+_cV+' style="'+_tdC+';font-weight:'+(isTotal?'700':'500')+';color:var(--ink)">'+r.n+'</td>'
         +'<td style="'+_tdC+';color:var(--ink-3)">'+(r.meta||'—')+'</td>'
         +'<td style="'+_tdC+'"><div style="display:flex;align-items:center;gap:6px;justify-content:center">'
           +'<div style="width:60px;height:7px;border-radius:4px;background:var(--line-2);flex-shrink:0"><div style="height:100%;width:'+barW+'%;border-radius:4px;background:'+barCol+'"></div></div>'
           +'<span style="font-size:11px;font-weight:500;color:'+barCol+';min-width:32px;text-align:left">'+(r.cumplPct!==null?r.cumplPct+'%':'—')+'</span>'
         +'</div></td>'
-        +'<td style="'+_tdC+';font-weight:'+(isTotal?'700':'500')+';color:var(--ink)">'+(r.monto?fMFull(r.monto):'—')+'</td>'
+        +'<td'+_cV+' style="'+_tdC+';font-weight:'+(isTotal?'700':'500')+';color:var(--ink)">'+(r.monto?fMFull(r.monto):'—')+'</td>'
         +'<td style="'+_tdC+';font-weight:'+(isTotal?'700':'500')+';color:var(--ink-3)">'+(r.pm2?'S/ '+fN(r.pm2):'—')+'</td>'
-        +'<td style="'+_tdC+';font-weight:'+(isTotal?'700':'500')+';color:var(--brand)">'+r.seps+'</td>'
+        +'<td'+_cS+' style="'+_tdC+';font-weight:'+(isTotal?'700':'500')+';color:var(--brand)">'+r.seps+'</td>'
         +'</tr>';
     };
 
@@ -1833,16 +2042,16 @@ function renderDirector(){
         }).filter(Boolean);
         const pm2P_=_precioM2Ponderado(paresP);
         const pm2P=pm2P_!=null?Math.round(pm2P_):null;
-        return{p,n:pV.length,meta:metaP.uni,cumplPct,monto:montoP,seps:sepsP.length,pm2:pm2P,_pares:paresP};
+        return{p,n:pV.length,meta:metaP.uni,cumplPct,monto:montoP,seps:sepsP.length,pm2:pm2P,_pares:paresP,_rows:pV,_seps:sepsP};
       });
       const allPares=rows.flatMap(r=>r._pares);
       const _totPm2=_precioM2Ponderado(allPares);
-      const tot={p:'TOTAL',n:rows.reduce((a,r)=>a+r.n,0),meta:rows.reduce((a,r)=>a+(r.meta||0),0),monto:rows.reduce((a,r)=>a+r.monto,0),seps:rows.reduce((a,r)=>a+r.seps,0),pm2:_totPm2!=null?Math.round(_totPm2):null};
+      const tot={p:'TOTAL',n:rows.reduce((a,r)=>a+r.n,0),meta:rows.reduce((a,r)=>a+(r.meta||0),0),monto:rows.reduce((a,r)=>a+r.monto,0),seps:rows.reduce((a,r)=>a+r.seps,0),pm2:_totPm2!=null?Math.round(_totPm2):null,_rows:rows.flatMap(r=>r._rows),_seps:rows.flatMap(r=>r._seps)};
       tot.cumplPct=tot.meta?Math.round(tot.n/tot.meta*100):null;
       return{rows,tot};
     };
 
-    const _buildProjTable=(rows,tot)=>'<div style="overflow-x:auto"><table class="tbl" style="width:100%;table-layout:fixed;border-collapse:collapse">'
+    const _buildProjTable=(rows,tot,lbl)=>'<div style="overflow-x:auto"><table class="tbl" style="width:100%;table-layout:fixed;border-collapse:collapse">'
       +'<colgroup><col style="width:22%"><col style="width:11%"><col style="width:9%"><col style="width:16%"><col style="width:17%"><col style="width:14%"><col style="width:11%"></colgroup>'
       +'<thead><tr>'
         +'<th style="'+_thL+'">PROYECTO</th>'
@@ -1853,7 +2062,7 @@ function renderDirector(){
         +'<th style="'+_thS+'">PM2</th>'
         +'<th style="'+_thS+'">SEPS.</th>'
       +'</tr></thead>'
-      +'<tbody>'+rows.map(_projRowHTML).join('')+_projRowHTML(tot)+'</tbody>'
+      +'<tbody>'+rows.map(x=>_projRowHTML(x,lbl)).join('')+_projRowHTML(tot,lbl)+'</tbody>'
       +'</table></div>';
 
     const _thM='padding:10px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);border-bottom:2px solid var(--line);background:var(--panel)';
@@ -1862,10 +2071,11 @@ function renderDirector(){
     const _buildMesRows=entries=>entries.map(([,d])=>{
       const _pm2=_precioM2Ponderado(d.pares||[]);
       const pm2=_pm2!=null?Math.round(_pm2):null;
+      const _cM=_dirClk('Ventas · '+d.mes, d.rows, FL_COM_VENTA_COLS);
       return '<tr>'
         +'<td style="'+_tdM+';text-align:left;font-weight:500;color:var(--ink-2)">'+d.mes+'</td>'
-        +'<td style="'+_tdM+';font-weight:500;color:var(--ink)">'+d.n+'</td>'
-        +'<td style="'+_tdM+';font-weight:500;color:var(--ink)">'+fMFull(d.monto)+'</td>'
+        +'<td'+_cM+' style="'+_tdM+';font-weight:500;color:var(--ink)">'+d.n+'</td>'
+        +'<td'+_cM+' style="'+_tdM+';font-weight:500;color:var(--ink)">'+fMFull(d.monto)+'</td>'
         +'<td style="'+_tdM+';color:var(--ink-3)">'+(pm2?'S/ '+fN(pm2):'—')+'</td>'
         +'</tr>';
     }).join('');
@@ -1876,18 +2086,18 @@ function renderDirector(){
     const mesRowsA=_buildMesRows(mesEntries);
     const mesRowsB=_dirComp?_buildMesRows(mesEntries_B):'';
 
-    const _mesTotalRow=tot=>'<tr style="font-weight:700;border-top:2px solid var(--line);background:var(--panel)">'
+    const _mesTotalRow=(tot,lbl)=>{const _cT=_dirClk('Ventas · '+lbl, tot.rows, FL_COM_VENTA_COLS);return '<tr style="font-weight:700;border-top:2px solid var(--line);background:var(--panel)">'
       +'<td style="text-align:left;padding:9px 12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12px;color:var(--ink)">TOTAL</td>'
-      +'<td style="text-align:center;padding:9px 12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12px;color:var(--ink)">'+tot.n+'</td>'
-      +'<td style="text-align:center;padding:9px 12px;font-family:var(--mono);font-size:12px;color:var(--ink)">'+fFull(tot.monto)+'</td>'
+      +'<td'+_cT+' style="text-align:center;padding:9px 12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12px;color:var(--ink)">'+tot.n+'</td>'
+      +'<td'+_cT+' style="text-align:center;padding:9px 12px;font-family:var(--mono);font-size:12px;color:var(--ink)">'+fFull(tot.monto)+'</td>'
       +'<td style="text-align:center;padding:9px 12px;font-family:var(--mono);font-size:12px;color:var(--ink-3)">'+(tot.pm2?'S/ '+fN(tot.pm2):'—')+'</td>'
-      +'</tr>';
+      +'</tr>';};
 
     const _mesTable=(rows,tot,lbl)=>'<div class="card">'
       +'<div class="card-hd"><div><h3>Ventas por mes</h3><p>'+lbl+' · '+tot.n+' und. · '+fM(tot.monto)+'</p></div></div>'
       +'<div style="overflow-x:auto"><table class="tbl" style="width:100%">'
         +'<thead><tr><th style="'+_thM+';text-align:left">MES</th><th style="'+_thM+'">UNID.</th><th style="'+_thM+'">MONTO</th><th style="'+_thM+'">PRECIO/m²</th></tr></thead>'
-        +'<tbody>'+rows+_mesTotalRow(tot)+'</tbody>'
+        +'<tbody>'+rows+_mesTotalRow(tot,lbl)+'</tbody>'
       +'</table></div>'
       +'</div>';
 
@@ -1899,10 +2109,10 @@ function renderDirector(){
         +'<div class="card-hd"><div><h3>Resumen por proyecto</h3>'+proyLabel+'</div></div>'
         +(_dirComp
           ?'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
-            +'<div><div style="font-size:11px;font-weight:700;color:#3b82f6;padding:0 14px 6px;text-transform:uppercase;letter-spacing:.04em">'+lblA+'</div>'+_buildProjTable(projRows,totRow)+'</div>'
-            +'<div style="border-left:1px solid var(--line)"><div style="font-size:11px;font-weight:700;color:#a78bfa;padding:0 14px 6px;text-transform:uppercase;letter-spacing:.04em">'+lblB+'</div>'+_buildProjTable(projRowsB,totRowB)+'</div>'
+            +'<div><div style="font-size:11px;font-weight:700;color:#3b82f6;padding:0 14px 6px;text-transform:uppercase;letter-spacing:.04em">'+lblA+'</div>'+_buildProjTable(projRows,totRow,lblA)+'</div>'
+            +'<div style="border-left:1px solid var(--line)"><div style="font-size:11px;font-weight:700;color:#a78bfa;padding:0 14px 6px;text-transform:uppercase;letter-spacing:.04em">'+lblB+'</div>'+_buildProjTable(projRowsB,totRowB,lblB)+'</div>'
             +'</div>'
-          :_buildProjTable(projRows,totRow))
+          :_buildProjTable(projRows,totRow,lblA))
       +'</div>'
       +(_dirComp
         ?'<div class="grid-2" style="margin-bottom:16px">'+_mesTable(mesRowsA,totales,lblA)+_mesTable(mesRowsB,totB,lblB)+'</div>'
@@ -2027,23 +2237,24 @@ function renderDirector(){
       // 1. Evolution + projection
       '<div class="card" style="margin-bottom:16px">'+
         '<div class="card-hd"><div><h3>Evolución mensual + proyección</h3><p>'+lblA+(lblB?' vs. '+lblB:'')+' · regresión lineal 3 meses</p></div>'+
-          (_dirComp?'<div style="display:flex;gap:10px;align-items:center">'+
-            '<span style="font-size:11px;color:var(--ink-3)"><i style="display:inline-block;width:18px;height:3px;background:#3b82f6;vertical-align:middle;margin-right:4px;border-radius:2px"></i>'+lblA+'</span>'+
-            '<span style="font-size:11px;color:var(--ink-3)"><i style="display:inline-block;width:18px;height:3px;border-top:2px dashed #a78bfa;vertical-align:middle;margin-right:4px"></i>'+lblB+'</span>'+
-          '</div>':'')+
+          '<div style="display:flex;flex-direction:column;gap:5px;min-width:150px;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:11px;color:var(--ink-2)">'+
+            '<div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#3b82f6"></span><span style="flex:1">'+(lblA||'Real')+'</span><span style="font-weight:700;color:var(--ink);font-family:var(--mono)">'+fN(dataArr.reduce((a,b)=>a+b,0))+'</span></div>'+
+            (_dirComp?'<div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#a78bfa"></span><span style="flex:1">'+lblB+'</span><span style="font-weight:700;color:var(--ink);font-family:var(--mono)">'+fN(dataBArr.reduce((a,b)=>a+b,0))+'</span></div>':'')+
+            '<div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#c4b5fd"></span><span>Proyección (3 meses)</span></div>'+
+          '</div>'+
         '</div>'+
-        '<div style="height:260px;padding:8px 16px 16px"><canvas id="dir-trend-chart"></canvas></div>'+
+        '<div style="height:300px;padding:8px 16px 16px"><canvas id="dir-trend-chart"></canvas></div>'+
       '</div>'+
       // 2. Monto + Donut
       '<div class="grid-2" style="margin-bottom:16px">'+
         '<div class="card">'+
           '<div class="card-hd"><div><h3>Monto de ventas por mes</h3><p>En miles S/ · '+lblA+'</p></div></div>'+
-          '<div style="height:200px;padding:8px 16px 16px"><canvas id="dir-monto-chart"></canvas></div>'+
+          '<div style="height:240px;padding:8px 16px 16px"><canvas id="dir-monto-chart"></canvas></div>'+
         '</div>'+
         '<div class="card">'+
           '<div class="card-hd"><div><h3>Composición del portafolio</h3><p>Ventas por proyecto · '+v.length+' und.</p></div></div>'+
-          '<div style="height:200px;padding:8px 16px 16px;display:flex;align-items:center;gap:14px">'+
-            '<canvas id="dir-donut-proj" style="max-width:140px;max-height:140px"></canvas>'+
+          '<div style="height:240px;padding:8px 16px 16px;display:flex;align-items:center;gap:14px">'+
+            '<canvas id="dir-donut-proj" style="max-width:170px;max-height:170px"></canvas>'+
             '<div style="flex:1;display:flex;flex-direction:column;gap:6px;min-width:0" id="dir-proj-leg"></div>'+
           '</div>'+
         '</div>'+
@@ -2052,11 +2263,11 @@ function renderDirector(){
       '<div class="grid-2" style="margin-bottom:16px">'+
         '<div class="card">'+
           '<div class="card-hd"><div><h3>Precio m² por proyecto</h3><p>Promedio desde stock disponible</p></div></div>'+
-          '<div style="height:200px;padding:8px 16px 16px"><canvas id="dir-pm2-chart"></canvas></div>'+
+          '<div style="height:240px;padding:8px 16px 16px"><canvas id="dir-pm2-chart"></canvas></div>'+
         '</div>'+
         '<div class="card">'+
           '<div class="card-hd"><div><h3>Tendencia de visitas</h3><p>Últimos 6 meses por proyecto</p></div></div>'+
-          '<div style="height:200px;padding:8px 16px 16px"><canvas id="dir-vis-chart"></canvas></div>'+
+          '<div style="height:240px;padding:8px 16px 16px"><canvas id="dir-vis-chart"></canvas></div>'+
         '</div>'+
       '</div>'+
       // 4. Heatmap
@@ -2079,44 +2290,88 @@ function renderDirector(){
       '</div>';
 
     setTimeout(()=>{
+      // Estilo común con Marketing y Cobranza: tipografía Plus Jakarta, grilla suave
+      // (adaptada a modo oscuro), etiquetas de dato en pastilla y tooltips.
+      const _dk=document.documentElement.classList.contains('dark');
+      const _gridC=_dk?'rgba(51,65,85,.5)':'#F3F4F6', _tickC=_dk?'#94a3b8':'#6B7280';
+      const _ff="'Plus Jakarta Sans',sans-serif";
+      const _tick={font:{family:_ff,size:10},color:_tickC};
+      const _tip={titleFont:{family:_ff,size:11},bodyFont:{family:_ff,size:11}};
+      const _lbl=(color,extra)=>Object.assign({
+        color, backgroundColor:_dk?'rgba(15,23,42,.75)':'rgba(255,255,255,.85)', borderRadius:4,
+        padding:{top:2,bottom:2,left:5,right:5}, font:{family:_ff,size:10,weight:'700'},
+        anchor:'end', align:'top', offset:4
+      }, extra||{});
       // ── Evolution + projection line chart ──
       const ctx=document.getElementById('dir-trend-chart')?.getContext('2d');
       if(ctx){
         if(window._dirTrendChart)window._dirTrendChart.destroy();
+        const grad=ctx.createLinearGradient(0,0,0,300);
+        grad.addColorStop(0,'rgba(59,130,246,0.28)'); grad.addColorStop(1,'rgba(59,130,246,0.02)');
+        const nPts=projLabels.length;
+        const _showLbl=nPts<=24;
+        const _pt=(c)=>({pointBackgroundColor:_dk?'#0f172a':'#fff',pointBorderColor:c,pointBorderWidth:2,pointHoverRadius:6,pointHitRadius:10});
         const datasets=[
-          {label:lblA||'Unidades',data:dataArr.concat(new Array(3).fill(null)),borderColor:'#60a5fa',backgroundColor:'rgba(96,165,250,0.08)',tension:0.3,fill:true,pointRadius:4},
-          {label:'Proyección',data:new Array(dataArr.length).fill(null).concat(projLine.slice(dataArr.length)),borderColor:'#c4b5fd',borderDash:[6,3],tension:0.3,fill:false,pointRadius:3,pointStyle:'circle'}
+          Object.assign({label:lblA||'Unidades',data:dataArr.concat(new Array(3).fill(null)),borderColor:'#3b82f6',backgroundColor:grad,borderWidth:2.5,tension:0.35,fill:true,pointRadius:4,
+            datalabels:_lbl('#3b82f6',{display:c=>_showLbl&&c.dataset.data[c.dataIndex]!=null&&c.dataset.data[c.dataIndex]!==0,formatter:v=>fN(v)})},_pt('#3b82f6')),
+          Object.assign({label:'Proyección',data:new Array(dataArr.length).fill(null).concat(projLine.slice(dataArr.length)),borderColor:'#c4b5fd',borderWidth:2.5,borderDash:[6,4],tension:0.35,fill:false,pointRadius:4,
+            datalabels:_lbl('#8b5cf6',{display:c=>c.dataset.data[c.dataIndex]!=null,formatter:v=>(Math.round(v*10)/10).toLocaleString('es-PE')})},_pt('#c4b5fd')),
+          {label:'Tendencia',data:projLine,borderColor:_dk?'#475569':'#cbd5e1',borderWidth:1.5,borderDash:[4,4],tension:0,fill:false,pointRadius:0,pointHitRadius:0,datalabels:{display:false}}
         ];
-        // also add regression line over existing months as dashed gray
-        datasets.push({label:'Tendencia',data:projLine,borderColor:'#e2e8f0',borderDash:[4,4],tension:0,fill:false,pointRadius:0});
-        if(_dirComp)datasets.push({label:lblB||'Período B',data:dataBArr.concat(new Array(3).fill(null)),borderColor:'#a78bfa',borderDash:[5,3],tension:0.3,fill:false,pointRadius:4});
-        window._dirTrendChart=new Chart(ctx,{type:'line',data:{labels:projLabels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}},x:{ticks:{font:{size:10},maxRotation:45}}}}});
+        if(_dirComp)datasets.push(Object.assign({label:lblB||'Período B',data:dataBArr.concat(new Array(3).fill(null)),borderColor:'#a78bfa',borderWidth:2.5,borderDash:[6,4],tension:0.35,fill:false,pointRadius:4,
+          datalabels:_lbl('#a78bfa',{align:'bottom',display:c=>_showLbl&&c.dataset.data[c.dataIndex]!=null&&c.dataset.data[c.dataIndex]!==0,formatter:v=>fN(v)})},_pt('#a78bfa')));
+        window._dirTrendChart=new Chart(ctx,{type:'line',plugins:[ChartDataLabels],data:{labels:projLabels,datasets},options:{responsive:true,maintainAspectRatio:false,
+          interaction:{mode:'index',intersect:false},
+          onClick:(e,_a,ch)=>_dirClickMes(ch.getElementsAtEventForMode(e,'nearest',{intersect:true},true),allMonths,mesMapa,mesMapa_B),onHover:_dirHoverPtr,
+          layout:{padding:{top:16}},
+          plugins:{legend:{display:false},tooltip:Object.assign({},_tip,{filter:c=>c.dataset.label!=='Tendencia',callbacks:{label:c=>' '+c.dataset.label+': '+(Math.round(c.parsed.y*10)/10).toLocaleString('es-PE')+' und.'}})},
+          scales:{y:{beginAtZero:true,grid:{color:_gridC},ticks:Object.assign({precision:0},_tick)},x:{grid:{color:_gridC},ticks:Object.assign({maxRotation:45},_tick)}}}});
       }
       // ── Monto bar chart ──
       const mCtx=document.getElementById('dir-monto-chart')?.getContext('2d');
       if(mCtx){
         if(window._dirMontoChart)window._dirMontoChart.destroy();
-        window._dirMontoChart=new Chart(mCtx,{type:'bar',data:{labels:labelsArr,datasets:[{label:'Monto (miles S/)',data:dataMontoArr,backgroundColor:'rgba(96,165,250,0.65)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'S/ '+fN(c.raw)+'k'}}},scales:{y:{beginAtZero:true},x:{ticks:{font:{size:10},maxRotation:45}}}}});
+        window._dirMontoChart=new Chart(mCtx,{type:'bar',plugins:[ChartDataLabels],data:{labels:labelsArr,datasets:[{label:'Monto (miles S/)',data:dataMontoArr,backgroundColor:'rgba(59,130,246,0.85)',hoverBackgroundColor:'#2563eb',borderRadius:{topLeft:6,topRight:6},borderSkipped:false,maxBarThickness:46,
+          datalabels:_lbl(_dk?'#e2e8f0':'#334155',{display:c=>labelsArr.length<=18&&c.dataset.data[c.dataIndex]>0,formatter:v=>'S/ '+_fCompact(v*1000),offset:2})}]},
+          options:{responsive:true,maintainAspectRatio:false,
+          onClick:(e,_a,ch)=>_dirClickMes(ch.getElementsAtEventForMode(e,'nearest',{intersect:true},true),allMonths,mesMapa,mesMapa_B),onHover:_dirHoverPtr,
+          layout:{padding:{top:18}},
+          plugins:{legend:{display:false},tooltip:Object.assign({},_tip,{callbacks:{label:c=>' S/ '+fN(c.raw)+'k'}})},
+          scales:{y:{beginAtZero:true,grid:{color:_gridC},ticks:Object.assign({callback:v=>_fCompact(v*1000)},_tick)},x:{grid:{display:false},ticks:Object.assign({maxRotation:45},_tick)}}}});
       }
       // ── Donut: ventas por proyecto ──
       const dCtx=document.getElementById('dir-donut-proj')?.getContext('2d');
       const leg=document.getElementById('dir-proj-leg');
       if(dCtx&&projEntries.length){
         if(window._dirDonut)window._dirDonut.destroy();
-        window._dirDonut=new Chart(dCtx,{type:'doughnut',data:{labels:projEntries.map(([p])=>p),datasets:[{data:projEntries.map(([,n])=>n),backgroundColor:CHART_COLORS.slice(0,projEntries.length),borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false}}}});
-        if(leg)leg.innerHTML=projEntries.map(([p,n],i)=>'<div style="display:flex;align-items:center;gap:6px;font-size:11px"><i style="flex-shrink:0;display:inline-block;width:9px;height:9px;border-radius:50%;background:'+CHART_COLORS[i%CHART_COLORS.length]+'"></i><span style="flex:1;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p+'</span><span style="font-family:var(--mono);font-weight:500;color:var(--ink)">'+n+'</span></div>').join('');
+        const totDon=projEntries.reduce((a,[,n])=>a+n,0)||1;
+        window._dirDonut=new Chart(dCtx,{type:'doughnut',plugins:[ChartDataLabels],data:{labels:projEntries.map(([p])=>p),datasets:[{data:projEntries.map(([,n])=>n),backgroundColor:CHART_COLORS.slice(0,projEntries.length),borderWidth:3,borderColor:_dk?'#0f172a':'#ffffff',hoverOffset:6,
+          datalabels:{color:'#fff',font:{family:_ff,size:10,weight:'700'},display:c=>c.dataset.data[c.dataIndex]/totDon>=0.08,formatter:v=>Math.round(v/totDon*100)+'%'}}]},
+          options:{responsive:true,maintainAspectRatio:false,cutout:'58%',
+          onClick:(e,_a,ch)=>{const el=ch.getElementsAtEventForMode(e,'nearest',{intersect:true},true)[0]; if(!el) return; const pn=projEntries[el.index][0]; _dirAbrirDir('Ventas · '+pn+' · '+lblA, v.filter(r=>String(r.Proyecto||'Otro').replace('LOMAS DE CARABAYLLO','LOMAS').replace('HELIO - SANTA BEATRIZ','HELIO')===pn), FL_COM_VENTA_COLS);},onHover:_dirHoverPtr,
+          plugins:{legend:{display:false},tooltip:Object.assign({},_tip,{callbacks:{label:c=>' '+c.label+': '+c.raw+' und. ('+Math.round(c.raw/totDon*100)+'%)'}})}}});
+        if(leg)leg.innerHTML=projEntries.map(([p,n],i)=>'<div style="display:flex;align-items:center;gap:6px;font-family:'+_ff+';font-size:11px"><i style="flex-shrink:0;display:inline-block;width:10px;height:10px;border-radius:2px;background:'+CHART_COLORS[i%CHART_COLORS.length]+'"></i><span style="flex:1;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p+'</span><span style="font-family:var(--mono);font-weight:700;color:var(--ink)">'+n+'</span><span style="font-family:var(--mono);color:var(--ink-4);min-width:30px;text-align:right">'+Math.round(n/totDon*100)+'%</span></div>').join('');
       }else if(leg){leg.innerHTML='<div style="font-size:12px;color:var(--ink-4)">Sin datos</div>';}
       // ── Precio m² horizontal bar ──
       const p2Ctx=document.getElementById('dir-pm2-chart')?.getContext('2d');
       if(p2Ctx&&pm2Projs.length){
         if(window._dirProjBar)window._dirProjBar.destroy();
-        window._dirProjBar=new Chart(p2Ctx,{type:'bar',data:{labels:pm2Projs.map(x=>x.p),datasets:[{label:'S//m²',data:pm2Projs.map(x=>x.avg),backgroundColor:CHART_COLORS.slice(0,pm2Projs.length),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'S/ '+fN(c.raw)+'/m²'}}},scales:{x:{beginAtZero:true,ticks:{callback:v=>fN(v)}},y:{ticks:{font:{size:10}}}}}});
+        window._dirProjBar=new Chart(p2Ctx,{type:'bar',plugins:[ChartDataLabels],data:{labels:pm2Projs.map(x=>x.p),datasets:[{label:'S//m²',data:pm2Projs.map(x=>x.avg),backgroundColor:CHART_COLORS.slice(0,pm2Projs.length),borderRadius:6,borderSkipped:false,maxBarThickness:26,
+          datalabels:_lbl(_dk?'#e2e8f0':'#334155',{anchor:'end',align:'right',offset:4,formatter:v=>'S/ '+fN(v)})}]},
+          options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',layout:{padding:{right:64}},
+          plugins:{legend:{display:false},tooltip:Object.assign({},_tip,{callbacks:{label:c=>' S/ '+fN(c.raw)+'/m²'}})},
+          scales:{x:{beginAtZero:true,grid:{color:_gridC},ticks:Object.assign({callback:v=>fN(v)},_tick)},y:{grid:{display:false},ticks:_tick}}}});
       }
       // ── Visitas multi-line chart ──
       const vCtx=document.getElementById('dir-vis-chart')?.getContext('2d');
       if(vCtx){
         if(window._dirVisChart)window._dirVisChart.destroy();
-        window._dirVisChart=new Chart(vCtx,{type:'line',data:{labels:visLabels,datasets:visDatasets.length?visDatasets:[{label:'Sin datos',data:visLabels.map(()=>0),borderColor:'#e2e8f0',tension:0.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:visDatasets.length>1,position:'bottom',labels:{font:{size:10},boxWidth:12,padding:8}}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}},x:{ticks:{font:{size:10}}}}}});
+        const visDs=visDatasets.length?visDatasets.map(d=>Object.assign({},d,{borderWidth:2.5,tension:0.35,fill:false,pointRadius:4,pointBackgroundColor:_dk?'#0f172a':'#fff',pointBorderColor:d.borderColor,pointBorderWidth:2,pointHoverRadius:6,pointHitRadius:10,
+          datalabels:_lbl(d.borderColor,{display:c=>visDatasets.length*visLabels.length<=36&&c.dataset.data[c.dataIndex]>0,formatter:v=>fN(v)})})):[{label:'Sin datos',data:visLabels.map(()=>0),borderColor:'#e2e8f0',tension:0.3,datalabels:{display:false}}];
+        window._dirVisChart=new Chart(vCtx,{type:'line',plugins:[ChartDataLabels],data:{labels:visLabels,datasets:visDs},options:{responsive:true,maintainAspectRatio:false,
+          interaction:{mode:'index',intersect:false},layout:{padding:{top:16}},
+          plugins:{legend:{display:visDatasets.length>1,position:'bottom',labels:{font:{family:_ff,size:10},color:_tickC,boxWidth:10,padding:10,usePointStyle:true}},tooltip:Object.assign({},_tip,{callbacks:{label:c=>' '+c.dataset.label+': '+fN(c.parsed.y)+' visitas'}})},
+          scales:{y:{beginAtZero:true,grid:{color:_gridC},ticks:Object.assign({precision:0},_tick)},x:{grid:{color:_gridC},ticks:_tick}}}});
       }
     },50);
 
@@ -2288,6 +2543,31 @@ function _flCrossSetSort(key){
   renderFunnelMkt();
 }
 
+let _flCrossCtx = null; // contexto de la última Tabla Cruce renderizada (para el popup de detalle)
+const FL_CROSS_STAGE_LBL = {leads:'Todos los leads', contactados:'Contactados', visita:'Con visita', separacion:'Separados', venta:'Vendidos'};
+function _flCrossAbrir(i, j){
+  const c = _flCrossCtx; if(!c) return;
+  const rowKey = i>=0 ? c.rows[i] : null;
+  const colKey = j>=0 ? c.cols[j] : null;
+  // Mismo agrupamiento que la tabla: lo que no entró al top se cuenta como "Otros".
+  const filas = c.prospData.filter(r=>{
+    if(rowKey!==null){ const rk=c.rowDim.fn(r)||'—'; if((c.rowKeep.has(rk)?rk:'Otros')!==rowKey) return false; }
+    if(colKey!==null){ const ck=c.colDim.fn(r)||'—'; if((c.colKeep.has(ck)?ck:'Otros')!==colKey) return false; }
+    return true;
+  });
+  const cols = {leads:FL_LEAD_COLS, contactados:FL_LEAD_COLS, visita:FL_VISITA_COLS, separacion:FL_SEP_COLS, venta:FL_VENTA_COLS}[_flCrossStage] || FL_LEAD_COLS;
+  const partes = [];
+  if(rowKey!==null) partes.push(c.rowDim.lbl+': '+rowKey);
+  if(colKey!==null) partes.push(c.colDim.lbl+': '+colKey);
+  const etapa = FL_CROSS_STAGE_LBL[_flCrossStage] || 'Detalle';
+  _abrirModalFunnelEtapa(
+    etapa+(partes.length?' · '+partes.join(' × '):' · Total'),
+    {label:'Registros en esta celda', val:fN(filas.length), color:'#14AFBE'},
+    {label:'% de la etapa', val:pct(filas.length, c.prospData.length||1), color:'#F4A228'},
+    filas, cols
+  );
+}
+
 function _renderFlCrossTable(prosp){
   const availDims = FL_DIM_OPTS.filter(d=>!d.stages||d.stages.includes(_flCrossStage));
   if(!availDims.find(d=>d.val===_flCrossRows)) _flCrossRows='canal';
@@ -2364,14 +2644,20 @@ function _renderFlCrossTable(prosp){
       return 0;
     });
 
-  const tbody=sortedRows.map(r=>{
+  // Clic en un número: abre el popup de detalle con los registros de esa celda.
+  // _flCrossCtx guarda lo necesario para reconstruir el filtro; i/j son índices en
+  // sortedRows/cols (-1 = fila o columna de totales).
+  _flCrossCtx = {prospData, rowDim, colDim, rowKeep, colKeep, rows:sortedRows, cols};
+  const _clk=(i,j,n)=>n?` onclick="_flCrossAbrir(${i},${j})" title="Ver detalle" class="fl-cross-clk"`:'';
+  const tbody=sortedRows.map((r,i)=>{
     const rowTotal=cols.reduce((s,c)=>s+(data[r]?.[c]||0),0);
     return `<tr><td style="${_tdN}" title="${r}">${r.length>26?r.slice(0,25)+'…':r}</td>`
-      +cols.map(c=>{const v=data[r]?.[c]||0;const a=v?(Math.round((v/maxVal*0.5+0.07)*100)/100).toFixed(2):0;return `<td style="font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:${v?'600':'400'};color:${v?'#0A1628':'var(--ink-4)'};text-align:center;padding:9px 14px;border-bottom:1px solid var(--line-2);${v?`background:oklch(0.94 0.04 250 / ${a})`:''}">
+      +cols.map((c,j)=>{const v=data[r]?.[c]||0;const a=v?(Math.round((v/maxVal*0.5+0.07)*100)/100).toFixed(2):0;return `<td${_clk(i,j,v)} style="font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:${v?'600':'400'};color:${v?'#0A1628':'var(--ink-4)'};text-align:center;padding:9px 14px;border-bottom:1px solid var(--line-2);${v?`background:oklch(0.94 0.04 250 / ${a})`:''}">
         ${v||'—'}</td>`;}).join('')
-      +`<td style="${_tdTot}">${rowTotal}</td></tr>`;
+      +`<td${_clk(i,-1,rowTotal)} style="${_tdTot}">${rowTotal}</td></tr>`;
   }).join('');
-  const tfoot=`<tr><td style="${_tfN}">Total</td>${cols.map(c=>`<td style="${_tfV}">${rows.reduce((s,r)=>s+(data[r]?.[c]||0),0)}</td>`).join('')}<td style="${_tfTot}">${rows.reduce((s,r)=>s+cols.reduce((ss,c)=>ss+(data[r]?.[c]||0),0),0)}</td></tr>`;
+  const _grand=rows.reduce((s,r)=>s+cols.reduce((ss,c)=>ss+(data[r]?.[c]||0),0),0);
+  const tfoot=`<tr><td style="${_tfN}">Total</td>${cols.map((c,j)=>{const t=rows.reduce((s,r)=>s+(data[r]?.[c]||0),0);return `<td${_clk(-1,j,t)} style="${_tfV}">${t}</td>`;}).join('')}<td${_clk(-1,-1,_grand)} style="${_tfTot}">${_grand}</td></tr>`;
   const _ffsC="font-family:'Plus Jakarta Sans',sans-serif";
   const _ss=`${_ffsC};background:var(--bg);border:1.5px solid var(--line);color:var(--ink);font-size:11.5px;font-weight:600;padding:5px 10px;border-radius:6px;cursor:pointer;text-transform:uppercase;letter-spacing:.02em`;
   return `
@@ -3133,11 +3419,16 @@ function renderFunnelMkt(){
     };
     const EVO_DIAS_MAX_MESES=4; // hasta 4 meses de rango, se sigue mostrando por día
 
-    const _lunesDe=iso=>{
-      const d=new Date(iso+'T00:00:00');
-      d.setDate(d.getDate()-((d.getDay()+6)%7));
-      return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    // Semana del mes: S1 = días 1-7, S2 = 8-14, S3 = 15-21, S4 = 22 al fin de mes.
+    // Clave 'YYYY-MM-Sn' (ordena bien como texto).
+    const _semDe=iso=>iso.slice(0,7)+'-S'+Math.min(4,Math.ceil(parseInt(iso.slice(8,10),10)/7));
+    const _semRango=key=>{
+      const[y,m,sn]=key.split('-'); const n=parseInt(sn.slice(1),10);
+      const ult=new Date(+y,+m,0).getDate();
+      return n===4 ? '22-'+ult : ((n-1)*7+1)+'-'+(n*7);
     };
+    // índice absoluto de semana (para alinear períodos A vs B y rellenar huecos)
+    const _semIdx=iso=>(+iso.slice(0,4))*48+(+iso.slice(5,7)-1)*4+(Math.min(4,Math.ceil(parseInt(iso.slice(8,10),10)/7))-1);
     // Agrupa un dayMap {iso:{clave:n}} en días u meses (relleno de huecos incluido).
     // Diario mientras el rango no supere EVO_DIAS_MAX_MESES, mensual si lo supera.
     // Compartido por el modo "por proyecto" y el modo "todas las etapas" para no
@@ -3172,22 +3463,21 @@ function renderFunnelMkt(){
           periods=_full;
         } else { periods=_mks; }
       } else if(gran==='semana'){
-        // Semana = lunes a domingo; la clave es la fecha (ISO) del lunes.
         periodMap={};
         dates.forEach(iso=>{
-          const wk=_lunesDe(iso);
+          const wk=_semDe(iso);
           if(!periodMap[wk]) periodMap[wk]={};
           Object.entries(dayMap[iso]).forEach(([k,n])=>{ periodMap[wk][k]=(periodMap[wk][k]||0)+n; });
         });
         const _wks=Object.keys(periodMap).sort();
         const _full=[];
-        const cur=new Date(_wks[0]+'T00:00:00');
-        const last=new Date(_wks[_wks.length-1]+'T00:00:00');
-        while(cur<=last){
-          const wk=_isoDe(cur);
+        let cy=+_wks[0].slice(0,4), cm=+_wks[0].slice(5,7), cs=+_wks[0].slice(9);
+        const ly=+_wks[_wks.length-1].slice(0,4), lm=+_wks[_wks.length-1].slice(5,7), ls=+_wks[_wks.length-1].slice(9);
+        while(cy<ly||(cy===ly&&(cm<lm||(cm===lm&&cs<=ls)))){
+          const wk=cy+'-'+String(cm).padStart(2,'0')+'-S'+cs;
           if(!periodMap[wk]) periodMap[wk]={};
           _full.push(wk);
-          cur.setDate(cur.getDate()+7);
+          cs++; if(cs>4){cs=1;cm++;if(cm>12){cm=1;cy++;}}
         }
         periods=_full;
       } else {
@@ -3210,9 +3500,11 @@ function renderFunnelMkt(){
     const _fmtPeriodoGen=(d,g)=>{
       const gran=g===true?'mes':g===false?'dia':g;
       if(gran==='mes'){ const[y,m]=d.split('-'); return MM[+m]+' '+y; }
-      const[y,m,dd]=d.split('-');
-      return (gran==='semana'?'Sem ':'')+dd+' '+MM[+m];
+      if(gran==='semana'){ const[y,m,sn]=d.split('-'); return sn+' '+MM[+m]; }
+      const[y,m,dd]=d.split('-'); return dd+' '+MM[+m];
     };
+    // Para títulos de popup: en semana agrega el rango de días, ej. "S2 Sep (8-14)".
+    const _tituloPer=(d,g)=>_fmtPeriodoGen(d,g)+(g==='semana'?' ('+_semRango(d)+')':'');
     const _granTit=g=>g==='mes'?'mensual':g==='semana'?'semanal':'diaria';
     const _granKpi=g=>g==='mes'?'mensual':g==='semana'?'semanal':'diario';
     const _granUni=g=>g==='mes'?'mes':g==='semana'?'semana':'día';
@@ -3247,7 +3539,7 @@ function renderFunnelMkt(){
     // registros de ese día/mes. Cada modo del gráfico pasa un "resolve(datasetIndex,
     // index)" que devuelve {etapa, filas, titulo, kpi2Lbl, kpi2Val}.
     const EVO_COLS={leads:FL_LEAD_COLS, contactados:FL_LEAD_COLS, visita:FL_VISITA_COLS, separacion:FL_SEP_COLS, venta:FL_VENTA_COLS};
-    const _evoEnPeriodo=(iso,key,gran)=>!!iso && (gran==='mes' ? iso.slice(0,7)===key : gran==='semana' ? _lunesDe(iso)===key : iso===key);
+    const _evoEnPeriodo=(iso,key,gran)=>!!iso && (gran==='mes' ? iso.slice(0,7)===key : gran==='semana' ? _semDe(iso)===key : iso===key);
     const _evoHit=ds=>{ ds.forEach(d=>{d.pointHitRadius=10;}); return ds; };
     const _evoHover=(e,_a,chart)=>{
       const h=chart.getElementsAtEventForMode(e,'nearest',{intersect:true},false);
@@ -3324,7 +3616,7 @@ function renderFunnelMkt(){
             onClick:_evoClick((di,i)=>{
               const st=selectedStages[di]; const per=periods[i]; if(!st||!per) return null;
               return {etapa:st.val, filas:st.data.filter(r=>_evoEnPeriodo(st.dateF(r),per,gran)),
-                titulo:st.lbl+' · '+_fmtPeriodoGen(per,gran), kpi2Lbl:_granUniCap(gran), kpi2Val:_fmtPeriodoGen(per,gran)};
+                titulo:st.lbl+' · '+_tituloPer(per,gran), kpi2Lbl:_granUniCap(gran), kpi2Val:_tituloPer(per,gran)};
             }),
             onHover:_evoHover,
             responsive:true,maintainAspectRatio:false,
@@ -3388,7 +3680,7 @@ function renderFunnelMkt(){
         : _flEvoGranularidad==='mes' ? 'mes'
         : ((_flMonthsSpan(fromA,toA)>EVO_DIAS_MAX_MESES || _flMonthsSpan(fromB,toB)>EVO_DIAS_MAX_MESES) ? 'mes' : 'dia');
       const _diffDias=(f,t)=>Math.round((new Date(t+'T00:00:00')-new Date(f+'T00:00:00'))/86400000);
-      const _diffSem=(f,t)=>Math.floor(_diffDias(f,t)/7);
+      const _diffSem=(f,t)=>_semIdx(t)-_semIdx(f);
       const _diffMeses=(f,t)=>{const[fy,fm]=f.slice(0,7).split('-').map(Number);const[ty,tm]=t.slice(0,7).split('-').map(Number);return(ty-fy)*12+(tm-fm);};
       const _idxRel=(f,t)=>cmpGran==='mes'?_diffMeses(f,t):cmpGran==='semana'?_diffSem(f,t):_diffDias(f,t);
 
@@ -3676,8 +3968,8 @@ function renderFunnelMkt(){
             const per=periods[i]; const ds=datasets[di]; if(!per||!ds) return null;
             const p=ds.label; const todos=(p==='Total leads')||!!proj;
             const filas=evoBase.filter(r=>_evoEnPeriodo(_evoDateF(r),per,_gran) && (todos || String(r.Proyecto||'Sin proyecto').trim()===p));
-            return {etapa:evoStageOpt.val, filas, titulo:evoStageOpt.lbl+' · '+_fmtPeriodo(per)+(todos?'':' · '+p),
-              kpi2Lbl:_granUniCap(_gran), kpi2Val:_fmtPeriodo(per)};
+            return {etapa:evoStageOpt.val, filas, titulo:evoStageOpt.lbl+' · '+_tituloPer(per,_gran)+(todos?'':' · '+p),
+              kpi2Lbl:_granUniCap(_gran), kpi2Val:_tituloPer(per,_gran)};
           }),
             onHover:_evoHover,
           responsive:true,maintainAspectRatio:false,
@@ -5724,6 +6016,20 @@ const FL_VENTA_COLS=[
   {label:'F. Registro',     get:r=>_flFmtFecha(_flFechaRegistroPara(r)), align:'center', sortVal:r=>_flIsoFecha(_flFechaRegistroPara(r))},
   {label:'F. Venta',        get:r=>_flFmtFecha(r.FechaVenta||r.FechaEntrega_Minuta), align:'center', sortVal:r=>_flIsoFecha(r.FechaVenta||r.FechaEntrega_Minuta)},
   {label:'Financiamiento',  get:r=>String(r.TipoFinanciamiento||'').trim()||'—'},
+];
+
+const _comMoneda = r=>String(r.TipoMoneda||'').toUpperCase().includes('DOLAR') ? '$' : 'S/';
+const FL_COM_VENTA_COLS=[
+  {label:'Nombre',        get:_flNombreCompleto},
+  {label:'DNI',           get:_flDNI, align:'center'},
+  {label:'Proyecto',      get:_flProyectoCli},
+  {label:'N° Inmueble',   get:r=>String(r.NroInmueble||'').replace(/\.0$/,'')||'—', align:'center'},
+  {label:'Tipo',          get:r=>String(r.TipoInmueble||'').trim()||'—'},
+  {label:'Canal',         get:_flCanal},
+  {label:'Vendedor',      get:_flAsesor},
+  {label:'F. Venta',      get:r=>_flFmtFecha(r.FechaVenta||r.FechaEntrega_Minuta), align:'center', sortVal:r=>_flIsoFecha(r.FechaVenta||r.FechaEntrega_Minuta)},
+  {label:'Precio venta',  get:r=>fFull(r.PrecioVentaSoles||r.PrecioVenta), align:'right', sortVal:r=>Number(r.PrecioVentaSoles||r.PrecioVenta||0), numeric:true},
+  {label:'Estado',        get:r=>String(r.Estado||'').trim()||'—', align:'center'},
 ];
 
 // Estado del popup para poder re-ordenar sin recalcular las filas desde _flDatasets.
