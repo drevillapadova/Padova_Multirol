@@ -4829,7 +4829,18 @@ let _admDetalleIngDep = [];
 // proyecto: distintos edificios/torres reusan la numeración de departamento
 // (ej. SUNNY "309" es a la vez de un cliente y de otra empresa) — sin el DNI,
 // pagos de un cliente se mezclaban con los de otro que comparte número de dpto.
-const _admKeyUnidad = r => String(r.Proyecto||'').trim().toUpperCase()+'|'+String(r.NroInmueble_1||'').trim().toUpperCase()+'|'+String(r.NroDocumentoTitular||r.Nro_Documento_Identidad||'').trim();
+// Clave de un expediente: proyecto + TODAS sus unidades (ordenadas y sin ".0") + DNI.
+// Antes usaba solo NroInmueble_1, pero Flujo de Caja e Ingreso x Depósito a veces
+// listan las unidades de una misma orden en distinto orden (ej. 509,308,110,111 vs
+// 308,509,110,111): el pago no encontraba su expediente y caía en "Sin dato".
+const _admKeyUnidad = r => {
+  const unidades = [];
+  for(let i=1;i<=6;i++){
+    const u = String(r['NroInmueble_'+i]||'').trim().toUpperCase().replace(/\.0+$/,'');
+    if(u) unidades.push(u);
+  }
+  return String(r.Proyecto||'').trim().toUpperCase()+'|'+unidades.sort().join(',')+'|'+String(r.NroDocumentoTitular||r.Nro_Documento_Identidad||'').trim();
+};
 
 // Cronograma real de pagos, armado desde Ingreso x Depósito: cada cuota (una
 // combinación Tipo_Cuota+Nro_Cuota) trae su Fecha_Programada real y cuánto se
@@ -5690,7 +5701,8 @@ function _cobMesRenderTabla(){
   const {filas, cols} = _cobMesState;
   const filasFiltradas = !_cobMesSearch ? filas : filas.filter(r=>{
     const nombre = (typeof _flTitleCase==='function'?_flTitleCase(_flLimpiarNombre(r.Titular||'')):String(r.Titular||'')).toLowerCase();
-    const dpto = String(r.NroInmueble_1||'').toLowerCase();
+    // r._u = unidad de la fila (popup de Financiamiento, una fila por unidad)
+    const dpto = String(r._u ? r._u.nro : (r.NroInmueble_1||'')).toLowerCase();
     return nombre.includes(_cobMesSearch) || dpto.includes(_cobMesSearch);
   });
   const rows = _filasDetalleHTML(filasFiltradas, cols);
@@ -5865,19 +5877,46 @@ function _abrirModalFinanciamiento(fc, tipo, estado, FX){
   });
   const campoMonto = estado==='cobrado' ? 'Pagos_Recibido' : 'Saldo_Por_Cobrar';
   const totalMonto = filas.reduce((a,r)=>a+(_detEsUSD(r)?_detNum(r[campoMonto])*FX:_detNum(r[campoMonto])),0);
+  // El número que se clickea en la tabla cuenta UNIDADES (una orden con 2
+  // departamentos suma 2) pero cada fila de Flujo de Caja es un expediente/cliente.
+  // Para que cuadre, la columna "N° Dpto." lista todas las unidades de la orden
+  // (respetando el filtro de Tipo) y el KPI muestra unidades y clientes.
+  const _tipoUnid = normStr(document.getElementById('adm-tipo')?.value||'');
+  const _unidadesDe = r => {
+    const u=[];
+    for(let i=1;i<=6;i++){
+      const nro=String(r['NroInmueble_'+i]||'').trim();
+      if(!nro) continue;
+      const tp=String(r['TipoInmueble_'+i]||'').trim();
+      if(_tipoUnid && !normStr(tp).includes(_tipoUnid)) continue;
+      u.push({nro:nro.replace(/\.0$/,''), tp});
+    }
+    return u;
+  };
+  const totalUnidades = filas.reduce((a,r)=>a+_unidadesDe(r).length,0);
+  // Una fila por UNIDAD (así el número clickeado cuadra con las filas del popup).
+  // Los montos son del expediente completo: se muestran solo en la 1ra fila de la
+  // orden y las demás unidades quedan con "—" para no leerlos duplicados.
+  const filasU = filas.flatMap(r=>{
+    const u=_unidadesDe(r);
+    const lista = u.length ? u : [{nro:String(r.NroInmueble_1||'—'), tp:''}];
+    return lista.map((x,i)=>Object.assign({}, r, {_u:x, _primera:i===0}));
+  });
+  const _soloPrimera = f => r => r._primera ? f(r) : '<span style="color:var(--ink-4)">—</span>';
   const cols = [
     {label:'Cliente', get:r=>_detTitular(r)},
-    {label:'N° Dpto.', align:'center', get:r=>String(r.NroInmueble_1||'—')},
-    {label:'Monto Venta', align:'center', get:r=>_detMonto(_detNum(r.TotalVenta), _detEsUSD(r))},
+    {label:'N° Dpto.', align:'center', get:r=>r._u.nro},
+    {label:'Tipo', align:'center', get:r=>r._u.tp||'—'},
+    {label:'Monto Venta', align:'center', get:_soloPrimera(r=>_detMonto(_detNum(r.TotalVenta), _detEsUSD(r)))},
     {label:'Moneda', align:'center', get:r=>_detMonedaBadge(_detEsUSD(r))},
-    {label:'Monto Pagado', align:'center', get:r=>_detMonto(_detNum(r.Pagos_Recibido), _detEsUSD(r))},
-    {label:'Por Pagar', align:'center', get:r=>{ const v=_detNum(r.Saldo_Por_Cobrar), esUSD=_detEsUSD(r); return `<span style="font-weight:600;color:${v>0?'var(--bad)':'var(--ok)'}">${esUSD?'$':'S/'} ${_detFmtMonto(v)}</span>`; }},
+    {label:'Monto Pagado', align:'center', get:_soloPrimera(r=>_detMonto(_detNum(r.Pagos_Recibido), _detEsUSD(r)))},
+    {label:'Por Pagar', align:'center', get:_soloPrimera(r=>{ const v=_detNum(r.Saldo_Por_Cobrar), esUSD=_detEsUSD(r); return `<span style="font-weight:600;color:${v>0?'var(--bad)':'var(--ok)'}">${esUSD?'$':'S/'} ${_detFmtMonto(v)}</span>`; })},
   ];
   _abrirModalDetalle(
     tipo+' · '+(estado==='cobrado'?'Cobrado completo':'Pendientes'),
     {label: estado==='cobrado'?'Total cobrado':'Total pendiente', val:'S/ '+_detFmtMonto(totalMonto), color: estado==='cobrado'?'#14AFBE':'var(--bad)'},
-    {label:'Clientes', val:fN(filas.length), color:'#F4A228'},
-    filas,
+    {label:'Unidades · Clientes', val:fN(totalUnidades)+' · '+fN(filas.length), color:'#F4A228'},
+    filasU,
     cols
   );
 }
