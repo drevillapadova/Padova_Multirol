@@ -4473,7 +4473,7 @@ function _admAbrirCanalDetalle(canal){
   const cols = [
     {label:'Cliente', get:r=>(typeof _flTitleCase==='function'?_flTitleCase(_flLimpiarNombre(r.Nombres_Titular||'')):String(r.Nombres_Titular||''))||'—'},
     {label:'DNI', get:r=>String(r.Nro_Documento_Identidad||'—'), align:'center'},
-    {label:'N° Dpto.', get:r=>String(r.NroInmueble_1||'—'), align:'center'},
+    {label:'N° Dpto.', get:r=>_admUnidadesTxt(r,'<br>'), align:'center'},
     {label:'Proyecto', get:r=>String(r.Proyecto||'—')},
     {label:'Vendedor', get:r=>{
       const v = _admCanalVendedorByUnidad[_admKeyUnidad(r)];
@@ -4769,7 +4769,7 @@ function _admAbrirLiberadoMes(ym, mesLabel){
   const cols = [
     {label:'Cliente', get:r=>_detTitular(r)},
     {label:'DNI', align:'center', get:r=>String(r.NroDocumentoTitular||'—')},
-    {label:'N° Dpto.', align:'center', get:r=>String(r.NroInmueble_1||'—')},
+    {label:'N° Dpto.', align:'center', get:r=>_admUnidadesTxt(r,'<br>')},
     {label:'Proyecto', align:'center', get:r=>String(r.Proyecto||'—')},
     {label:'Moneda', align:'center', get:r=>_detMonedaBadge(_detEsUSD(r))},
     {label:'Monto Liberado', align:'center', get:r=>_detMonto(_detNum(r.Pagos_Recibido), _detEsUSD(r))},
@@ -4798,7 +4798,7 @@ function _renderAdmLiberadoLista(){
   const filtradas = (q ? _admLiberadoPendientes.filter(r=>{
     const nombre = String(r.Titular||'').toLowerCase();
     const dni = String(r.NroDocumentoTitular||'').toLowerCase();
-    const dpto = String(r.NroInmueble_1||'').toLowerCase();
+    const dpto = _admUnidadesDe(r).join(' ').toLowerCase();
     return nombre.includes(q) || dni.includes(q) || dpto.includes(q);
   }) : _admLiberadoPendientes).slice(0,50);
 
@@ -4810,7 +4810,7 @@ function _renderAdmLiberadoLista(){
     return `<tr>
       <td style="text-align:left">${nombre}</td>
       <td style="text-align:center">${String(r.NroDocumentoTitular||'—')}</td>
-      <td style="text-align:center">${String(r.NroInmueble_1||'—')}</td>
+      <td style="text-align:center">${_admUnidadesTxt(r,'<br>')}</td>
       <td style="text-align:left">${String(r.Proyecto||'—')}</td>
       <td style="text-align:right;font-weight:700;color:var(--warn)">${fC(monto)}</td>
     </tr>`;
@@ -4833,6 +4833,40 @@ let _admDetalleIngDep = [];
 // Antes usaba solo NroInmueble_1, pero Flujo de Caja e Ingreso x Depósito a veces
 // listan las unidades de una misma orden en distinto orden (ej. 509,308,110,111 vs
 // 308,509,110,111): el pago no encontraba su expediente y caía en "Sin dato".
+// Todas las unidades de un expediente (hasta 6 slots), sin ".0": para buscar y
+// mostrar. Una orden puede traer varios inmuebles (ej. 2 dptos + 2 estacionamientos).
+const _admUnidadesDe = r => {
+  const u=[];
+  for(let i=1;i<=6;i++){
+    const v=String(r['NroInmueble_'+i]||'').trim().replace(/\.0+$/,'');
+    if(v) u.push(v);
+  }
+  return u;
+};
+// Texto agrupado por tipo, ej. "Dpto 509, 308 · Estac. 110, 111": así no se
+// confunden los estacionamientos/depósitos con departamentos.
+const _admTipoCorto = t => {
+  const n=normStr(t||'');
+  if(n.includes('departamento')) return 'Dpto';
+  if(n.includes('estacionamiento')) return 'Estac.';
+  if(n.includes('deposito')) return 'Depósito';
+  if(n.includes('azotea')) return 'Azotea';
+  if(n.includes('comercio')||n.includes('local')) return 'Local';
+  return String(t||'').trim() || 'Inmueble';
+};
+const _admUnidadesTxt = (r, sep=' · ') => {
+  const grupos=new Map();
+  for(let i=1;i<=6;i++){
+    const v=String(r['NroInmueble_'+i]||'').trim().replace(/\.0+$/,'');
+    if(!v) continue;
+    const t=_admTipoCorto(r['TipoInmueble_'+i]);
+    if(!grupos.has(t)) grupos.set(t, []);
+    grupos.get(t).push(v);
+  }
+  // Departamentos primero, luego el resto en orden de aparición
+  const orden=[...grupos.keys()].sort((a,b)=>(a==='Dpto'?0:1)-(b==='Dpto'?0:1));
+  return orden.map(t=>t+' '+grupos.get(t).join(', ')).join(sep) || '—';
+};
 const _admKeyUnidad = r => {
   const unidades = [];
   for(let i=1;i<=6;i++){
@@ -4932,7 +4966,7 @@ function _renderAdmDetalleResultados(){
   const matches = q ? _admDetalleFC.filter(r=>{
     const nombre = String(r.Titular||'').toLowerCase();
     const dni = String(r.NroDocumentoTitular||'').toLowerCase();
-    const dpto = String(r.NroInmueble_1||'').toLowerCase();
+    const dpto = _admUnidadesDe(r).join(' ').toLowerCase();
     return nombre.includes(q) || dni.includes(q) || dpto.includes(q);
   }).slice(0,20) : [];
 
@@ -4942,7 +4976,7 @@ function _renderAdmDetalleResultados(){
     const activo=_admDetalleSel && _admKeyUnidad(_admDetalleSel)===key;
     return `<div onclick='_admSeleccionarCliente(${JSON.stringify(key)})' style="padding:10px 18px;border-top:1px solid var(--line-2);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;${activo?'background:var(--brand-soft)':''}">
       <span style="font-weight:600;font-size:13px;color:var(--ink)">${nombre}</span>
-      <span style="font-size:11.5px;color:var(--ink-3);white-space:nowrap">DNI ${String(r.NroDocumentoTitular||'—')} · Dpto ${String(r.NroInmueble_1||'—')} · ${String(r.Proyecto||'—')}</span>
+      <span style="font-size:11.5px;color:var(--ink-3);white-space:nowrap">DNI ${String(r.NroDocumentoTitular||'—')} · ${_admUnidadesTxt(r)} · ${String(r.Proyecto||'—')}</span>
     </div>`;
   }).join('') || (q ? `<div style="padding:14px 18px;color:var(--ink-4);font-size:13px">Sin resultados para "${_escapeHtml(_admDetalleSearch)}"</div>` : '');
 }
@@ -5007,7 +5041,7 @@ function _renderAdmDetalleFicha(){
 
   el.innerHTML = `
   <div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>${nombre}</h3><p>DNI ${String(r.NroDocumentoTitular||'—')} · ${String(r.Proyecto||'—')} · Dpto ${String(r.NroInmueble_1||'—')} · ${String(r.TipoFinanciamiento||'Sin dato')} · ${esUSD?'USD':'SOL'}</p></div></div>
+    <div class="card-hd"><div><h3>${nombre}</h3><p>DNI ${String(r.NroDocumentoTitular||'—')} · ${String(r.Proyecto||'—')} · ${_admUnidadesTxt(r)} · ${String(r.TipoFinanciamiento||'Sin dato')} · ${esUSD?'USD':'SOL'}</p></div></div>
     <div class="kpi-row kpi-4" style="padding:14px 18px">
       ${kpi('Monto Venta', fC(r.TotalVenta), 'Precio total del expediente')}
       ${kpi('Total Pagado', fC(r.Pagos_Recibido), 'Histórico, Flujo de Caja')}
@@ -5702,7 +5736,7 @@ function _cobMesRenderTabla(){
   const filasFiltradas = !_cobMesSearch ? filas : filas.filter(r=>{
     const nombre = (typeof _flTitleCase==='function'?_flTitleCase(_flLimpiarNombre(r.Titular||'')):String(r.Titular||'')).toLowerCase();
     // r._u = unidad de la fila (popup de Financiamiento, una fila por unidad)
-    const dpto = String(r._u ? r._u.nro : (r.NroInmueble_1||'')).toLowerCase();
+    const dpto = String(r._u ? r._u.nro : _admUnidadesDe(r).join(' ')).toLowerCase();
     return nombre.includes(_cobMesSearch) || dpto.includes(_cobMesSearch);
   });
   const rows = _filasDetalleHTML(filasFiltradas, cols);
@@ -5748,7 +5782,7 @@ function _abrirModalCuotasMes(fc, mesCol, mesLabel, FX, ingDep, mesYM){
 
   const cols = [
     {label:'Cliente', get:r=>_detTitular(r)},
-    {label:'N° Dpto.', align:'center', get:r=>String(r.NroInmueble_1||'—')},
+    {label:'N° Dpto.', align:'center', get:r=>_admUnidadesTxt(r,'<br>')},
     {label:'Monto Cuota', align:'center', get:r=>_detMonto(_h(r).montoCuota, _detEsUSD(r))},
     {label:'Moneda', align:'center', get:r=>_detMonedaBadge(_detEsUSD(r))},
     {label:'Monto Pagado', align:'center', get:r=>_detMonto(_h(r).montoPagado, _detEsUSD(r))},
@@ -5805,8 +5839,10 @@ function _abrirModalCobradoPorCobrar(fc, mesCol, mesLabel, FX, ingDep, mesYM){
     // fila mínima con los datos que sí trae Ingreso x Depósito.
     if(!r){
       const dep = depPorUnidad[key];
-      r = { Titular:dep.Nombres_Titular, Proyecto:dep.Proyecto, NroInmueble_1:dep.NroInmueble_1,
+      r = { Titular:dep.Nombres_Titular, Proyecto:dep.Proyecto,
             NroDocumentoTitular:dep.Nro_Documento_Identidad, TotalVenta:0, Tipo_Moneda:'', Saldo_Por_Cobrar:0, [mesCol]:0 };
+      // todas las unidades, no solo la 1ra: _admKeyUnidad arma la clave con todas
+      for(let i=1;i<=6;i++){ r['NroInmueble_'+i]=dep['NroInmueble_'+i]; r['TipoInmueble_'+i]=dep['TipoInmueble_'+i]; }
     }
     filasExtra.push(r); keysExtra.add(key);
   });
@@ -5843,7 +5879,7 @@ function _abrirModalCobradoPorCobrar(fc, mesCol, mesLabel, FX, ingDep, mesYM){
     // Día exacto de vencimiento — solo se sabe cuando el cronograma (Ingreso x
     // Depósito) rastrea esa cuota; Flujo de Caja no tiene día, solo mes.
     {label:'Fecha Programada', align:'center', get:r=>_fFecha(_fechaProgramadaDe(r))},
-    {label:'N° Dpto.', align:'center', get:r=>String(r.NroInmueble_1||'—')},
+    {label:'N° Dpto.', align:'center', get:r=>_admUnidadesTxt(r,'<br>')},
     // Torre solo tiene sentido en proyectos con varios edificios (Sunny, Lomas
     // 4/5, Domingo Orué) — en Litoral y Helio ese campo solo repite el nombre
     // del proyecto (ej. "LITORAL 900"), no distingue nada.
