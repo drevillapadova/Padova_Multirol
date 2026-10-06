@@ -608,9 +608,13 @@ html.dark .msel-item:hover{background:#1e293b}
 #mkt-mercado-map .leaflet-popup-close-button{padding:4px 4px 0 0!important}
 
 /* ── Ventas Competencia: ventas por proyecto y tipología (heatmap mensual) ── */
-.ventasproy-tabla{width:100%;border-collapse:collapse;font-size:12px;min-width:900px}
-.ventasproy-tabla th,.ventasproy-tabla td{padding:7px 12px;text-align:center;white-space:nowrap;border-bottom:1px solid var(--line-2)}
-.ventasproy-tabla thead th{background:var(--panel);font-weight:700;font-size:10px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.03em;border-bottom:2px solid var(--line)}
+.ventasproy-tabla{width:100%;border-collapse:collapse;font-size:11.5px}
+/* se compacta para verse completa sin scroll horizontal: relleno chico y los textos largos (proyecto, cabeceras) parten en varias líneas */
+.ventasproy-tabla th,.ventasproy-tabla td{padding:6px 5px;text-align:center;border-bottom:1px solid var(--line-2)}
+.ventasproy-tabla td{white-space:nowrap}
+.ventasproy-tabla td.vp-rowlbl{max-width:190px;white-space:normal;line-height:1.25;word-break:break-word}
+.ventasproy-tabla td .pill{white-space:nowrap}
+.ventasproy-tabla thead th{white-space:normal;line-height:1.2;vertical-align:bottom;background:var(--panel);font-weight:700;font-size:9.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.03em;border-bottom:2px solid var(--line)}
 .ventasproy-tabla td.vp-rowlbl,.ventasproy-tabla th.vp-rowlbl{position:sticky;left:0;z-index:2;background:var(--panel);text-align:left;font-weight:600;color:var(--ink);border-right:1px solid var(--line)}
 .ventasproy-tabla tr.vp-total-propio td,.ventasproy-tabla tr.vp-total-propio td.vp-rowlbl{font-style:italic;font-weight:700}
 .ventasproy-tabla tr.vp-total-general td,.ventasproy-tabla tr.vp-total-general td.vp-rowlbl{background:var(--ok-soft);color:var(--ok);font-weight:700}
