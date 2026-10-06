@@ -244,6 +244,27 @@ def _float(d, *keys):
     return 0.0
 
 
+def _m2_mercado(d, *keys):
+    """Precio por m2 del Estudio de Mercado. Esas columnas vienen en MILES con
+    coma decimal y los ceros finales recortados ("6,88" = S/ 6,880; "5,35" =
+    5,350; "6,4" = 6,400; "10" = 10,000), no con coma de miles. Quitar la coma
+    (como hace _float) solo acierta cuando trae los 3 decimales completos
+    ("6,877"); con ceros recortados da un valor 10 o 100 veces menor y baja los
+    promedios. Si el valor ya viene entero grande (>= 1000) se respeta tal cual."""
+    for k in keys:
+        v = str(d.get(k, "")).strip()
+        if not v:
+            continue
+        try:
+            f = float(v.replace(",", ".")) if "," in v else float(v)
+        except Exception:
+            continue
+        if not math.isfinite(f) or f <= 0:
+            continue
+        return f * 1000 if f < 1000 else f
+    return 0.0
+
+
 def _parse_num(s):
     """Parsea valores tipo 'S/. 22,850,449.54', '$ 1,234.56' o '1.60%'."""
     try:
@@ -356,7 +377,7 @@ def calcular_mercado():
         if precio:
             g["_precio_sum"] += precio
             g["_precio_n"]   += 1
-        precio_m2 = _float(r, "Precio por m2 - Venta Solarizado")
+        precio_m2 = _m2_mercado(r, "Precio por m2 - Venta Solarizado")
         if precio_m2:
             g["_precio_m2_sum"] += precio_m2
             g["_precio_m2_n"]   += 1
@@ -417,7 +438,7 @@ def calcular_mercado_ventas():
         fecha_iso = _parse_fecha_mercado(r.get("Fecha de Venta"))
         if not fecha_iso:
             continue
-        precio_m2_venta = _float(r, "Precio por m2 - Venta Solarizado")
+        precio_m2_venta = _m2_mercado(r, "Precio por m2 - Venta Solarizado")
         area_total = _float(r, "Área Total")
         precio_venta = _float(r, "Precio de Venta Solarizado Neto")
         # Al pegar desde Excel a Sheets, el punto decimal a veces se pierde
@@ -441,7 +462,7 @@ def calcular_mercado_ventas():
             "distrito":          _str(r, "Distrito"),
             "fecha_venta":       fecha_iso,
             "dormitorios":       _int(r, "Cantidad de Dormitorios"),
-            "precio_m2_oferta":  _float(r, "Precio por m2 - Oferta Solarizado"),
+            "precio_m2_oferta":  _m2_mercado(r, "Precio por m2 - Oferta Solarizado"),
             "precio_m2_venta":   precio_m2_venta,
             "area_total":        area_total,
             "precio_venta":      precio_venta,

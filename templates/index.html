@@ -6104,10 +6104,14 @@ const FL_VISITA_COLS=[
   {label:'F. Cita',   get:r=>_flFmtFecha(r.Fecha_CitaProspecto), align:'center', sortVal:r=>_flIsoFecha(r.Fecha_CitaProspecto)},
   {label:'F. Visita', get:r=>_flFmtFecha(r.FechaVisita), align:'center', sortVal:r=>_flIsoFecha(r.FechaVisita)},
 ];
+// N° de departamento: Stock lo trae como NroInmuebleActual y Ventas como NroInmueble
+// (a veces con ".0" al final).
+const _flNroDpto = r=>String(r.NroInmuebleActual||r.NroInmueble||'').trim().replace(/\.0+$/,'') || '—';
 const FL_SEP_COLS=[
   {label:'Nombre',         get:_flNombreCompleto},
   {label:'DNI',            get:_flDNI, align:'center'},
   {label:'Proyecto',       get:_flProyectoCli},
+  {label:'N° Dpto',        get:_flNroDpto, align:'center'},
   {label:'Canal',          get:_flCanal},
   {label:'Vendedor',       get:_flAsesor},
   {label:'Distrito',       get:_flDistritoCli},
@@ -6115,14 +6119,41 @@ const FL_SEP_COLS=[
   {label:'F. Separación',  get:r=>_flFmtFecha(r.FechaSepDefinitiva), align:'center', sortVal:r=>_flIsoFecha(r.FechaSepDefinitiva)},
   {label:'Estado',         get:r=>String(r.Estado||'').trim()||'—', align:'center'},
 ];
+// Fecha de separación de una venta: Ventas no la trae, está en Stock (FechaSepDefinitiva).
+// Se cruza por Proyecto + N° de inmueble + DNI del comprador. Si la unidad tuvo más de
+// una separación (se cayó y volvió a separarse), se toma la última que no sea posterior
+// a la venta; si no hay ninguna anterior, la más antigua. Índice cacheado por D.stock.
+let _flSepIdx = null, _flSepIdxSrc = null;
+const _flFechaSepPara = r=>{
+  if(_flSepIdxSrc!==D.stock){
+    _flSepIdxSrc = D.stock; _flSepIdx = new Map();
+    (D.stock||[]).forEach(st=>{
+      const iso=_flIsoFecha(st.FechaSepDefinitiva);
+      if(!iso) return;
+      const doc=String(st.NroDocumento||'').trim(); if(!doc) return;
+      const k=String(st.Proyecto||'').trim().toUpperCase()+'|'+String(st.NroInmuebleActual||'').trim().replace(/\.0+$/,'').toUpperCase()+'|'+doc;
+      if(!_flSepIdx.has(k)) _flSepIdx.set(k, []);
+      _flSepIdx.get(k).push(iso);
+    });
+    _flSepIdx.forEach(a=>a.sort());
+  }
+  const k=String(r.Proyecto||'').trim().toUpperCase()+'|'+String(r.NroInmueble||'').trim().replace(/\.0+$/,'').toUpperCase()+'|'+String(r.NroDocumentoTitular||'').trim();
+  const fechas=_flSepIdx.get(k);
+  if(!fechas||!fechas.length) return '';
+  const venta=_flIsoFecha(r.FechaVenta||r.FechaEntrega_Minuta);
+  const previas=venta ? fechas.filter(f=>f<=venta) : fechas;
+  return previas.length ? previas[previas.length-1] : fechas[0];
+};
 const FL_VENTA_COLS=[
   {label:'Nombre',          get:_flNombreCompleto},
   {label:'DNI',             get:_flDNI, align:'center'},
   {label:'Proyecto',        get:_flProyectoCli},
+  {label:'N° Dpto',         get:_flNroDpto, align:'center'},
   {label:'Canal',           get:_flCanal},
   {label:'Vendedor',        get:_flAsesor},
   {label:'Distrito',        get:_flDistritoCli},
   {label:'F. Registro',     get:r=>_flFmtFecha(_flFechaRegistroPara(r)), align:'center', sortVal:r=>_flIsoFecha(_flFechaRegistroPara(r))},
+  {label:'F. Separación',   get:r=>_flFmtFecha(_flFechaSepPara(r)), align:'center', sortVal:r=>_flFechaSepPara(r)},
   {label:'F. Venta',        get:r=>_flFmtFecha(r.FechaVenta||r.FechaEntrega_Minuta), align:'center', sortVal:r=>_flIsoFecha(r.FechaVenta||r.FechaEntrega_Minuta)},
   {label:'Financiamiento',  get:r=>String(r.TipoFinanciamiento||'').trim()||'—'},
 ];
@@ -7716,7 +7747,6 @@ function renderMercadoTipologia(){
       <td><span class="pill" style="background:var(--line-2);color:var(--ink-2)">${f.etapa||'—'}</span></td>
       <td>${f.unidTipEst||'—'}</td>
       <td>${f.areaMed?f.areaMed.toFixed(1)+' m²':'—'}</td>
-      <td>${fSol(f.sM2Lista)}</td>
       <td>${fSol(f.sM2Venta)}</td>
       <td>${fSol(f.ticketProm)}</td>
       <td>${barraStock(f.stockEst)}</td>
@@ -7733,7 +7763,7 @@ function renderMercadoTipologia(){
     <tr class="vp-total-general">
       <td class="vp-rowlbl">COMPETENCIA — TOTAL</td>
       <td></td><td>${proyectosVisibles} filas</td>
-      <td></td><td></td><td></td><td></td><td></td>
+      <td></td><td></td><td></td><td></td>
       <td>${barraStock(stockTotalGeneral)}</td>
       ${celdasMeses(mesesTotalGeneral)}
       <td>${promMensualDe(mesesTotalGeneral).toFixed(1)}</td>
@@ -7743,7 +7773,7 @@ function renderMercadoTipologia(){
     <thead><tr>
       <th class="vp-rowlbl">Proyecto</th><th>Dorm</th><th>Etapa</th>
       <th>Unid. tipología (est.)</th><th>Área med.</th>
-      <th>S/m² lista (prom. 3m)</th><th>S/m² venta (prom. 3m)</th>
+      <th>S/m² venta (prom. 3m)</th>
       <th>Ticket venta (prom.)</th><th>Stock disp. (est.)</th>
       ${mesesOrdenados.map(ym=>`<th>${fMesLbl(ym)}</th>`).join('')}
       <th>Prom. mensual</th>
