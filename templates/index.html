@@ -497,6 +497,8 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 .cob-mes-kpi .k-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-4);margin-bottom:6px;font-family:'Plus Jakarta Sans',sans-serif}
 .cob-mes-kpi .k-val{font-size:19px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-.01em}
 .fl-cross-clk{cursor:pointer}
+#fl-cli-table thead th{padding:8px 7px;font-size:10px}
+#fl-cli-table tbody td{padding:8px 7px;font-size:12px}
 .cob-mes-tablewrap{overflow:auto;flex:1;min-height:0;border:1px solid var(--line-2);border-radius:10px}
 
 @media(max-width:1400px){.kpi-6{grid-template-columns:repeat(3,1fr)}.kpi-5{grid-template-columns:repeat(3,1fr)}}
@@ -570,6 +572,16 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 .msel-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;font-size:12.5px;color:var(--ink-2);cursor:pointer;white-space:nowrap}
 .msel-item:hover{background:var(--bg)}
 .msel-item input{margin:0;cursor:pointer}
+.msel-tools{display:flex;gap:6px;margin-bottom:6px}
+.msel-tools button{flex:1;border:1px solid var(--line);background:var(--bg);border-radius:6px;font-size:11px;font-weight:600;padding:4px 6px;cursor:pointer;color:var(--ink-2);font-family:inherit;white-space:nowrap}
+.msel-tools button:hover{background:var(--line-2)}
+.msel-tools button.ap{background:var(--brand);border-color:var(--brand);color:#fff}
+.mercado-chips{display:flex;flex-wrap:wrap;gap:6px;margin:-6px 0 12px}
+.mercado-chips:empty{display:none}
+.mchip{display:inline-flex;align-items:center;gap:6px;background:var(--brand-soft);color:var(--brand);border-radius:14px;padding:3px 6px 3px 10px;font-size:11.5px;font-weight:600}
+.mchip b{cursor:pointer;font-size:10px;width:16px;height:16px;line-height:16px;text-align:center;border-radius:50%}
+.mchip b:hover{background:var(--brand);color:#fff}
+.mchip.more{background:var(--bg);color:var(--ink-3);padding-right:10px}
 .msel-filter{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:12px;margin-bottom:6px;font-family:inherit}
 html.dark .msel-panel{background:#253347;border-color:#334155}
 html.dark .msel-item:hover{background:#1e293b}
@@ -580,6 +592,9 @@ html.dark .msel-item:hover{background:#1e293b}
 .precios-tabla{width:100%;border-collapse:collapse;font-size:12px;min-width:600px}
 .precios-tabla thead th{padding:10px 16px;font-size:11.5px;font-weight:700;color:var(--ink);text-align:center;background:var(--panel);border-bottom:2px solid var(--line);white-space:nowrap}
 .precios-tabla td,.precios-tabla th{border-bottom:1px solid var(--line-2)}
+/* cabecera fija al hacer scroll vertical; la esquina (columna de rótulos) queda fija en ambos ejes */
+.precios-tabla thead th{position:sticky;top:0;z-index:3}
+.precios-tabla thead th.precios-rowlbl{z-index:4}
 .precios-tabla td{padding:7px 16px;text-align:center;color:var(--ink-2);white-space:nowrap}
 .precios-tabla td.precios-rowlbl,.precios-tabla th.precios-rowlbl{position:sticky;left:0;z-index:2;background:var(--panel);text-align:left;font-weight:600;color:var(--ink-3);font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;border-right:1px solid var(--line)}
 .precios-tabla tr.pc-summary td{background:var(--brand-soft);font-weight:600;font-style:italic}
@@ -958,7 +973,6 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
       </div>
     </span>
     <button id="fl-ext-btn" onclick="_flExcludeExt=!_flExcludeExt;renderFunnelMkt()" style="margin-left:auto;background:var(--bg);border:1px solid var(--line);color:var(--ink-2);font-size:11px;padding:5px 12px;border-radius:6px;cursor:pointer;font-weight:500">Sin Proper</button>
-    <button id="fl-ppt-btn" onclick="_flGenerarPPT()" style="background:var(--brand);border:1px solid var(--brand);color:#fff;font-size:11px;padding:5px 12px;border-radius:6px;cursor:pointer;font-weight:600">📊 Generar PPT</button>
   </div>
   <div class="tab-bar" id="fl-tab-bar">
     <button class="tab-btn active" onclick="setFlTab('funnel',this)">Funnel</button>
@@ -1044,11 +1058,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
               <div id="msel-proyecto-list"></div>
             </div>
           </div>
-          <label class="chip-sel" style="flex:1;min-width:220px;max-width:320px">
-            <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">🔍</span>
-            <input type="text" id="mkt-mercado-buscar" placeholder="Buscar proyecto o inmobiliaria..." oninput="renderMercadoMapa()"
-                   style="border:none;background:transparent;outline:none;width:100%;font-size:12px;font-family:inherit;color:var(--ink)"/>
-          </label>
+          <input type="text" id="mkt-mercado-buscar" class="sp-search mkt-buscar" style="margin-left:0;width:240px" placeholder="Buscar proyecto o inmobiliaria..." oninput="_mercadoBuscar(this.value)">
           <button type="button" id="btn-dibujar-zona" class="chip-sel" onclick="toggleDibujarZona()" style="cursor:pointer;border:none">
             <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">✎</span>
             <span id="dibujar-zona-label">Dibujar zona</span>
@@ -1203,7 +1213,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
       </div>
       <div style="padding:0 20px 20px">
         <div class="card" style="padding:0">
-          <div id="mkt-precios-wrap" style="overflow-x:auto;max-width:100%"></div>
+          <div id="mkt-precios-wrap" style="overflow:auto;max-width:100%;max-height:72vh"></div>
         </div>
         <div id="mkt-precios-legend" style="display:flex;flex-wrap:wrap;gap:14px;padding:10px 4px;font-size:11px;color:var(--ink-3)"></div>
       </div>
@@ -5773,6 +5783,72 @@ function _cobMesRenderTabla(){
 function cerrarModalDetalle(){
   document.getElementById('cob-mes-overlay')?.classList.remove('open');
 }
+// ── Filtros tipo Excel en las cabeceras del popup ─────────────────────────
+const _flValCelda = (c,r)=>String(c.get(r)).replace(/<[^>]*>/g,'').trim();
+function _flFilasFiltradas(filas, cols, omitIdx){
+  const act = Object.entries(_flPopupFiltros).filter(([i])=>+i!==omitIdx && cols[+i]);
+  if(!act.length) return filas;
+  return filas.filter(r=>act.every(([i,set])=>set.has(_flValCelda(cols[+i], r))));
+}
+function _flFiltCerrar(){
+  _flFiltPanel = null;
+  document.getElementById('fl-filt-panel')?.remove();
+}
+function _flFiltAbrir(idx, el){
+  if(_flFiltPanel && _flFiltPanel.idx===idx){ _flFiltCerrar(); return; }
+  _flFiltCerrar();
+  const {filas, cols} = _flPopupState; const col = cols[idx];
+  const base = _flFilasFiltradas(filas, cols, idx); // opciones según los demás filtros
+  const m = new Map();
+  base.forEach(r=>{ const v=_flValCelda(col,r); const o=m.get(v)||{n:0,sv:col.sortVal?String(col.sortVal(r)):v}; o.n++; m.set(v,o); });
+  const vals = [...m.entries()].sort((a,b)=>String(a[1].sv).localeCompare(String(b[1].sv), undefined, {numeric:true, sensitivity:'base'})).map(([v,o])=>[v,o.n]);
+  const actual = _flPopupFiltros[idx];
+  _flFiltPanel = {idx, vals, sel: actual ? new Set(actual) : new Set(vals.map(x=>x[0])), q:''};
+  const pn = document.createElement('div');
+  pn.id = 'fl-filt-panel';
+  pn.style.cssText = 'position:fixed;z-index:99999;width:240px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.22);padding:8px;font-size:12px;color:var(--ink-2)';
+  pn.onclick = e=>e.stopPropagation();
+  pn.innerHTML = `<input type="text" id="fl-filt-q" class="sp-search" placeholder="Buscar..." oninput="_flFiltBuscar(this.value)" style="width:100%;box-sizing:border-box;margin-bottom:6px">
+    <div id="fl-filt-list" style="max-height:240px;overflow-y:auto"></div>
+    <div style="display:flex;justify-content:space-between;margin-top:6px;border-top:1px solid var(--line);padding-top:6px">
+      <button onclick="_flFiltLimpiar()" style="background:none;border:0;color:var(--brand);font-weight:600;cursor:pointer;font-size:11.5px">Limpiar filtro</button>
+      <button onclick="_flFiltCerrar()" style="background:none;border:0;color:var(--ink-3);cursor:pointer;font-size:11.5px">Cerrar</button>
+    </div>`;
+  document.body.appendChild(pn);
+  const rc = el.getBoundingClientRect();
+  pn.style.top = Math.min(rc.bottom+4, window.innerHeight-pn.offsetHeight-8)+'px';
+  pn.style.left = Math.max(8, Math.min(rc.left, window.innerWidth-250))+'px';
+  _flFiltListar();
+}
+function _flFiltListar(){
+  const P=_flFiltPanel; if(!P) return;
+  const q = normStr(P.q||'');
+  const vis = P.vals.map((x,i)=>[x,i]).filter(([x])=>!q || normStr(x[0]).includes(q));
+  const todos = vis.length>0 && vis.every(([x])=>P.sel.has(x[0]));
+  const lbl = 'display:flex;align-items:center;gap:6px;padding:3px 4px;cursor:pointer;border-radius:5px';
+  document.getElementById('fl-filt-list').innerHTML =
+    `<label style="${lbl};font-weight:700"><input type="checkbox" ${todos?'checked':''} onchange="_flFiltTodos(this.checked)"><span>Seleccionar todo${q?' (visibles)':''}</span></label>` +
+    vis.map(([x,i])=>`<label style="${lbl}"><input type="checkbox" ${P.sel.has(x[0])?'checked':''} onchange="_flFiltToggle(${i},this.checked)"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_escapeHtml(x[0]||'(vacío)')}</span><b style="color:var(--ink-4);font-family:var(--mono);font-size:10.5px">${x[1]}</b></label>`).join('');
+}
+function _flFiltBuscar(q){ if(_flFiltPanel){ _flFiltPanel.q=q; _flFiltListar(); } }
+function _flFiltAplicar(){
+  const P=_flFiltPanel; if(!P) return;
+  if(P.sel.size===P.vals.length) delete _flPopupFiltros[P.idx];
+  else _flPopupFiltros[P.idx] = new Set(P.sel);
+  _flRenderPopupTable();
+}
+function _flFiltToggle(i, on){ const P=_flFiltPanel; const v=P.vals[i][0]; on?P.sel.add(v):P.sel.delete(v); _flFiltAplicar(); _flFiltListar(); }
+function _flFiltTodos(on){
+  const P=_flFiltPanel; const q=normStr(P.q||'');
+  P.vals.forEach(x=>{ if(!q || normStr(x[0]).includes(q)) on?P.sel.add(x[0]):P.sel.delete(x[0]); });
+  _flFiltAplicar(); _flFiltListar();
+}
+function _flFiltLimpiar(){
+  const P=_flFiltPanel; if(!P) return;
+  P.sel = new Set(P.vals.map(x=>x[0])); _flFiltAplicar(); _flFiltListar();
+}
+document.addEventListener('click', ()=>{ if(_flFiltPanel) _flFiltCerrar(); });
+
 // Descarga la tabla del popup tal como se ve en pantalla (respeta el filtro
 // de búsqueda activo), reusando el exportador de Excel ya usado en Marketing.
 function _cobMesExportarExcel(){
@@ -6079,7 +6155,7 @@ const FL_LEAD_COLS=[
   {label:'Canal',         get:_flCanal},
   {label:'Asesor',        get:_flAsesor},
   {label:'F. Registro',   get:r=>_flFmtFecha(r.FechaRegistro), align:'center', sortVal:r=>_flIsoFecha(r.FechaRegistro)},
-  {label:'F. Cita',       get:r=>_flFmtFecha(r.FechaCitado), align:'center', sortVal:r=>_flIsoFecha(r.FechaCitado)},
+  {label:'Estado',        get:r=>String(r.Estado||'').trim()||'—', align:'center'},
   {label:'Sub-Estado',    get:r=>String(r.SubEstado||'').trim()||'—'},
   {label:'Nivel Interés', get:r=>String(r.NivelInteres||'').trim()||'—', align:'center'},
 ];
@@ -6089,8 +6165,9 @@ const FL_LEAD_COLS=[
 // ver de un vistazo si la cita fue efectiva.
 const FL_CITAS_COLS=(()=>{
   const cols=[...FL_LEAD_COLS];
-  const idx=cols.findIndex(c=>c.label==='F. Cita');
-  cols.splice(idx+1, 0, {label:'F. Visita', get:r=>_flFmtFecha(_flFechaVisitaPara(r)), align:'center', sortVal:r=>_flIsoFecha(_flFechaVisitaPara(r))});
+  const idx=cols.findIndex(c=>c.label==='F. Registro');
+  cols.splice(idx+1, 0, {label:'F. Cita', get:r=>_flFmtFecha(r.FechaCitado), align:'center', sortVal:r=>_flIsoFecha(r.FechaCitado)});
+  cols.splice(idx+2, 0, {label:'F. Visita', get:r=>_flFmtFecha(_flFechaVisitaPara(r)), align:'center', sortVal:r=>_flIsoFecha(_flFechaVisitaPara(r))});
   cols.push({label:'Responsable Anterior', get:r=>String(r.Responsable_Anterior||'').trim()||'—'});
   return cols;
 })();
@@ -6155,7 +6232,7 @@ const FL_VENTA_COLS=[
   {label:'F. Registro',     get:r=>_flFmtFecha(_flFechaRegistroPara(r)), align:'center', sortVal:r=>_flIsoFecha(_flFechaRegistroPara(r))},
   {label:'F. Separación',   get:r=>_flFmtFecha(_flFechaSepPara(r)), align:'center', sortVal:r=>_flFechaSepPara(r)},
   {label:'F. Venta',        get:r=>_flFmtFecha(r.FechaVenta||r.FechaEntrega_Minuta), align:'center', sortVal:r=>_flIsoFecha(r.FechaVenta||r.FechaEntrega_Minuta)},
-  {label:'Financiamiento',  get:r=>String(r.TipoFinanciamiento||'').trim()||'—'},
+  {label:'Financiamiento',  get:r=>String(r.TipoFinanciamiento||'').split('/')[0].trim()||'—'}, // viene "XX/YY/ZZ": solo el primero
 ];
 
 const _comMoneda = r=>String(r.TipoMoneda||'').toUpperCase().includes('DOLAR') ? '$' : 'S/';
@@ -6177,6 +6254,8 @@ let _flPopupState = null; // {titulo, kpi1, kpi2, filas, cols}
 let _flPopupSortIdx = null;
 let _flPopupSortDir = 'asc';
 let _flPopupBusq = ''; // texto normalizado del buscador del popup
+let _flPopupFiltros = {}; // filtros tipo Excel por cabecera: {idxColumna: Set(valoresPermitidos)}
+let _flFiltPanel = null;  // panel abierto: {idx, vals:[[valor,n]], sel:Set, q}
 
 function _flPopupBuscar(q){
   _flPopupBusq = normStr(q||'').trim();
@@ -6188,6 +6267,8 @@ function _abrirModalFunnelEtapa(titulo, kpi1, kpi2, filas, cols){
   _flPopupSortIdx = null;
   _flPopupSortDir = 'asc';
   _flPopupBusq = '';
+  _flPopupFiltros = {};
+  _flFiltCerrar();
   const inp = document.getElementById('fl-cli-search'); if(inp) inp.value = '';
   _flRenderPopupTable();
 }
@@ -6202,6 +6283,8 @@ function _flPopupSetSort(idx){
   _flRenderPopupTable();
 }
 
+// Todas las columnas centradas salvo Nombre.
+const _flAl = c => c.label==='Nombre' ? 'left' : 'center';
 function _flRenderPopupTable(){
   if(!_flPopupState) return;
   const {titulo, kpi1, kpi2, filas, cols} = _flPopupState;
@@ -6215,14 +6298,15 @@ function _flRenderPopupTable(){
   // vinieron de cada uno, para no tener que contarlos uno por uno en la tabla
   // — se recalcula de las mismas "filas" del popup, así que siempre refleja
   // exactamente lo que se ve abajo.
+  const filasF = _flFilasFiltradas(filas, cols);
   const _flChipsDesglose = (contId, keyFn) => {
     const cont = document.getElementById(contId);
     if(!cont) return;
     const conteo = {};
-    filas.forEach(r=>{ const k=keyFn(r); conteo[k]=(conteo[k]||0)+1; });
+    filasF.forEach(r=>{ const k=keyFn(r); conteo[k]=(conteo[k]||0)+1; });
     const entradas = Object.entries(conteo).sort((a,b)=>b[1]-a[1]);
     cont.innerHTML = entradas.map(([k,n])=>
-      `<span style="display:inline-flex;align-items:center;gap:5px;background:var(--panel);border:1px solid var(--line);padding:4px 10px;border-radius:20px;font-size:11.5px;color:var(--ink-2)">${k}<b style="color:var(--brand);font-family:var(--mono)">${n}</b></span>`
+      `<span style="display:inline-flex;align-items:center;gap:4px;background:var(--panel);border:1px solid var(--line);padding:1px 8px;border-radius:20px;font-size:10.5px;color:var(--ink-2)">${k}<b style="color:var(--brand);font-family:var(--mono)">${n}</b></span>`
     ).join('');
   };
   // Este mismo modal lo reutiliza Cobranza (detalle de "Cobrado real" por mes),
@@ -6247,17 +6331,18 @@ function _flRenderPopupTable(){
   if(desgloseWrap) desgloseWrap.hidden = !tieneCanal && !esCitas;
 
   const _sortIco = idx => _flPopupSortIdx===idx ? (_flPopupSortDir==='asc'?' ↑':' ↓') : '';
-  document.getElementById('fl-cli-thead').innerHTML = cols.map((c,i)=>
-    `<th style="text-align:${c.align||'left'};cursor:pointer;user-select:none" onclick="_flPopupSetSort(${i})" title="Ordenar">${c.label}${_sortIco(i)}</th>`
-  ).join('');
+  document.getElementById('fl-cli-thead').innerHTML = cols.map((c,i)=>{
+    const act = !!_flPopupFiltros[i];
+    return `<th style="text-align:${_flAl(c)};cursor:pointer;user-select:none" onclick="_flPopupSetSort(${i})" title="Ordenar">${c.label}${_sortIco(i)}<span onclick="event.stopPropagation();_flFiltAbrir(${i},this)" title="Filtrar" style="margin-left:5px;font-size:10px;padding:1px 3px;border-radius:4px;${act?'color:#fff;background:var(--brand)':'color:var(--ink-4)'}">${act?'▼':'▾'}</span></th>`;
+  }).join('');
 
   // Buscador: coincide contra el texto de todas las columnas visibles (sin tildes
   // ni mayúsculas). Solo afecta a la tabla (y a su Excel), no a los KPIs ni al desglose.
   const filasVis = _flPopupBusq
-    ? filas.filter(r=>normStr(cols.map(c=>String(c.get(r)).replace(/<[^>]*>/g,' ')).join(' ')).includes(_flPopupBusq))
-    : filas;
+    ? filasF.filter(r=>normStr(cols.map(c=>String(c.get(r)).replace(/<[^>]*>/g,' ')).join(' ')).includes(_flPopupBusq))
+    : filasF;
   const cnt = document.getElementById('fl-cli-search-count');
-  if(cnt) cnt.textContent = _flPopupBusq ? `${filasVis.length} de ${filas.length}` : '';
+  if(cnt) cnt.textContent = (_flPopupBusq || filasF.length!==filas.length) ? `${filasVis.length} de ${filas.length}` : '';
   let filasOrdenadas;
   if(_flPopupSortIdx===null){
     filasOrdenadas = filasVis.slice().sort((a,b)=>_flNombreCompleto(a).localeCompare(_flNombreCompleto(b)));
@@ -6272,7 +6357,7 @@ function _flRenderPopupTable(){
       return _flPopupSortDir==='asc' ? cmp : -cmp;
     });
   }
-  const rows = filasOrdenadas.map(r=>`<tr>${cols.map(c=>`<td style="text-align:${c.align||'left'}">${c.get(r)}</td>`).join('')}</tr>`).join('');
+  const rows = filasOrdenadas.map(r=>`<tr>${cols.map(c=>`<td style="text-align:${_flAl(c)}">${c.get(r)}</td>`).join('')}</tr>`).join('');
   document.getElementById('fl-cli-tbody').innerHTML = rows ||
     `<tr><td colspan="${cols.length}" style="text-align:center;color:var(--ink-4);padding:20px">Sin registros</td></tr>`;
   document.getElementById('fl-cli-overlay').classList.add('open');
@@ -6288,6 +6373,7 @@ function _flExportarExcel(){
   _exportarTablaExcel('#fl-cli-table', 'funnel_'+slug);
 }
 function cerrarModalFunnel(){
+  _flFiltCerrar();
   document.getElementById('fl-cli-overlay')?.classList.remove('open');
 }
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') cerrarModalFunnel(); });
@@ -7065,6 +7151,7 @@ function _actualizarContornoDistrito(){
 // ── Dibujar zona a mano libre (como Urbania): selecciona los proyectos que caen
 // dentro en el filtro de Proyecto — que ya es compartido con Ventas y Precios
 // Competencia, así que la zona se refleja sola en las 3 secciones. ──
+let _mapaSelPorClic = false; // el filtro de Proyecto viene de clics en el mapa: mantener todos los puntos visibles
 let _zonaDibujada = null; // array de [lat,lng] del trazo aplicado (solo para dibujarlo)
 let _zonaMantenerVista = false; // si viene de aplicar una zona, no reencuadrar el mapa
 let _zonaLayer = null;
@@ -7166,6 +7253,7 @@ function _zonaAplicar(puntos){
     setTimeout(()=>_zonaSetLabel('Dibujar zona'), 2200);
     return;
   }
+  _mapaSelPorClic = false;
   _zonaDibujada = puntos;
   _zonaLayer = L.polygon(puntos, { color:'#19b36b', weight:2.5, fillColor:'#19b36b', fillOpacity:0.12 }).addTo(_mercadoMap);
   const setProyecto = _mselGet('proyecto');
@@ -7179,6 +7267,7 @@ function _zonaAplicar(puntos){
 }
 
 function limpiarZonaDibujada(){
+  _mapaSelPorClic = false;
   _zonaDibujada = null;
   if(_zonaLayer && _mercadoMap) _mercadoMap.removeLayer(_zonaLayer);
   _zonaLayer = null;
@@ -7213,6 +7302,8 @@ let _mselOpenKey = null; // qué dropdown msel está abierto — se usa para rea
 // viven dentro del innerHTML que ese render reemplaza entero, así que sin esto el
 // panel se veía "cerrarse solo" después de cada tilde).
 function mselToggle(key){
+  // Al abrir/cerrar cualquier dropdown se aplica lo que se haya marcado en el anterior.
+  _mselOpenKey = null; _mselRenderPend();
   const panel = document.getElementById('msel-'+key+'-panel');
   const isOpen = panel.style.display==='block';
   document.querySelectorAll('.msel-panel').forEach(p=>p.style.display='none');
@@ -7235,20 +7326,29 @@ document.addEventListener('click', e=>{
   if(!e.target.closest('.msel-btn') && !e.target.closest('.msel-panel')){
     document.querySelectorAll('.msel-panel').forEach(p=>p.style.display='none');
     _mselOpenKey = null;
+    _mselRenderPend();
   }
 });
 
 // Vuelve a pintar las 3 secciones de Estudio de Mercado que dependen de
 // distrito/inmobiliaria/proyecto (compartidos), cada una solo si ya tiene datos cargados.
 function _renderMercadoCompartidas(){
+  _mselPendKey = null;
+  _mselRenderChips();
   renderMercadoMapa();
   if(D.mercadoVentas && D.mercadoVentas.length){ renderMercadoVentas(); renderMercadoTipologia(); }
   if(D.mercado && D.mercado.length && D.mercadoVentas && D.mercadoVentas.length) renderMercadoPrecios();
 }
 
-function mselToggleValue(key, val, checked){
+function mselToggleValue(key, val, checked){ mselSetValues(key, [val], checked); }
+
+// Marca/desmarca varios valores a la vez. Si hay un dropdown abierto el repintado
+// pesado (mapa, gráficos, tablas) se deja para cuando se cierre o se pulse "Aplicar",
+// así se pueden marcar varias casillas seguidas sin esperar entre cada una.
+function mselSetValues(key, vals, checked, opts){
+  if(!(opts&&opts.keepClic)) _mapaSelPorClic = false;
   const set = _mselGet(key);
-  if(checked) set.add(val); else set.delete(val);
+  vals.forEach(v=>{ if(checked) set.add(v); else set.delete(v); });
 
   if(key==='distrito' || key==='inmobiliaria'){
     // Distrito e Inmobiliaria son compartidos entre Mapa/Ventas/Precios: recortar
@@ -7259,11 +7359,6 @@ function mselToggleValue(key, val, checked){
       (!_mselGet('inmobiliaria').size || _mselGet('inmobiliaria').has(r.inmobiliaria))
     ).map(r=>r.proyecto));
     [..._mselGet('proyecto')].forEach(p=>{ if(!validos.has(p)) _mselGet('proyecto').delete(p); });
-    _renderMercadoCompartidas();
-  } else if(key==='proyecto'){
-    _renderMercadoCompartidas();
-  } else if(key==='tipologia-dorm'){
-    renderMercadoTipologia();
   } else if(key==='precios-etapa'){
     // Etapa es propia de Precios, pero cruza con Distrito/Inmobiliaria (compartidos)
     // y con Proyecto (compartido): se podan entre sí igual que antes.
@@ -7279,9 +7374,130 @@ function mselToggleValue(key, val, checked){
       (!fE.size || fE.has(r.fase_proyecto))
     ).map(r=>r.proyecto));
     [..._mselGet('proyecto')].forEach(p=>{ if(!validos.has(p)) _mselGet('proyecto').delete(p); });
-    _renderMercadoCompartidas();
+  }
+  _mselCambio(key);
+}
+
+let _mselPendKey = null; // filtro cambiado cuyo repintado quedó pendiente
+function _mselCambio(key){
+  _mselPendKey = key;
+  _mselLabelsRapido();
+  _mselRenderChips();
+  if(!_mselOpenKey) _mselRenderPend(); // sin dropdown abierto (ej. ✕ de un chip): repinta ya
+  else if(key!=='tipologia-dorm') renderMercadoMapa(); // con el panel abierto solo el mapa (contorno del distrito, puntos y zoom) responde al instante
+}
+function _mselRenderPend(){
+  if(!_mselPendKey) return;
+  const k = _mselPendKey; _mselPendKey = null;
+  if(k==='tipologia-dorm') renderMercadoTipologia(); else _renderMercadoCompartidas();
+}
+// "Aplicar": cierra los dropdowns y repinta lo pendiente.
+function mselAplicar(){
+  document.querySelectorAll('.msel-panel').forEach(p=>p.style.display='none');
+  _mselOpenKey = null;
+  _mselRenderPend();
+}
+// "Marcar visibles" (respeta lo escrito en el buscador de la lista) / "Limpiar" (todo el filtro).
+function mselBulk(domKey, marcar){
+  const list = document.getElementById('msel-'+domKey+'-list'); if(!list) return;
+  const stateKey = list.dataset.state || domKey;
+  const items = [...list.querySelectorAll('.msel-item')];
+  if(marcar){
+    const vis = items.filter(it=>it.style.display!=='none');
+    mselSetValues(stateKey, vis.map(it=>it.dataset.val), true);
+    vis.forEach(it=>{ it.querySelector('input').checked = true; });
+  } else {
+    mselSetValues(stateKey, [..._mselGet(stateKey)], false);
+    items.forEach(it=>{ it.querySelector('input').checked = false; });
   }
 }
+// Etiquetas de los botones al instante (sin esperar al repintado completo).
+const _MSEL_DOMS = [['distrito','distrito'],['ventas-distrito','distrito'],['precios-distrito','distrito'],
+  ['inmobiliaria','inmobiliaria'],['ventas-inmobiliaria','inmobiliaria'],['precios-inmobiliaria','inmobiliaria'],
+  ['proyecto','proyecto'],['ventas-proyecto','proyecto'],['precios-proyecto','proyecto'],
+  ['tipologia-dorm','tipologia-dorm'],['precios-etapa','precios-etapa']];
+function _mselLabelsRapido(){
+  _MSEL_DOMS.forEach(([dom,st])=>{
+    const lbl = document.getElementById('msel-'+dom+'-label');
+    if(lbl && lbl.dataset.def) _mselUpdateLabel(dom, _mselGet(st), lbl.dataset.def);
+  });
+}
+// Chips con lo elegido en Distrito / Inmobiliaria / Proyecto (compartidos por las 3 secciones).
+// ── Búsqueda por texto compartida (Mapa / Ventas / Precios) ─────────────────
+// Escribir "helio" o "padova" selecciona en el filtro de Proyecto todos los proyectos
+// cuyo nombre o inmobiliaria coincidan (respetando Distrito/Inmobiliaria ya elegidos),
+// así se ven como chips, afectan a las 3 secciones y la ✕ los limpia como a los demás.
+let _busqActiva = false;
+let _busqTimer = null;
+function _mercadoBuscar(texto){
+  document.querySelectorAll('.mkt-buscar').forEach(i=>{ if(i.value!==texto) i.value=texto; });
+  clearTimeout(_busqTimer);
+  _busqTimer = setTimeout(()=>_mercadoBuscarAplicar(texto), 350);
+}
+function _mercadoBuscarAplicar(texto){
+  const q = normStr(texto||'').trim();
+  const proy = _mselGet('proyecto');
+  const marcar = ok=>document.querySelectorAll('.mkt-buscar').forEach(i=>{ i.style.color = ok?'':'#dc2626'; });
+  if(!q){
+    marcar(true);
+    if(_busqActiva){ proy.clear(); _busqActiva = false; _mapaSelPorClic = false; _mselRenderPend(); _renderMercadoCompartidas(); }
+    return;
+  }
+  const fD = _mselGet('distrito'), fI = _mselGet('inmobiliaria');
+  const coincide = (D.mercado||[]).filter(r=>
+    (!fD.size || fD.has(r.distrito)) && (!fI.size || fI.has(r.inmobiliaria)) &&
+    (normStr(r.proyecto||'').includes(q) || normStr(r.inmobiliaria||'').includes(q))
+  ).map(r=>r.proyecto);
+  if(!coincide.length){ marcar(false); return; } // sin resultados: texto en rojo, no se toca el filtro
+  marcar(true);
+  proy.clear(); coincide.forEach(n=>proy.add(n));
+  _busqActiva = true; _mapaSelPorClic = false;
+  _renderMercadoCompartidas();
+}
+// Mismo cuadro de búsqueda en Ventas y Precios (sincronizado con el del Mapa).
+function _mercadoInitBuscadores(){
+  ['ventas-proyecto','precios-proyecto'].forEach(dom=>{
+    const panel = document.getElementById('msel-'+dom+'-panel'); if(!panel) return;
+    const wrap = panel.parentElement;
+    if(!wrap || (wrap.nextElementSibling && wrap.nextElementSibling.classList.contains('mkt-buscar-wrap'))) return;
+    const l = document.createElement('input');
+    l.type = 'text'; l.className = 'sp-search mkt-buscar mkt-buscar-wrap'; l.style.cssText = 'margin-left:0;width:240px';
+    l.placeholder = 'Buscar proyecto o inmobiliaria...';
+    l.oninput = ()=>_mercadoBuscar(l.value);
+    wrap.insertAdjacentElement('afterend', l);
+  });
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', _mercadoInitBuscadores); else _mercadoInitBuscadores();
+
+let _mselChipsTodos = false; // chips: mostrar todos en vez de los primeros 10
+function _mselRenderChips(){
+  const MAX = 10;
+  let html = '';
+  ['distrito','inmobiliaria','proyecto'].forEach(k=>{
+    const vals = [..._mselGet(k)];
+    vals.slice(0,_mselChipsTodos?vals.length:MAX).forEach(v=>{
+      html += `<span class="mchip" data-k="${k}" data-v="${_escapeHtml(v)}" title="${k[0].toUpperCase()+k.slice(1)}">${_escapeHtml(v)}<b onclick="_mselQuitarChip(this)">✕</b></span>`;
+    });
+    if(vals.length>MAX && !_mselChipsTodos) html += `<span class="mchip more" style="cursor:pointer" title="Ver todos" onclick="_mselChipsTodos=true;_mselRenderChips()">+${vals.length-MAX} más ▾</span>`;
+    if(vals.length>MAX && _mselChipsTodos) html += `<span class="mchip more" style="cursor:pointer" onclick="_mselChipsTodos=false;_mselRenderChips()">ver menos ▴</span>`;
+  });
+  document.querySelectorAll('.mercado-chips').forEach(c=>{ c.innerHTML = html; });
+}
+function _mselQuitarChip(b){
+  const d = b.parentElement.dataset;
+  mselSetValues(d.k, [d.v], false, {keepClic:true});
+}
+function _mselInitChips(){
+  ['distrito','ventas-distrito','precios-distrito'].forEach(dom=>{
+    const panel = document.getElementById('msel-'+dom+'-panel'); if(!panel) return;
+    const fila = panel.parentElement && panel.parentElement.parentElement;
+    if(!fila || (fila.nextElementSibling && fila.nextElementSibling.classList.contains('mercado-chips'))) return;
+    const c = document.createElement('div'); c.className = 'mercado-chips';
+    fila.insertAdjacentElement('afterend', c);
+  });
+  _mselRenderChips();
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', _mselInitChips); else _mselInitChips();
 
 // ── Checklists de Etapa y Canales (pestaña Evolución de Leads) ──────────────
 // Mismo widget visual que el multi-select de Estudio de Mercado (msel-btn/panel/item),
@@ -7328,6 +7544,30 @@ function _mselBuildList(domKey, options, selectedSet, stateKey){
   stateKey = stateKey || domKey;
   const list = document.getElementById('msel-'+domKey+'-list');
   if(!list) return;
+  const panel = list.parentElement;
+  const scroll = panel.scrollTop;
+  list.dataset.state = stateKey;
+  // Barra de acciones (marcar visibles / limpiar / aplicar) y buscador: se crean una sola vez.
+  if(!panel.querySelector('.msel-tools')){
+    const tools = document.createElement('div'); tools.className = 'msel-tools';
+    tools.innerHTML = `<button type="button" onclick="mselBulk('${domKey}',true)">Marcar visibles</button><button type="button" onclick="mselBulk('${domKey}',false)">Limpiar</button><button type="button" class="ap" onclick="mselAplicar()">Aplicar</button>`;
+    panel.insertBefore(tools, list);
+  }
+  if(!document.getElementById('msel-'+domKey+'-filter') && options.length>6){
+    const inp = document.createElement('input');
+    inp.type='text'; inp.className='msel-filter'; inp.id='msel-'+domKey+'-filter'; inp.placeholder='Filtrar lista...';
+    inp.oninput = ()=>mselFilterList(domKey);
+    panel.insertBefore(inp, panel.querySelector('.msel-tools'));
+  }
+  // Los elegidos van primero. Con el panel abierto se conserva el orden que ya tenía la
+  // lista, para que una casilla no "salte" de lugar justo cuando la acabas de marcar.
+  if(panel.style.display==='block' && list._orden){
+    const idx = new Map(list._orden.map((o,i)=>[o,i]));
+    options = [...options].sort((a,b)=>(idx.has(a)?idx.get(a):1e9)-(idx.has(b)?idx.get(b):1e9));
+  } else {
+    options = [...options.filter(o=>selectedSet.has(o)), ...options.filter(o=>!selectedSet.has(o))];
+  }
+  list._orden = options;
   list.innerHTML = options.map(opt=>{
     const esc = String(opt).replace(/"/g,'&quot;');
     return `<label class="msel-item" data-val="${esc}">
@@ -7335,18 +7575,24 @@ function _mselBuildList(domKey, options, selectedSet, stateKey){
       <span>${esc}</span>
     </label>`;
   }).join('') || '<div style="padding:8px;color:var(--ink-4);font-size:12px">Sin resultados</div>';
+  mselFilterList(domKey);      // reaplica lo escrito en el buscador
+  panel.scrollTop = scroll;    // y no pierde la posición del scroll
 }
 
 function _mselUpdateLabel(key, selectedSet, defaultTxt){
   const lbl = document.getElementById('msel-'+key+'-label');
   if(!lbl) return;
   const n = selectedSet.size;
+  lbl.dataset.def = defaultTxt;
   lbl.textContent = n ? `${n} seleccionado${n>1?'s':''}` : defaultTxt;
 }
 
 // Distrito/Inmobiliaria/Proyecto son compartidos entre las 3 secciones de Estudio
 // de Mercado: "Limpiar" en cualquiera de ellas limpia el mismo estado en las 3.
 function _limpiarFiltrosCompartidos(){
+  _mapaSelPorClic = false;
+  _busqActiva = false;
+  document.querySelectorAll('.mkt-buscar').forEach(i=>{ i.value=''; i.style.color=''; });
   _mselGet('distrito').clear();
   _mselGet('inmobiliaria').clear();
   _mselGet('proyecto').clear();
@@ -7359,7 +7605,6 @@ function _limpiarFiltrosCompartidos(){
 
 function limpiarFiltrosMercado(){
   _limpiarFiltrosCompartidos();
-  const buscar = document.getElementById('mkt-mercado-buscar'); if(buscar) buscar.value='';
   _zonaDibujada = null;
   if(_zonaLayer && _mercadoMap){ _mercadoMap.removeLayer(_zonaLayer); _zonaLayer = null; }
   if(_zonaDrawing) _zonaCancelarDibujo();
@@ -7408,12 +7653,15 @@ function renderMercadoMapa(){
   _mselUpdateLabel('inmobiliaria', _mselGet('inmobiliaria'), 'Todas las inmobiliarias');
   _mselUpdateLabel('proyecto', _mselGet('proyecto'), 'Todos los proyectos');
 
-  const busqueda = (document.getElementById('mkt-mercado-buscar')?.value||'').trim().toUpperCase();
+  const busqueda = ''; // la búsqueda por texto se traduce al filtro compartido de Proyecto (_mercadoBuscar)
 
   let filtrado = data;
   if(_mselGet('distrito').size) filtrado = filtrado.filter(r=>_mselGet('distrito').has(r.distrito));
   if(_mselGet('inmobiliaria').size) filtrado = filtrado.filter(r=>_mselGet('inmobiliaria').has(r.inmobiliaria));
-  if(_mselGet('proyecto').size) filtrado = filtrado.filter(r=>_mselGet('proyecto').has(r.proyecto));
+  // Selección por clic en el mapa: no se recortan los puntos, así se puede seguir
+  // haciendo clic en los demás (los no elegidos se ven atenuados).
+  const modoClic = _mapaSelPorClic && _mselGet('proyecto').size>0;
+  if(_mselGet('proyecto').size && !modoClic) filtrado = filtrado.filter(r=>_mselGet('proyecto').has(r.proyecto));
   if(busqueda) filtrado = filtrado.filter(r=>
     (r.proyecto||'').toUpperCase().includes(busqueda) ||
     (r.inmobiliaria||'').toUpperCase().includes(busqueda)
@@ -7457,15 +7705,26 @@ function renderMercadoMapa(){
   const puntos = [];
   // L.markerClusterGroup solo agrupa L.marker (con ícono), no circleMarker — por eso
   // el punto de color se hace con un ícono propio (div) en vez de un circleMarker.
-  const _iconoPunto = color => L.divIcon({
-    className: 'mkt-punto-dot',
-    html: `<span style="display:block;width:10px;height:10px;border-radius:50%;background:${color};opacity:.85;border:1.5px solid #fff;box-shadow:0 0 0 1px ${color}"></span>`,
-    iconSize: [10,10], iconAnchor: [5,5], popupAnchor: [0,-5],
-  });
+  const _iconoPunto = (color, estado) => {
+    // Sin selección: puntos algo más grandes y con borde blanco grueso + sombra para
+    // que resalten sobre el mapa. Con selección: los elegidos más grandes con anillo
+    // oscuro; los demás se quedan igual (el mapa es gris, atenuarlos los hacía invisibles).
+    const tam = estado==='on' ? 22 : 14;
+    const fondo = color;
+    const borde = estado==='on' ? '3px solid #0f172a' : '2.5px solid #fff';
+    const sombra = estado==='on' ? '0 0 0 3px #fff,0 2px 8px rgba(0,0,0,.6)' : '0 0 0 1px rgba(15,23,42,.7),0 2px 5px rgba(0,0,0,.45)';
+    return L.divIcon({
+      className: 'mkt-punto-dot',
+      html: `<span style="display:block;width:${tam}px;height:${tam}px;box-sizing:border-box;border-radius:50%;background:${fondo};border:${borde};box-shadow:${sombra}"></span>`,
+      iconSize: [tam,tam], iconAnchor: [tam/2,tam/2], popupAnchor: [0,-tam/2],
+    });
+  };
 
   filtrado.forEach(r=>{
     const color = SECTOR_COLORS[(r.sector||'').toUpperCase()] || SECTOR_COLOR_DEFAULT;
-    const marker = L.marker([r.lat, r.lng], { icon: _iconoPunto(color) });
+    const esSel = modoClic && _mselGet('proyecto').has(r.proyecto);
+    const marker = L.marker([r.lat, r.lng], { icon: _iconoPunto(color, !modoClic ? '' : (esSel?'on':'off')) });
+    marker._sel = esSel;
     marker.bindPopup(`
       <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:10.5px;line-height:1.35;min-width:150px">
         <div style="font-weight:700;font-size:11.5px;margin-bottom:1px">${r.proyecto}</div>
@@ -7478,6 +7737,17 @@ function renderMercadoMapa(){
         <div><b>Ticket:</b> ${fSol(r.precio_promedio)}</div>
       </div>
     `, { autoClose:false, closeOnClick:false, minWidth:120, maxWidth:220 });
+    // Clic en el punto = sumar/quitar ese proyecto del filtro compartido, así las
+    // tablas de Ventas y Precios Competencia se actualizan a la selección.
+    marker.on('click', ()=>{
+      const sel = _mselGet('proyecto');
+      if(!_mapaSelPorClic) sel.clear(); // venía de otro filtro: se empieza de cero
+      _busqActiva = false;
+      if(sel.has(r.proyecto)) sel.delete(r.proyecto); else sel.add(r.proyecto);
+      _mapaSelPorClic = sel.size>0;
+      _zonaMantenerVista = true; // no mover el mapa al seleccionar
+      setTimeout(_renderMercadoCompartidas, 0);
+    });
     marker.addTo(_mercadoLayer);
     puntos.push([r.lat, r.lng]);
   });
@@ -7486,13 +7756,14 @@ function renderMercadoMapa(){
   // (Ventas por proyecto y tipología / Precios Competencia) para verlos todos.
   const AUTO_ABRIR_LIMITE = 4;
   const hint = document.getElementById('mkt-mercado-hint');
-  if(_mselGet('proyecto').size && filtrado.length <= AUTO_ABRIR_LIMITE){
-    _mercadoLayer.eachLayer(m=>m.openPopup());
+  const nSel = modoClic ? _mselGet('proyecto').size : filtrado.length;
+  if(_mselGet('proyecto').size && nSel <= AUTO_ABRIR_LIMITE){
+    _mercadoLayer.eachLayer(m=>{ if(!modoClic || m._sel) m.openPopup(); });
     if(hint) hint.style.display = 'none';
-  } else if(_mselGet('proyecto').size && filtrado.length > AUTO_ABRIR_LIMITE){
+  } else if(_mselGet('proyecto').size && nSel > AUTO_ABRIR_LIMITE){
     if(hint){
       hint.style.display = '';
-      hint.innerHTML = `Son ${filtrado.length} proyectos — para verlos todos ordenados, mejor revisa las tablas de <b>Ventas Competencia</b> o <b>Precios Competencia</b>. Haz clic en un punto del mapa para ver su cuadro.`;
+      hint.innerHTML = `Son ${nSel} proyectos — para verlos todos ordenados, mejor revisa las tablas de <b>Ventas Competencia</b> o <b>Precios Competencia</b>. Haz clic en un punto del mapa para ver su cuadro.`;
     }
   } else if(hint){
     hint.style.display = 'none';
@@ -8029,14 +8300,14 @@ loadAll();
       <div class="cob-mes-kpi"><div class="k-lbl" id="fl-cli-kpi1-lbl">Clientes en esta etapa</div><div class="k-val" id="fl-cli-kpi1" style="color:#14AFBE">—</div></div>
       <div class="cob-mes-kpi"><div class="k-lbl" id="fl-cli-kpi2-lbl">% de leads totales</div><div class="k-val" id="fl-cli-kpi2" style="color:#F4A228">—</div></div>
     </div>
-    <div id="fl-cli-desglose-wrap" style="display:flex;flex-direction:column;gap:12px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:16px">
+    <div id="fl-cli-desglose-wrap" style="display:flex;flex-direction:column;gap:6px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin-bottom:8px">
       <div id="fl-cli-canal-wrap">
-        <div style="font-size:10.5px;font-weight:700;color:var(--ink-4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">Canal</div>
-        <div id="fl-cli-canales" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+        <div style="font-size:9.5px;font-weight:700;color:var(--ink-4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Canal</div>
+        <div id="fl-cli-canales" style="display:flex;flex-wrap:wrap;gap:4px;max-height:56px;overflow-y:auto"></div>
       </div>
-      <div id="fl-cli-resp-wrap" style="border-top:1px solid var(--line);padding-top:12px">
-        <div style="font-size:10.5px;font-weight:700;color:var(--ink-4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">Responsable Anterior</div>
-        <div id="fl-cli-responsables" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      <div id="fl-cli-resp-wrap" style="border-top:1px solid var(--line);padding-top:6px">
+        <div style="font-size:9.5px;font-weight:700;color:var(--ink-4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Responsable Anterior</div>
+        <div id="fl-cli-responsables" style="display:flex;flex-wrap:wrap;gap:4px;max-height:56px;overflow-y:auto"></div>
       </div>
     </div>
     <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-bottom:8px">
