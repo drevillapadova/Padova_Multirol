@@ -5937,6 +5937,7 @@ function _abrirModalCuotasMes(fc, mesCol, mesLabel, FX, ingDep, mesYM){
 
   const cols = [
     {label:'Cliente', get:r=>_detTitular(r)},
+    {label:'Proyecto', align:'center', get:r=>String(r.Proyecto||'').trim()||'—'},
     {label:'N° Dpto.', align:'center', get:r=>_admUnidadesTxt(r,'<br>')},
     {label:'Monto Cuota', align:'center', get:r=>_detMonto(_h(r).montoCuota, _detEsUSD(r))},
     {label:'Moneda', align:'center', get:r=>_detMonedaBadge(_detEsUSD(r))},
