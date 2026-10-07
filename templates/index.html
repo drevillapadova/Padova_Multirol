@@ -4217,6 +4217,14 @@ function renderAdmVentas(){
   if(_tipo) vTodas = vTodas.filter(r=>_matchTipo(r,_tipo));
   if(_admDesdeTop||_admHastaTop) vTodas = vTodas.filter(r=>_matchDateRange(r.FechaVenta||r.FechaEntrega_Minuta||'', _admDesdeTop, _admHastaTop));
   const montoTotal = vTodas.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
+  // "Monto de ventas" separado por moneda de la operación (TipoMoneda), en su moneda
+  // nativa: soles suma PrecioVenta de las ventas en S/, dólares la de las ventas en $.
+  const _ventaUSD = r => String(r.TipoMoneda||'').toUpperCase().includes('DOLAR');
+  const _ventaMonto = r => Number(r.PrecioVenta||r.PrecioVentaSoles||0)||0;
+  const ventasS = vTodas.filter(r=>!_ventaUSD(r)), ventasD = vTodas.filter(_ventaUSD);
+  const montoVentasS = ventasS.reduce((a,r)=>a+(Number(r.PrecioVentaSoles||r.PrecioVenta||0)||0),0);
+  const montoVentasD = ventasD.reduce((a,r)=>a+_ventaMonto(r),0);
+  window._admVentasMonto = {S:ventasS, D:ventasD};
 
   document.getElementById('adm-sub').textContent = 'Actualizado: '+D.updatedAt+' · Cobranzas y contratos';
 
@@ -4381,7 +4389,8 @@ function renderAdmVentas(){
 
   document.getElementById('adm-kpis').innerHTML=`
     ${kpi('Ventas totales',`${fN(vTodas.length)} <span class="unit">und.</span>`,(_admDesdeTop||_admHastaTop)?'Escrituras firmadas · período filtrado':'Escrituras firmadas · todo el histórico')}
-    ${kpi('Monto de ventas',fFull(montoTotal),(_admDesdeTop||_admHastaTop)?'Período filtrado':'Todo el histórico')}
+    ${_kpiClic(kpi('Monto de ventas S/',montoVentasS?fFull(montoVentasS):'—',`${fN(ventasS.length)} ventas · clic para ver detalle`),"_abrirDetalleMontoVentas('S')")}
+    ${_kpiClic(kpi('Monto de ventas $',montoVentasD?fUsd_fc(montoVentasD):'—',`${fN(ventasD.length)} ventas · clic para ver detalle`),"_abrirDetalleMontoVentas('D')")}
     ${kpi('Cobrado S/',cobradoS_fc?fFull(cobradoS_fc):'—',`${fN(nPagosS)} pagos recibidos`)}
     ${kpi('Cobrado $',cobradoD_fc?fUsd_fc(cobradoD_fc):'—',`${fN(nPagosD)} pagos recibidos`)}
     ${kpi('Pendiente S/',pendienteS_fc?fFull(pendienteS_fc):'—',`${fN(unidPendientesS)} unidades por cobrar`)}
@@ -5737,14 +5746,52 @@ const _detTitular = r => (typeof _flTitleCase==='function'?_flTitleCase(_flLimpi
 const _detMonto = (n, esUSD) => n ? (esUSD?'$':'S/')+' '+_detFmtMonto(n) : '—';
 const _detMonedaBadge = esUSD => `<span style="font-weight:700;color:${esUSD?'#f59e0b':'var(--brand)'}">${esUSD?'USD':'SOL'}</span>`;
 
-function _filasDetalleHTML(filas, cols){
-  return filas.slice()
-    .sort((a,b)=>String(a.Titular||'').localeCompare(String(b.Titular||'')))
+// Valor ordenable de una celda: sortVal de la columna si existe; si no, el texto
+// visible — montos ("S/ 1,234.00") y fechas (DD-MM-AAAA) se comparan como número/fecha.
+function _detValOrden(c, r){
+  if(c.sortVal) return c.sortVal(r);
+  const t = String(c.get(r)).replace(/<[^>]*>/g,'').trim();
+  const f = t.match(/^(\d{2})[-\/](\d{2})[-\/](\d{4})$/);
+  if(f) return f[3]+'-'+f[2]+'-'+f[1];
+  if(/^[^\d\-]{0,4}-?[\d,]+(\.\d+)?\s*(%|m²)?$/.test(t)) return parseFloat(t.replace(/[^\d.\-]/g,''));
+  return t;
+}
+function _filasDetalleHTML(filas, cols, sort){
+  const base = filas.slice();
+  if(sort && cols[sort.idx]){
+    const c = cols[sort.idx], dir = sort.dir==='desc'?-1:1;
+    base.sort((a,b)=>{
+      const va=_detValOrden(c,a), vb=_detValOrden(c,b);
+      if(typeof va==='number' && typeof vb==='number') return (va-vb)*dir;
+      if(typeof va==='number' || va==='' || va==='—') return (typeof vb==='number'||vb===''||vb==='—') ? 0 : 1;
+      if(typeof vb==='number' || vb==='' || vb==='—') return -1;
+      return String(va).localeCompare(String(vb), undefined, {numeric:true, sensitivity:'base'})*dir;
+    });
+  } else {
+    base.sort((a,b)=>String(a.Titular||'').localeCompare(String(b.Titular||'')));
+  }
+  return base
     .map(r=>`<tr>${cols.map(c=>`<td style="text-align:${c.align||'left'}">${c.get(r)}</td>`).join('')}</tr>`)
     .join('');
 }
 let _cobMesState = null; // {filas, cols} — para poder refiltrar sin reabrir el modal
 let _cobMesSearch = '';
+let _cobMesSort = null; // {idx, dir} — orden por cabecera del popup de detalle
+function _cobMesRenderHead(){
+  if(!_cobMesState) return;
+  document.getElementById('cob-mes-thead').innerHTML = _cobMesState.cols.map((c,i)=>{
+    const ico = _cobMesSort && _cobMesSort.idx===i ? (_cobMesSort.dir==='asc'?' ↑':' ↓') : '';
+    return `<th style="text-align:${c.align||'left'};cursor:pointer;user-select:none" onclick="_cobMesOrdenar(${i})" title="Ordenar">${c.label}${ico}</th>`;
+  }).join('');
+}
+// 1er clic ordena ascendente, 2do descendente, 3ro vuelve al orden por nombre.
+function _cobMesOrdenar(idx){
+  if(!_cobMesSort || _cobMesSort.idx!==idx) _cobMesSort = {idx, dir:'asc'};
+  else if(_cobMesSort.dir==='asc') _cobMesSort.dir = 'desc';
+  else _cobMesSort = null;
+  _cobMesRenderHead();
+  _cobMesRenderTabla();
+}
 function _abrirModalDetalle(titulo, kpi1, kpi2, filas, cols){
   document.getElementById('cob-mes-titulo-mes').textContent = titulo;
   document.getElementById('cob-mes-kpi-total-lbl').textContent = kpi1.label;
@@ -5756,8 +5803,9 @@ function _abrirModalDetalle(titulo, kpi1, kpi2, filas, cols){
   k2.textContent = kpi2.val;
   k2.style.color = kpi2.color;
 
-  document.getElementById('cob-mes-thead').innerHTML = cols.map(c=>`<th style="text-align:${c.align||'left'}">${c.label}</th>`).join('');
+  _cobMesSort = null;
   _cobMesState = {filas, cols};
+  _cobMesRenderHead();
   _cobMesSearch = '';
   const searchInput = document.getElementById('cob-mes-search');
   if(searchInput) searchInput.value = '';
@@ -5780,7 +5828,7 @@ function _cobMesRenderTabla(){
     const dpto = String(r._u ? r._u.nro : _admUnidadesDe(r).join(' ')).toLowerCase();
     return nombre.includes(_cobMesSearch) || dpto.includes(_cobMesSearch);
   });
-  const rows = _filasDetalleHTML(filasFiltradas, cols);
+  const rows = _filasDetalleHTML(filasFiltradas, cols, _cobMesSort);
   document.getElementById('cob-mes-tbody').innerHTML = rows ||
     `<tr><td colspan="${cols.length}" style="text-align:center;color:var(--ink-4);padding:20px">${_cobMesSearch?'Sin resultados para la búsqueda':'Sin registros'}</td></tr>`;
 }
@@ -6017,6 +6065,64 @@ function _abrirModalCobradoPorCobrar(fc, mesCol, mesLabel, FX, ingDep, mesYM){
 // Clic en "Cobrado completo"/"Pendientes" de "Distribución por financiamiento":
 // detalle de los clientes de ese tipo de financiamiento en ese estado. Aquí
 // "Por Pagar" sí es el saldo total del cliente (no hay recorte por mes).
+// Hace clickeable una card de kpi() (la envuelve con onclick + cursor).
+function _kpiClic(html, onclick){
+  return html.replace('<div class="kpi ', `<div onclick="${onclick}" title="Ver detalle" style="cursor:pointer" class="kpi `);
+}
+// Torre/Edificio de una venta: el reporte de Ventas no lo trae, así que se cruza con
+// Stock (Edificio) por proyecto + N° de unidad + DNI del comprador (misma llave que el
+// área real); si no calza por DNI, por proyecto + tipo + N° solo cuando ese N° existe
+// en un único edificio. Solo Sunny (Edificio 1 y 2) y Domingo Orué (Torre 3 y 4).
+let _torreIdx = null;
+function _torreDeVenta(r){
+  const proy = String(r.Proyecto||'').trim().toUpperCase();
+  const rot = proy==='SUNNY' ? 'Edificio' : proy==='DOMINGO ORUE' ? 'Torre' : '';
+  if(!rot) return '—';
+  if(!_torreIdx){
+    _torreIdx = {dni:{}, nro:{}};
+    (D.stock||[]).forEach(x=>{
+      const ed = String(x.Edificio||'').trim(); if(!/^\d+$/.test(ed)) return;
+      const nro = String(x.NroInmuebleActual||x.NroInmueble||'').trim().replace(/\.0+$/,'');
+      const dni = String(x.NroDocumento||'').trim();
+      if(dni) _torreIdx.dni[_m2Key(x.Proyecto, nro, dni)] = ed;
+      const k = String(x.Proyecto||'').toUpperCase()+'|'+String(x.TipoInmueble||'').trim().toUpperCase()+'|'+nro;
+      _torreIdx.nro[k] = (k in _torreIdx.nro && _torreIdx.nro[k]!==ed) ? null : ed;
+    });
+  }
+  const nro = String(r.NroInmueble||'').trim().replace(/\.0+$/,'');
+  const ed = _torreIdx.dni[_m2Key(r.Proyecto, nro, r.NroDocumentoTitular)]
+          || _torreIdx.nro[proy+'|'+String(r.TipoInmueble||'').trim().toUpperCase()+'|'+nro];
+  return ed ? rot+' '+ed : '—';
+}
+// Popup con las ventas que componen "Monto de ventas S/" o "$" (mismo período/filtros del KPI).
+function _abrirDetalleMontoVentas(moneda){
+  // Titular/_u son los campos que usa el buscador del popup (nombre y N° Dpto.).
+  const filas = ((window._admVentasMonto||{})[moneda]||[]).map(r=>Object.assign({}, r, {Titular:_flNombreCompleto(r), _u:{nro:_flNroDpto(r), tp:''}}));
+  const esUSD = moneda==='D';
+  const monto = r => esUSD ? (Number(r.PrecioVenta||r.PrecioVentaSoles||0)||0) : (Number(r.PrecioVentaSoles||r.PrecioVenta||0)||0);
+  const total = filas.reduce((a,r)=>a+monto(r),0);
+  const sim = esUSD?'$':'S/';
+  const fv = r=>r.FechaVenta||r.FechaEntrega_Minuta;
+  const cols = [
+    {label:'Cliente',    get:_flNombreCompleto},
+    {label:'DNI',        get:_flDNI, align:'center'},
+    {label:'Proyecto',   get:_flProyectoCli, align:'center'},
+    {label:'N° Dpto',    get:_flNroDpto, align:'center'},
+    {label:'Torre',      get:_torreDeVenta, align:'center'},
+    {label:'Tipo',       get:r=>String(r.TipoInmueble||'').trim()||'—', align:'center'},
+    {label:'Vendedor',   get:_flAsesor, align:'center'},
+    {label:'F. Venta',   get:r=>_flFmtFecha(fv(r)), align:'center', sortVal:r=>_flIsoFecha(fv(r))},
+    {label:'Financiamiento', get:r=>String(r.TipoFinanciamiento||'').split('/')[0].trim()||'—', align:'center'},
+    {label:'Monto Venta ('+sim+')', get:r=>monto(r)?sim+' '+_detFmtMonto(monto(r)):'—', align:'center', sortVal:monto, numeric:true},
+  ];
+  _abrirModalDetalle(
+    'Monto de ventas '+(esUSD?'en dólares ($)':'en soles (S/)'),
+    {label:'Monto total', val:sim+' '+_detFmtMonto(total), color:'#14AFBE'},
+    {label:'Ventas', val:fN(filas.length), color:'#F4A228'},
+    filas, cols
+  );
+}
+
 function _abrirModalFinanciamiento(fc, tipo, estado, FX){
   const _pagada = r => _detNum(r.Saldo_Por_Cobrar)<=0.01;
   const filas = (fc||[]).filter(r=>{
