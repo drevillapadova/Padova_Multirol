@@ -80,6 +80,16 @@ main{overflow-x:clip;min-width:0}
 /* ── KPI ROW ── */
 .kpi-row{display:grid;gap:14px;margin-bottom:24px}
 .kpi-6{grid-template-columns:repeat(6,1fr)}
+/* Cobranzas y desembolsos: los 7 cuadros de arriba en una sola fila, más compactos */
+#adm-kpis{grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+#adm-kpis .kpi{padding:9px 11px 8px;min-height:78px;gap:2px}
+#adm-kpis .kpi .lbl{font-size:9.5px;letter-spacing:.04em}
+#adm-kpis .kpi .val{font-size:clamp(12px,1.05vw,17px)}
+#adm-kpis .kpi .val .unit{font-size:10px}
+#adm-kpis .kpi .sub{font-size:10px;line-height:1.25}
+@media(max-width:1500px){ #adm-kpis{gap:6px}#adm-kpis .kpi{padding:8px 8px 7px}#adm-kpis .kpi .val{font-size:11.5px;letter-spacing:-.02em}#adm-kpis .kpi .lbl{font-size:9px}#adm-kpis .kpi .sub{font-size:9.5px}}
+@media(max-width:1100px){ #adm-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:700px){ #adm-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .kpi-5{grid-template-columns:repeat(5,1fr)}
 .kpi-4{grid-template-columns:repeat(4,1fr)}
 .kpi-3{grid-template-columns:repeat(3,1fr)}
@@ -868,6 +878,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
   <div class="tab-bar" id="dir-tab-bar">
     <button class="tab-btn active" id="dir-tab-resumen" onclick="setDirTab('resumen',this)">Resumen</button>
     <button class="tab-btn" id="dir-tab-detalle" onclick="setDirTab('detalle',this)">Detalle</button>
+    <button class="tab-btn" id="dir-tab-buscador" onclick="setDirTab('buscador',this)">Buscador de clientes</button>
     <button class="tab-btn" id="dir-tab-tendencias" onclick="setDirTab('tendencias',this)">Tendencias</button>
   </div>
   <div id="dir-content"><div class="loading">Cargando...</div></div>
@@ -1639,7 +1650,82 @@ function setDirTab(tab,el){
   renderDirector();
 }
 
-// ── Pestaña Detalle del Resumen comercial: búsqueda de cliente + ficha ──────────
+// ── Pestaña Detalle del Resumen comercial: tabla de todas las ventas ───────────
+// Una fila por unidad vendida. m² = área efectiva de Stock (techada + 50% libre),
+// cruzada por proyecto + N° de unidad + DNI del comprador (igual que el precio/m²).
+let _dirTabSort = null;   // {idx, dir}
+let _dirTabBusq = '';
+let _dirTabRows = [];
+const _dirTabCols = [
+  {label:'Proyecto',   align:'left',   get:r=>String(r.Proyecto||'').trim()||'—'},
+  {label:'Cliente',    align:'center', get:r=>_flNombreCompleto(r)},
+  {label:'Tipo',       align:'center', get:r=>String(r.TipoInmueble||'').trim()||'—'},
+  {label:'Inmueble',   align:'center', get:r=>String(r.NroInmueble||'').trim().replace(/\.0+$/,'')||'—'},
+  {label:'Precio',     align:'center', get:r=>{ const n=Number(r.PrecioVenta||r.PrecioVentaSoles||0); return n?_comMoneda(r)+' '+n.toLocaleString('en-US',{maximumFractionDigits:2}):'—'; },
+                                        sort:r=>Number(r.PrecioVentaSoles||r.PrecioVenta||0)},
+  {label:'m²',         align:'center', get:r=>r._m2?r._m2.toFixed(1):'—', sort:r=>r._m2||0},
+  {label:'Crédito',    align:'center', get:r=>String(r.TipoFinanciamiento||'').split('/')[0].trim()||'—'},
+  {label:'Entidad',    align:'center', get:r=>{ const t=String(r.EntidadFinanciamiento||'').trim(); return (t&&t!=='nan'&&t!=='None')?t:'—'; }},
+  {label:'F. Venta',   align:'center', get:r=>_flFmtFecha(r.FechaVenta||r.FechaEntrega_Minuta), sort:r=>_flIsoFecha(r.FechaVenta||r.FechaEntrega_Minuta)},
+];
+function _renderDirTablaDetalle(vGlob){
+  const wrap = document.getElementById('dir-content');
+  if(!wrap) return;
+  const nro = x=>String(x||'').trim().replace(/\.0+$/,'');
+  const area = {};
+  (D.stock||[]).forEach(x=>{
+    const dni=String(x.NroDocumento||'').trim(); if(!dni) return;
+    const k=_m2Key(x.Proyecto, nro(x.NroInmuebleActual||x.NroInmueble), dni);
+    if(!(k in area)) area[k]=_m2Efectivo(x);
+  });
+  _dirTabRows = vGlob.map(r=>Object.assign({}, r, {_m2: area[_m2Key(r.Proyecto, nro(r.NroInmueble), r.NroDocumentoTitular)]||0}));
+  wrap.innerHTML = `
+  <div class="section-title"><h2>Detalle de ventas</h2><div class="hint" id="dir-tab-hint"></div></div>
+  <div class="card" style="margin-bottom:16px">
+    <div style="padding:12px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <input type="text" class="sp-search" id="dir-tab-search" style="margin-left:0;width:280px" placeholder="Buscar en la tabla..." value="${_escapeHtml(_dirTabBusq)}" oninput="_dirTabBuscar(this.value)">
+      <button type="button" class="chip-sel" style="cursor:pointer;border:none;margin-left:auto" onclick="_exportarTablaExcel('#dir-detalle-tabla','resumen_comercial_detalle')">
+        <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">⬇</span><span>Descargar Excel</span>
+      </button>
+    </div>
+    <div style="overflow:auto;max-height:70vh;border-top:1px solid var(--line-2)">
+      <table class="tbl" id="dir-detalle-tabla" style="width:100%">
+        <thead style="position:sticky;top:0;background:var(--panel);z-index:2"><tr id="dir-tab-thead"></tr></thead>
+        <tbody id="dir-tab-tbody"></tbody>
+      </table>
+    </div>
+  </div>`;
+  _dirTabPintar();
+}
+function _dirTabBuscar(v){ _dirTabBusq = v; _dirTabPintar(); }
+function _dirTabOrdenar(i){
+  if(!_dirTabSort || _dirTabSort.idx!==i) _dirTabSort = {idx:i, dir:'asc'};
+  else if(_dirTabSort.dir==='asc') _dirTabSort.dir='desc';
+  else _dirTabSort = null;
+  _dirTabPintar();
+}
+function _dirTabPintar(){
+  const tb = document.getElementById('dir-tab-tbody'); if(!tb) return;
+  const q = normStr(_dirTabBusq).trim();
+  let rows = q ? _dirTabRows.filter(r=>normStr(_dirTabCols.map(c=>c.get(r)).join(' ')).includes(q)) : _dirTabRows.slice();
+  if(_dirTabSort){
+    const c=_dirTabCols[_dirTabSort.idx], f=c.sort||c.get, d=_dirTabSort.dir==='desc'?-1:1;
+    rows.sort((a,b)=>{ const va=f(a), vb=f(b);
+      return (typeof va==='number'&&typeof vb==='number' ? va-vb : String(va).localeCompare(String(vb),undefined,{numeric:true,sensitivity:'base'}))*d; });
+  } else {
+    rows.sort((a,b)=>String(b.FechaVenta||b.FechaEntrega_Minuta||'').localeCompare(String(a.FechaVenta||a.FechaEntrega_Minuta||'')));
+  }
+  document.getElementById('dir-tab-thead').innerHTML = _dirTabCols.map((c,i)=>{
+    const ico=_dirTabSort&&_dirTabSort.idx===i?(_dirTabSort.dir==='asc'?' ↑':' ↓'):'';
+    return `<th style="text-align:${c.align};cursor:pointer;user-select:none;white-space:nowrap" onclick="_dirTabOrdenar(${i})" title="Ordenar">${c.label}${ico}</th>`;
+  }).join('');
+  tb.innerHTML = rows.map(r=>`<tr>${_dirTabCols.map(c=>`<td style="text-align:${c.align}${c.label==='Proyecto'?'':';white-space:nowrap'}">${_escapeHtml(String(c.get(r)))}</td>`).join('')}</tr>`).join('')
+    || `<tr><td colspan="${_dirTabCols.length}" style="text-align:center;color:var(--ink-4);padding:20px">Sin registros</td></tr>`;
+  const h=document.getElementById('dir-tab-hint');
+  if(h) h.textContent = `${fN(rows.length)}${rows.length!==_dirTabRows.length?' de '+fN(_dirTabRows.length):''} unidades vendidas · ${_rangeLabel('dir','')} · clic en una cabecera para ordenar`;
+}
+
+// ── Pestaña Buscador de clientes del Resumen comercial: búsqueda + ficha ──────────
 let _dirDetSearch = '', _dirDetSel = null, _dirDetVentas = [];
 const _dirDetKey = r => String(r.CorrelativoOC||'').trim() || (String(r.Proyecto||'')+'|'+String(r.NroInmueble||'')+'|'+String(r.NroDocumentoTitular||''));
 
@@ -1649,7 +1735,7 @@ function _renderDirDetalle(vGlob){
   if(!wrap) return;
   if(_dirDetSel && !vGlob.some(r=>_dirDetKey(r)===_dirDetSel)) _dirDetSel = null;
   wrap.innerHTML = `
-  <div class="section-title"><h2>Detalle por cliente</h2><div class="hint">Busca por nombre, DNI, N° de inmueble o N° de venta</div></div>
+  <div class="section-title"><h2>Buscador de clientes</h2><div class="hint">Busca por nombre, DNI, N° de inmueble o N° de venta</div></div>
   <div class="card" style="margin-bottom:16px">
     <div style="padding:14px 18px">
       <input type="text" class="sp-search" id="dir-detalle-search" style="width:100%;max-width:480px" placeholder="Buscar por nombre, DNI, N° Dpto o N° de venta..." value="${_escapeHtml(_dirDetSearch)}" oninput="_dirDetBuscar(this.value)">
@@ -2025,8 +2111,12 @@ function renderDirector(){
   const ALL_PROJS=['HELIO - SANTA BEATRIZ','SUNNY','LITORAL 900','LOMAS DE CARABAYLLO 4','LOMAS DE CARABAYLLO 5','DOMINGO ORUE'];
   const SHOW_PROJS=proj?[proj]:ALL_PROJS;
 
-  if(_dirTab==='detalle'){
+  if(_dirTab==='buscador'){
     _renderDirDetalle(vGlob);
+    return;
+  }
+  if(_dirTab==='detalle'){
+    _renderDirTablaDetalle(v); // v = ventas del período (filtro Desde/Hasta) + proyecto + tipo
     return;
   }
 
@@ -6049,6 +6139,7 @@ function _abrirModalCobradoPorCobrar(fc, mesCol, mesLabel, FX, ingDep, mesYM){
       const conTorre = ['SUNNY','LOMAS DE CARABAYLLO 4','LOMAS DE CARABAYLLO 5','DOMINGO ORUE'];
       return conTorre.includes(String(r.Proyecto||'').trim().toUpperCase()) ? String(r.Nombre_Tipo_Construccion_1||'—') : '—';
     }},
+    {label:'Financiamiento', align:'center', get:r=>String(r.TipoFinanciamiento||'').trim()||'—'},
     {label:'Monto Cuota', align:'center', get:r=>_detMonto(_montoCuotaDe(r), _detEsUSD(r))},
     {label:'Moneda', align:'center', get:r=>_detMonedaBadge(_detEsUSD(r))},
     {label:'Monto Pagado', align:'center', get:r=>_detMonto(_montoPagadoDe(r), _detEsUSD(r))},
