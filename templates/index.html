@@ -6313,19 +6313,18 @@ const _flCanal = r=>String(r.ComoSeEntero||'').trim()||'—';
 const _flAsesor = r=>String(r.Responsable||r.Vendedor||r.Asesor||'').trim()||'—';
 const _flDistritoCli = r=>String(r.Distrito_Procedencia||r.Distrito||'').trim()||'—';
 const _flProyectoCli = r=>String(r.Proyecto||'').trim()||'—';
-// Cruce Prospectos <-> Visitas por DNI (o por nombre si no hay DNI) + Proyecto,
+// Cruce Prospectos <-> Visitas por DNI (o por correo si no hay DNI) + Proyecto,
 // para saber si una cita realmente se concretó en visita — Visitas no trae de
 // vuelta el link al prospecto, así que hay que buscarlo por estos campos.
 const _flFechaVisitaPara = r=>{
   const doc = String(r.NroDocumento||'').trim();
   const tieneDoc = doc && doc!=='nan' && doc!=='None' && doc!=='0';
   const proy = String(r.Proyecto||'').trim();
-  const nombreNorm = normStr(((r.Nombres||'')+' '+(r.ApellidoPaterno||'')).trim());
-  const candidatas = (D.visitas||[]).filter(v=>{
-    if(proy && String(v.Proyecto||'').trim()!==proy) return false;
-    if(tieneDoc) return String(v.NroDocTitular||'').trim()===doc;
-    return nombreNorm && normStr(v.NombresTitular||'')===nombreNorm;
-  });
+  const correo = String(r.CorreoElectronico||'').trim().toLowerCase();
+  const delProy = (D.visitas||[]).filter(v=>!proy || String(v.Proyecto||'').trim()===proy);
+  let candidatas = tieneDoc ? delProy.filter(v=>String(v.NroDocTitular||'').trim()===doc) : [];
+  // sin DNI en el prospecto (o sin coincidencia por DNI, p.ej. visita con INDOC...): cruce por correo
+  if(!candidatas.length && correo) candidatas = delProy.filter(v=>String(v.CorreoElectronico||'').trim().toLowerCase()===correo);
   if(!candidatas.length) return null;
   candidatas.sort((a,b)=>String(a.FechaVisita||'').localeCompare(String(b.FechaVisita||'')));
   return candidatas[candidatas.length-1].FechaVisita;
