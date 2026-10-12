@@ -1658,7 +1658,7 @@ let _dirTabBusq = '';
 let _dirTabRows = [];
 const _dirTabCols = [
   {label:'Proyecto',   align:'left',   get:r=>String(r.Proyecto||'').trim()||'—'},
-  {label:'Cliente',    align:'center', get:r=>_flNombreCompleto(r)},
+  {label:'Cliente',    align:'left'  , get:r=>_flNombreCompleto(r)},
   {label:'Tipo',       align:'center', get:r=>String(r.TipoInmueble||'').trim()||'—'},
   {label:'Inmueble',   align:'center', get:r=>String(r.NroInmueble||'').trim().replace(/\.0+$/,'')||'—'},
   {label:'Precio',     align:'center', get:r=>{ const n=Number(r.PrecioVenta||r.PrecioVentaSoles||0); return n?_comMoneda(r)+' '+n.toLocaleString('en-US',{maximumFractionDigits:2}):'—'; },
@@ -1719,7 +1719,7 @@ function _dirTabPintar(){
     const ico=_dirTabSort&&_dirTabSort.idx===i?(_dirTabSort.dir==='asc'?' ↑':' ↓'):'';
     return `<th style="text-align:${c.align};cursor:pointer;user-select:none;white-space:nowrap" onclick="_dirTabOrdenar(${i})" title="Ordenar">${c.label}${ico}</th>`;
   }).join('');
-  tb.innerHTML = rows.map(r=>`<tr>${_dirTabCols.map(c=>`<td style="text-align:${c.align}${c.label==='Proyecto'?'':';white-space:nowrap'}">${_escapeHtml(String(c.get(r)))}</td>`).join('')}</tr>`).join('')
+  tb.innerHTML = rows.map(r=>`<tr>${_dirTabCols.map(c=>`<td style="text-align:${c.align}${c.label==='Proyecto'||c.label==='Cliente'?'':';white-space:nowrap'}">${_escapeHtml(String(c.get(r)))}</td>`).join('')}</tr>`).join('')
     || `<tr><td colspan="${_dirTabCols.length}" style="text-align:center;color:var(--ink-4);padding:20px">Sin registros</td></tr>`;
   const h=document.getElementById('dir-tab-hint');
   if(h) h.textContent = `${fN(rows.length)}${rows.length!==_dirTabRows.length?' de '+fN(_dirTabRows.length):''} unidades vendidas · ${_rangeLabel('dir','')} · clic en una cabecera para ordenar`;
