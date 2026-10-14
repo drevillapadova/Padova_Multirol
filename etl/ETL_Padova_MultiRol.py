@@ -303,7 +303,7 @@ COLS_VENTAS = [
     'ComoSeEntero','FormaContacto','NivelInteres','PerfilCrediticio',
     'TipoFinanciamiento','EntidadFinanciamiento',
     'Vendedor','Puesto','Proyecto','Etapa',
-    'TipoInmueble','Modelo','NroInmueble','NroPiso',
+    'T/M','TipoInmueble','Modelo','NroInmueble','NroPiso',
     'PrecioBase','PrecioLista','DescuentoLista','PrecioVenta','TipoMoneda','PrecioVentaSoles',
     'MontoCuotaInicial','MontoPagadoCI','Estado_CI',
     'MontoFinanciamiento','MontoDesembolsado','PorcetanjePagado_SF','EstadoSF',

@@ -987,6 +987,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
       </div>
     </span>
     <button id="fl-ext-btn" onclick="_flExcludeExt=!_flExcludeExt;renderFunnelMkt()" style="margin-left:auto;background:var(--bg);border:1px solid var(--line);color:var(--ink-2);font-size:11px;padding:5px 12px;border-radius:6px;cursor:pointer;font-weight:500">Sin Proper</button>
+    <button id="fl-coh-btn" onclick="setFlCohorte()" title="Funnel de cohorte: de los leads que ENTRARON en el período, cuántos llegaron a cada etapa (aunque la visita/separación/venta haya sido en otro mes)" style="background:var(--bg);border:1px solid var(--line);color:var(--ink-2);font-size:11px;padding:5px 12px;border-radius:6px;cursor:pointer;font-weight:600;margin-left:6px">◔ Cohorte</button>
   </div>
   <div class="tab-bar" id="fl-tab-bar">
     <button class="tab-btn active" onclick="setFlTab('funnel',this)">Funnel</button>
@@ -2667,6 +2668,13 @@ function setFlComp(){
   }
   renderFunnelMkt();
 }
+function setFlCohorte(){
+  _flCohorte = !_flCohorte;
+  const btn=document.getElementById('fl-coh-btn');
+  if(_flCohorte){ btn.textContent='✕ Cohorte';btn.style.background='#0d9488';btn.style.color='#fff';btn.style.borderColor='#0d9488'; }
+  else { btn.textContent='◔ Cohorte';btn.style.background='var(--bg)';btn.style.color='var(--ink-2)';btn.style.borderColor='var(--line)'; }
+  renderFunnelMkt();
+}
 function _flCrossSetSort(key){
   if(_flCrossSort===key) _flCrossSortDir=_flCrossSortDir==='asc'?'desc':'asc';
   else{_flCrossSort=key;_flCrossSortDir=key==='label'?'asc':'desc';}
@@ -2865,6 +2873,7 @@ let EVO_CANALES_ACTUALES = []; // lista de canales del último render, para el c
 let _flCrossSort = null;
 let _flCrossSortDir = 'desc';
 let _flComp = false;
+let _flCohorte = false;
 let _flTab = 'funnel';
 let _metaSubTab = 'detalle';
 let _flExcludeExt = false;
@@ -2912,8 +2921,28 @@ function _flSeparacionesUnicas(stockRows){
     if(doc && doc!=='nan' && doc!=='None' && doc!=='0') return doc;
     return normStr(r.Nombres||'').trim();
   };
+  // Cliente que separó, se le devolvió (DEVUELTA) y luego separó en OTRO proyecto: esa separación
+  // devuelta no cuenta en el proyecto que abandonó (sí cuenta en el nuevo).
+  const _docOk=r=>{const d=String(r.NroDocumento||'').trim();return (d && d!=='nan' && d!=='None' && d!=='0')?d:null;};
+  const sepPorDoc=new Map();
+  conFecha.forEach(r=>{
+    const d=_docOk(r); if(!d) return;
+    if(!sepPorDoc.has(d)) sepPorDoc.set(d,[]);
+    sepPorDoc.get(d).push(r);
+  });
+  const _migro=r=>{
+    if(String(r.Estado||'').trim().toUpperCase()!=='DEVUELTA') return false;
+    const d=_docOk(r); if(!d) return false;
+    const iso=_toISODate(r.FechaSepDefinitiva); if(!iso) return false;
+    const proy=String(r.Proyecto||'').trim();
+    return (sepPorDoc.get(d)||[]).some(o=>
+      String(o.Proyecto||'').trim()!==proy &&
+      String(o.Estado||'').trim().toUpperCase()!=='DEVUELTA' &&
+      _toISODate(o.FechaSepDefinitiva)>iso);
+  };
   const grupos=new Map();
   conFecha.forEach((r,i)=>{
+    if(_migro(r)) return;
     const iso=_toISODate(r.FechaSepDefinitiva);
     // Sin fecha parseable no se puede agrupar por mes con certeza: se mantiene
     // como fila propia (mismo comportamiento que antes de este dedup).
@@ -2961,6 +2990,63 @@ function _flCalcPeriodo(proj, from, to){
     visitasN:vi.length, separacionesN:sp.length, ventasN:ve.length,
     medTR:trV.length?trV[Math.floor(trV.length/2)]:null,
   };
+}
+
+// ── Funnel de COHORTE ───────────────────────────────────────────────────────
+// Parte de los leads que ENTRARON (FechaRegistro) en el período y sigue a esas mismas
+// personas hacia adelante: cuántas hicieron visita / separación / venta en el mismo
+// proyecto, sin importar en qué mes ocurrió (pero siempre en fecha >= a su registro).
+// Cruce Prospectos -> Visitas/Stock/Ventas por DNI y, si no hay, por correo.
+// Devuelve la misma forma que _flCalcPeriodo para reutilizar popups y render.
+function _flCalcCohorte(proj, from, to){
+  const base = _flCalcPeriodo(proj, from, to);
+  const validDoc = v=>{const d=String(v||'').trim();return (d && d!=='nan' && d!=='None' && d!=='0')?d.toUpperCase():null;};
+  const validMail = v=>{const m=String(v||'').trim().toLowerCase();return (m && m!=='nan' && m!=='none' && m.includes('@'))?m:null;};
+  const pk = v=>{const x=String(v||'').toUpperCase().trim();return x.startsWith('LOMAS DE CARABAYLLO')?'LOMAS DE CARABAYLLO':x;};
+  const esDpto = r=>normStr(r.TipoInmueble||'').includes('departamento');
+  const prop = r=>!_flExcludeExt || !_esRegistroProper(r);
+  // índice: "proyecto|d:DOC" / "proyecto|e:correo" -> filas con fecha ISO
+  const indexar = (rows, docF, mailF, fechaF)=>{
+    const m = new Map();
+    rows.forEach(r=>{
+      const item = {r, iso:_toISODate(fechaF(r))};
+      const proy = pk(r.Proyecto);
+      const doc = validDoc(docF(r)), mail = validMail(mailF(r));
+      [doc?'d:'+doc:null, mail?'e:'+mail:null].forEach(k=>{
+        if(!k) return;
+        const key = proy+'|'+k;
+        if(!m.has(key)) m.set(key, []);
+        m.get(key).push(item);
+      });
+    });
+    return m;
+  };
+  const iVis = indexar((D.visitas||[]).filter(esDpto).filter(prop), r=>r.NroDocTitular, r=>r.CorreoElectronico, r=>r.FechaVisita);
+  const iSep = indexar(_flSeparacionesUnicas(D.stock||[]).filter(esDpto).filter(prop), r=>r.NroDocumento, r=>r.Correo, r=>r.FechaSepDefinitiva);
+  const iVen = indexar((D.ventas||[]).filter(esDpto).filter(prop), r=>r.NroDocumentoTitular, r=>r.CorreoElectronico||r.Correo, r=>r.FechaVenta||r.FechaEntrega_Minuta);
+  // primera fila (la más antigua) del índice con fecha >= registro del lead
+  const buscar = (idx, lead)=>{
+    const proy = pk(lead.Proyecto);
+    const reg = _toISODate(lead.FechaRegistro);
+    const cands = [];
+    const doc = validDoc(lead.NroDocumento), mail = validMail(lead.CorreoElectronico);
+    if(doc)  cands.push(...(idx.get(proy+'|d:'+doc)||[]));
+    if(mail) cands.push(...(idx.get(proy+'|e:'+mail)||[]));
+    const ok = cands.filter(c=>!reg || !c.iso || c.iso>=reg);
+    if(!ok.length) return null;
+    ok.sort((a,b)=>String(a.iso||'9').localeCompare(String(b.iso||'9')));
+    return ok[0].r;
+  };
+  const visF=[], sp=[], ve=[]; const vistos=new Set();
+  const unico = (arr, r)=>{ if(!r||vistos.has(r)) return; vistos.add(r); arr.push(r); };
+  base.lb.forEach(l=>{
+    unico(visF, buscar(iVis,l));
+    unico(sp,   buscar(iSep,l));
+    unico(ve,   buscar(iVen,l));
+  });
+  return Object.assign({}, base, {
+    visF, sp, ve, visitasN:visF.length, separacionesN:sp.length, ventasN:ve.length, esCohorte:true,
+  });
 }
 
 // Top-N categorías por conteo, agrupando el resto sería excesivo aquí: solo se usa
@@ -3308,6 +3394,24 @@ function renderFunnelMkt(){
   if(_flTab==='funnel'){
     function makeFunnel(d, which, topRef){
       const t=topRef||d.leadsTotal||1;
+      if(d.esCohorte){
+        // Cohorte: todo se mide contra los leads que entraron (una persona puede saltarse etapas)
+        const L=d.leadsTotal||1;
+        const fC=(lbl,n,color,stageKey,conv)=>{
+          const w=t?Math.min(Math.round(Math.sqrt(n/t)*100),100):0;
+          return `<div class="fstep" onclick="_flAbrirEtapa('${stageKey}','${which}')" style="cursor:pointer" title="Ver detalle de clientes"><div class="lbl"><b>${lbl}</b></div>
+            <div class="track"><div class="fill" style="width:${Math.max(w,2)}%;background:linear-gradient(90deg,${color}cc,${color})"></div></div>
+            <div class="right"><span class="pct-n">${fN(n)}</span><span class="pct">${conv}</span></div></div>`;
+        };
+        return `
+          ${fC('Leads Totales',   d.leadsTotal,    COLORS[0],'leadsTotal','—')}
+          ${fC('Leads con DNI',   d.leadsDNI,      COLORS[1],'leadsDNI',   pct(d.leadsDNI,L)+' de leads')}
+          ${fC('Contactados',     d.prospectos,    COLORS[2],'contactados',pct(d.prospectos,L)+' de leads')}
+          ${fC('Citas Generadas', d.citasN,        COLORS[3],'citas',      pct(d.citasN,L)+' de leads')}
+          ${fC('Visitas',         d.visitasN,      COLORS[4],'visitas',    pct(d.visitasN,L)+' de leads')}
+          ${fC('Separaciones',    d.separacionesN, COLORS[5],'separaciones',pct(d.separacionesN,L)+' de leads')}
+          ${fC('Ventas',          d.ventasN,       COLORS[6],'ventas',     pct(d.ventasN,L)+' de leads')}`;
+      }
       const fmS=(lbl,n,conv,color,stageKey)=>{
         const w=t?Math.min(Math.round(Math.sqrt(n/t)*100),100):0;
         return `<div class="fstep" onclick="_flAbrirEtapa('${stageKey}','${which}')" style="cursor:pointer" title="Ver detalle de clientes"><div class="lbl"><b>${lbl}</b></div>
@@ -3325,13 +3429,24 @@ function renderFunnelMkt(){
     }
 
     const topRef=Math.max(leadsTotal, B?.leadsTotal||0)||1;
-    _flDatasets = {A:{data:A, periodoLbl:B?lblA:''}, B: B?{data:B, periodoLbl:lblB}:null};
+    const C = _flCohorte ? _flCalcCohorte(proj, _flDateFrom, _flDateTo) : null;
+    _flDatasets = {A:{data:A, periodoLbl:(B||C)?lblA:''}, B: B?{data:B, periodoLbl:lblB}:null, C: C?{data:C, periodoLbl:'Cohorte '+lblA}:null};
+    const cohCard = C ? `
+        <div class="card" style="border:1.5px solid #0d9488">
+          <div class="card-hd" style="background:rgba(13,148,136,.08);border-radius:10px 10px 0 0">
+            <div><h3 style="color:#0d9488">Cohorte · ${lblA}</h3><p>${fN(C.leadsTotal)} leads que entraron · ${fN(C.ventasN)} ventas · ${pct(C.ventasN,C.leadsTotal||1)} conv.</p></div>
+          </div>
+          <div class="funnel">${makeFunnel(C, 'C', topRef)}</div>
+          <div style="padding:8px 16px 12px;font-size:10.5px;color:var(--ink-4);line-height:1.4">Solo los leads registrados en el período y lo que hicieron después (en cualquier mes) en el mismo proyecto. Cruce por DNI o correo.</div>
+        </div>` : '';
+    const gridCols = 1 + (B?1:0) + (C?1:0);
+    const gridStyle = 'display:grid;grid-template-columns:repeat('+gridCols+',minmax(0,1fr));gap:16px;margin-bottom:16px';
 
     if(B){
       // ── Comparativo: 2 funnels lado a lado ────────────────────────────────
       document.getElementById('fl-content').innerHTML=`
       <div class="section-title"><h2>EMBUDO DE CONVERSIÓN</h2><div class="hint">Comparativa ${lblA} vs ${lblB}</div></div>
-      <div class="grid-2" style="margin-bottom:16px">
+      <div style="${gridStyle}">
         <div class="card">
           <div class="card-hd" style="background:oklch(0.97 0.01 250);border-radius:10px 10px 0 0">
             <div><h3 style="color:#3b82f6">${lblA}</h3><p>${fN(leadsTotal)} leads · ${fN(ventasN)} ventas · ${pct(ventasN,leadsTotal||1)} conv.</p></div>
@@ -3343,15 +3458,17 @@ function renderFunnelMkt(){
             <div><h3 style="color:#a78bfa">${lblB}</h3><p>${fN(B.leadsTotal)} leads · ${fN(B.ventasN)} ventas · ${pct(B.ventasN,B.leadsTotal||1)} conv.</p></div>
           </div>
           <div class="funnel">${makeFunnel(B, 'B', topRef)}</div>
-        </div>
+        </div>${cohCard}
       </div>`;
     } else {
       // ── Funnel simple ─────────────────────────────────────────────────────
       document.getElementById('fl-content').innerHTML=`
       <div class="section-title"><h2>EMBUDO DE CONVERSIÓN</h2><div class="hint">${lblA} · tasa global ${pct(ventasN,leadsTotal||1)}</div></div>
-      <div class="card" style="margin-bottom:16px">
-        <div class="card-hd"><div><h3>Funnel completo</h3><p>${fN(leadsTotal)} leads · ${fN(ventasN)} ventas</p></div></div>
-        <div class="funnel">${makeFunnel(A, 'A')}</div>
+      <div style="${gridStyle}">
+        <div class="card">
+          <div class="card-hd"><div><h3>${C?'Funnel del período':'Funnel completo'}</h3><p>${fN(leadsTotal)} leads · ${fN(ventasN)} ventas</p></div></div>
+          <div class="funnel">${makeFunnel(A, 'A', C?topRef:undefined)}</div>
+        </div>${cohCard}
       </div>`;
     }
     return;
@@ -6371,6 +6488,19 @@ const FL_CITAS_COLS=(()=>{
   cols.push({label:'Responsable Anterior', get:r=>String(r.Responsable_Anterior||'').trim()||'—'});
   return cols;
 })();
+// Fecha de registro del lead para una fila de Visitas: cruce con Prospectos por DNI y, si no
+// hay coincidencia, por correo (mismo proyecto); se toma el registro más antiguo.
+const _flFechaRegistroVisita = r=>{
+  const doc = String(r.NroDocTitular||'').trim();
+  const tieneDoc = doc && doc!=='nan' && doc!=='None' && doc!=='0';
+  const correo = String(r.CorreoElectronico||'').trim().toLowerCase();
+  const proy = String(r.Proyecto||'').trim();
+  const delProy = (D.prospectos||[]).filter(p=>!proy || String(p.Proyecto||'').trim()===proy);
+  let cand = tieneDoc ? delProy.filter(p=>String(p.NroDocumento||'').trim()===doc) : [];
+  if(!cand.length && correo) cand = delProy.filter(p=>String(p.CorreoElectronico||'').trim().toLowerCase()===correo);
+  const fechas = cand.map(p=>String(p.FechaRegistro||'').trim()).filter(f=>f && f!=='nan' && f!=='None').sort();
+  return fechas.length ? fechas[0] : null;
+};
 const FL_VISITA_COLS=[
   {label:'Nombre',    get:_flNombreCompleto},
   {label:'DNI',       get:_flDNI, align:'center'},
@@ -6378,6 +6508,7 @@ const FL_VISITA_COLS=[
   {label:'Canal',     get:_flCanal},
   {label:'Vendedor',  get:_flAsesor},
   {label:'Distrito',  get:_flDistritoCli},
+  {label:'F. Registro', get:r=>_flFmtFecha(_flFechaRegistroVisita(r)), align:'center', sortVal:r=>_flIsoFecha(_flFechaRegistroVisita(r))},
   {label:'F. Cita',   get:r=>_flFmtFecha(r.Fecha_CitaProspecto), align:'center', sortVal:r=>_flIsoFecha(r.Fecha_CitaProspecto)},
   {label:'F. Visita', get:r=>_flFmtFecha(r.FechaVisita), align:'center', sortVal:r=>_flIsoFecha(r.FechaVisita)},
 ];
