@@ -840,10 +840,17 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
       <h1 class="page-title">Resumen comercial</h1>
       <div class="page-sub" id="dir-sub">Cargando...</div>
     </div>
-    <div class="toolbar" style="flex-wrap:wrap;row-gap:6px">
-      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
-        <select id="dir-proj" onchange="renderDirector()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO 4</option><option>LOMAS DE CARABAYLLO 5</option><option>DOMINGO ORUE</option></select>
-      </label>
+    <div class="toolbar" style="flex-wrap:wrap;row-gap:6px;overflow:visible">
+      <div style="position:relative">
+        <button type="button" class="chip-sel msel-btn" style="border:1px solid var(--line)" onclick="dirProjToggle()">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
+          <span id="dir-proj-label">Todos los proyectos</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
+        </button>
+        <div class="msel-panel" id="dir-proj-panel" style="display:none;min-width:260px">
+          <div class="msel-tools"><button type="button" onclick="dirProjLimpiar()">Todos / Limpiar</button></div>
+          <div id="dir-proj-list"></div>
+        </div>
+      </div>
       <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◈</span>
         <select id="dir-tipo" onchange="renderDirector()"><option value="">Tipo: Todos</option><option value="departamento">Departamento</option><option value="azotea">Azotea</option><option value="estacionamiento">Estacionamiento</option><option value="deposito">Depósito</option><option value="comercio">Comercio</option></select>
       </label>
@@ -1476,6 +1483,18 @@ function getFunnel(proj=''){
     t_respuesta_min:null,conv_prosp_visita:0,conv_visita_sep:0,conv_sep_venta:0,conv_prosp_venta:0};
 }
 
+// Funnel de varios proyectos: suma los conteos y recalcula las conversiones.
+function getFunnelMulti(arr){
+  if(!arr.length) return getFunnel('');
+  if(arr.length===1) return getFunnel(arr[0]);
+  const t={prospectos:0,visitas:0,separaciones:0,ventas:0,monto_soles:0,t_respuesta_min:null};
+  arr.forEach(p=>{const f=getFunnel(p); ['prospectos','visitas','separaciones','ventas','monto_soles'].forEach(k=>t[k]+=Number(f[k]||0));});
+  const c=(a,b)=>b?Math.round(a/b*1000)/10:0;
+  t.conv_prosp_visita=c(t.visitas,t.prospectos); t.conv_visita_sep=c(t.separaciones,t.visitas);
+  t.conv_sep_venta=c(t.ventas,t.separaciones); t.conv_prosp_venta=c(t.ventas,t.prospectos);
+  return t;
+}
+
 function getVentas(proj=''){
   if(!proj) return D.ventas||[];
   return (D.ventas||[]).filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
@@ -1526,7 +1545,7 @@ const METAS = {
 };
 function calcMeta(proj, tipo) {
   let uni = 0, monto = 0;
-  const projs = proj ? [proj] : Object.keys(METAS);
+  const projs = Array.isArray(proj) ? (proj.length ? proj : Object.keys(METAS)) : (proj ? [proj] : Object.keys(METAS));
   for (const p of projs) {
     const pm = METAS[p] || {};
     const tipos = tipo ? [tipo] : Object.keys(pm);
@@ -1603,13 +1622,37 @@ const _fechaYM=f=>{const s=String(f||'').trim();if(!s||s==='nan')return null;if(
 const _toISODate=f=>{f=String(f||'').trim();if(!f||f==='nan'||f==='None'||f==='-')return null;let m=f.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[1]+'-'+m[2]+'-'+m[3];m=f.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(m)return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');return null;};
 const _matchDateRange=(f,desde,hasta)=>{if(!desde&&!hasta)return true;const d=_toISODate(f);if(!d)return false;return(!desde||d>=desde)&&(!hasta||d<=hasta);};
 
+// Proyectos elegidos en Resumen comercial (selección múltiple). Vacío = todos.
+const DIR_PROJS=['HELIO - SANTA BEATRIZ','SUNNY','LITORAL 900','LOMAS DE CARABAYLLO 4','LOMAS DE CARABAYLLO 5','DOMINGO ORUE'];
+const _dirProjSel=new Set();
+function _projArr(prefix){
+  if(prefix==='dir') return [..._dirProjSel];
+  const v=document.getElementById(prefix+'-proj')?.value||'';
+  return v?[v]:[];
+}
+const _projOk=(arr,rProj)=>!arr.length||arr.some(p=>String(rProj||'').toUpperCase()===p.toUpperCase());
+function dirProjToggle(){
+  const panel=document.getElementById('dir-proj-panel');
+  const abierto=panel.style.display==='block';
+  document.querySelectorAll('.msel-panel').forEach(p=>p.style.display='none');
+  if(!abierto){ _dirProjRenderList(); panel.style.display='block'; }
+}
+function _dirProjRenderList(){
+  const list=document.getElementById('dir-proj-list'); if(!list) return;
+  list.innerHTML=DIR_PROJS.map(p=>`<label class="msel-item"><input type="checkbox" ${_dirProjSel.has(p)?'checked':''} onchange="dirProjSet('${p}',this.checked)"><span>${p}</span></label>`).join('');
+  const n=_dirProjSel.size, lbl=document.getElementById('dir-proj-label');
+  if(lbl) lbl.textContent=n?(n===1?[..._dirProjSel][0]:n+' proyectos'):'Todos los proyectos';
+}
+function dirProjSet(p,on){ if(on)_dirProjSel.add(p); else _dirProjSel.delete(p); _dirProjRenderList(); renderDirector(); }
+function dirProjLimpiar(){ _dirProjSel.clear(); _dirProjRenderList(); renderDirector(); }
+
 function filtrarVentasRango(prefix,sfx=''){
-  const proj=document.getElementById(prefix+'-proj')?.value||'';
+  const projArr=_projArr(prefix);
   const _tipo=document.getElementById(prefix+'-tipo')?.value||'';
   const dateD=document.getElementById(prefix+'-date-desde')?.value||'';
   const dateH=document.getElementById(prefix+'-date-hasta')?.value||'';
   let v=D.ventas||[];
-  if(proj) v=v.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
+  if(projArr.length) v=v.filter(r=>_projOk(projArr,r.Proyecto));
   if(_tipo) v=v.filter(r=>_matchTipo(r,_tipo));
   if(dateD||dateH){
     const desde=dateD?dateD.slice(0,7):'2000-01';
@@ -1920,13 +1963,15 @@ function renderDirector(){
       deInput.value = hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-01';
     }
   }
-  const proj = filtrarProj('dir');
+  const projArr = _projArr('dir');
+  const proj = projArr.length===1 ? projArr[0] : '';
+  _dirProjRenderList();
   const _tipo = document.getElementById('dir-tipo')?.value||'';
 
   // ── KPIs: filtra por proyecto y tipo de inmueble (ignoran año/mes) ──
-  const vGlob=(D.ventas||[]).filter(r=>(!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase())&&_matchTipo(r,_tipo));
-  const sGlob=(D.stock||[]).filter(r=>(!proj||String(r.Proyecto||'').toUpperCase()===proj.toUpperCase())&&_matchTipo(r,_tipo));
-  const meta=calcMeta(proj,_tipo);
+  const vGlob=(D.ventas||[]).filter(r=>_projOk(projArr,r.Proyecto)&&_matchTipo(r,_tipo));
+  const sGlob=(D.stock||[]).filter(r=>_projOk(projArr,r.Proyecto)&&_matchTipo(r,_tipo));
+  const meta=calcMeta(projArr,_tipo);
   const avancePct=meta.uni?Math.min(Math.round(vGlob.length/meta.uni*100),100):0;
   const montoGlob=vGlob.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
   const avanceMontoP=meta.monto?Math.min(Math.round(montoGlob/meta.monto*100),100):0;
@@ -1959,7 +2004,7 @@ function renderDirector(){
   const _dDB=document.getElementById('dir-date-desde-b')?.value||'';
   const _dHB=document.getElementById('dir-date-hasta-b')?.value||'';
   const vB=_dirComp?(D.ventas||[]).filter(r=>{
-    if(proj&&String(r.Proyecto||'').toUpperCase()!==proj.toUpperCase())return false;
+    if(!_projOk(projArr,r.Proyecto))return false;
     if(_tipo&&!_matchTipo(r,_tipo))return false;
     if(_dDB||_dHB){const ym=_fechaYM(r.FechaVenta||r.FechaEntrega_Minuta||'');if(!ym)return false;if(_dDB&&ym<_dDB.slice(0,7))return false;if(_dHB&&ym>_dHB.slice(0,7))return false;}
     return true;
@@ -2109,7 +2154,7 @@ function renderDirector(){
 
   const CHART_COLORS=['#60a5fa','#a78bfa','#34d399','#fbbf24','#f472b6','#fb923c','#f87171'];
   const ALL_PROJS=['HELIO - SANTA BEATRIZ','SUNNY','LITORAL 900','LOMAS DE CARABAYLLO 4','LOMAS DE CARABAYLLO 5','DOMINGO ORUE'];
-  const SHOW_PROJS=proj?[proj]:ALL_PROJS;
+  const SHOW_PROJS=projArr.length?projArr:ALL_PROJS;
 
   if(_dirTab==='buscador'){
     _renderDirDetalle(vGlob);
@@ -2207,6 +2252,7 @@ function renderDirector(){
         +'<td style="'+_tdM+';text-align:left;font-weight:500;color:var(--ink-2)">'+d.mes+'</td>'
         +'<td'+_cM+' style="'+_tdM+';font-weight:500;color:var(--ink)">'+d.n+'</td>'
         +'<td'+_cM+' style="'+_tdM+';font-weight:500;color:var(--ink)">'+fMFull(d.monto)+'</td>'
+        +'<td style="'+_tdM+';color:var(--ink-2)">'+(d.n?fMFull(d.monto/d.n):'—')+'</td>'
         +'<td style="'+_tdM+';color:var(--ink-3)">'+(pm2?'S/ '+fN(pm2):'—')+'</td>'
         +'</tr>';
     }).join('');
@@ -2221,13 +2267,15 @@ function renderDirector(){
       +'<td style="text-align:left;padding:9px 12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12px;color:var(--ink)">TOTAL</td>'
       +'<td'+_cT+' style="text-align:center;padding:9px 12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12px;color:var(--ink)">'+tot.n+'</td>'
       +'<td'+_cT+' style="text-align:center;padding:9px 12px;font-family:var(--mono);font-size:12px;color:var(--ink)">'+fFull(tot.monto)+'</td>'
+      +'<td style="text-align:center;padding:9px 12px;font-family:var(--mono);font-size:12px;color:var(--ink-2)">'+(tot.n?fFull(tot.monto/tot.n):'—')+'</td>'
       +'<td style="text-align:center;padding:9px 12px;font-family:var(--mono);font-size:12px;color:var(--ink-3)">'+(tot.pm2?'S/ '+fN(tot.pm2):'—')+'</td>'
       +'</tr>';};
 
-    const _mesTable=(rows,tot,lbl)=>'<div class="card">'
-      +'<div class="card-hd"><div><h3>Ventas por mes</h3><p>'+lbl+' · '+tot.n+' und. · '+fM(tot.monto)+'</p></div></div>'
-      +'<div style="overflow-x:auto"><table class="tbl" style="width:100%">'
-        +'<thead><tr><th style="'+_thM+';text-align:left">MES</th><th style="'+_thM+'">UNID.</th><th style="'+_thM+'">MONTO</th><th style="'+_thM+'">PRECIO/m²</th></tr></thead>'
+    const _mesTable=(rows,tot,lbl,tid)=>'<div class="card">'
+      +'<div class="card-hd"><div><h3>Ventas por mes</h3><p>'+lbl+' · '+tot.n+' und. · '+fM(tot.monto)+'</p></div>'
+        +'<button type="button" class="chip-sel" style="cursor:pointer;border:none;margin-left:auto" onclick="_exportarTablaExcel(\'#'+tid+'\',\'ventas_por_mes\')"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">⬇</span><span>Descargar Excel</span></button></div>'
+      +'<div style="overflow-x:auto"><table class="tbl" id="'+tid+'" style="width:100%">'
+        +'<thead><tr><th style="'+_thM+';text-align:left">MES</th><th style="'+_thM+'">UNID.</th><th style="'+_thM+'">MONTO</th><th style="'+_thM+'">TICKET PROM.</th><th style="'+_thM+'">PRECIO/m²</th></tr></thead>'
         +'<tbody>'+rows+_mesTotalRow(tot,lbl)+'</tbody>'
       +'</table></div>'
       +'</div>';
@@ -2246,9 +2294,9 @@ function renderDirector(){
           :_buildProjTable(projRows,totRow,lblA))
       +'</div>'
       +(_dirComp
-        ?'<div class="grid-2" style="margin-bottom:16px">'+_mesTable(mesRowsA,totales,lblA)+_mesTable(mesRowsB,totB,lblB)+'</div>'
+        ?'<div class="grid-2" style="margin-bottom:16px">'+_mesTable(mesRowsA,totales,lblA,'dir-mes-tabla-a')+_mesTable(mesRowsB,totB,lblB,'dir-mes-tabla-b')+'</div>'
         :'<div class="grid-2" style="margin-bottom:16px">'
-          +_mesTable(mesRowsA,totales,lblA)
+          +_mesTable(mesRowsA,totales,lblA,'dir-mes-tabla-a')
           +'<div class="card"><div class="card-hd"><div><h3>Tipologías</h3><p>Vendidas, disponibles y separadas</p></div></div>'
             +'<div style="padding:12px 14px"><div class="typ-grid">'+(typs||'<div style="padding:20px;color:var(--ink-4);font-size:12px">Sin datos de stock</div>')+'</div></div></div>'
           +'</div>');
@@ -2508,7 +2556,7 @@ function renderDirector(){
 
   } else {
     // ── IA TAB ──
-    const funnel=getFunnel(proj);
+    const funnel=getFunnelMulti(projArr);
     const fSteps=[
       {lbl:'Prospectos',n:funnel.prospectos,color:'#a78bfa',prev:null,key:'prospectos'},
       {lbl:'Visitas',n:funnel.visitas,color:'#fbbf24',prev:funnel.prospectos,key:'visitas'},
@@ -2550,7 +2598,7 @@ function renderDirector(){
 
     document.getElementById('dir-content').innerHTML=
       '<div class="card" style="margin-bottom:16px">'+
-        '<div class="card-hd"><div><h3>Diagnóstico automático</h3><p>'+(proj?proj:'Todos los proyectos')+' · '+lblA+'</p></div></div>'+
+        '<div class="card-hd"><div><h3>Diagnóstico automático</h3><p>'+(projArr.length?projArr.join(', '):'Todos los proyectos')+' · '+lblA+'</p></div></div>'+
         '<div style="padding:16px 20px">'+
           // Funnel rates
           '<div style="margin-bottom:18px">'+
@@ -5914,7 +5962,7 @@ function filtrarVentas(prefix){
   if(desde||hasta) v = v.filter(r=>_matchDateRange(r.FechaVenta||r.FechaEntrega_Minuta||'', desde, hasta));
   return v;
 }
-function filtrarProj(prefix){ return document.getElementById(prefix+'-proj')?.value||''; }
+function filtrarProj(prefix){ return prefix==='dir' ? [..._dirProjSel].join(', ') : (document.getElementById(prefix+'-proj')?.value||''); }
 
 // ── CALCULADORA DESCUENTO ────────────────────────────────────────────────────
 let _calcPrecio = 0;
@@ -6501,6 +6549,23 @@ const _flFechaRegistroVisita = r=>{
   const fechas = cand.map(p=>String(p.FechaRegistro||'').trim()).filter(f=>f && f!=='nan' && f!=='None').sort();
   return fechas.length ? fechas[0] : null;
 };
+// Estado del lead de una visita (Abierto/Cerrado): Visitas no lo trae, se toma del prospecto
+// cruzado por DNI/correo + proyecto. Si hay varios registros, manda el más reciente.
+// Cerrado = Estado con "cerr" o con Motivo_Cerrado_Actual informado.
+const _flEstadoLeadVisita = r=>{
+  const doc = String(r.NroDocTitular||'').trim();
+  const tieneDoc = doc && doc!=='nan' && doc!=='None' && doc!=='0';
+  const correo = String(r.CorreoElectronico||'').trim().toLowerCase();
+  const proy = String(r.Proyecto||'').trim();
+  const delProy = (D.prospectos||[]).filter(p=>!proy || String(p.Proyecto||'').trim()===proy);
+  let cand = tieneDoc ? delProy.filter(p=>String(p.NroDocumento||'').trim()===doc) : [];
+  if(!cand.length && correo) cand = delProy.filter(p=>String(p.CorreoElectronico||'').trim().toLowerCase()===correo);
+  if(!cand.length) return '—';
+  cand.sort((a,b)=>String(a.FechaRegistro||'').localeCompare(String(b.FechaRegistro||'')));
+  const p = cand[cand.length-1];
+  const mot = String(p.Motivo_Cerrado_Actual||'').trim();
+  return (/cerr/i.test(String(p.Estado||'')) || (mot && mot!=='nan' && mot!=='None')) ? 'Cerrado' : 'Abierto';
+};
 const FL_VISITA_COLS=[
   {label:'Nombre',    get:_flNombreCompleto},
   {label:'DNI',       get:_flDNI, align:'center'},
@@ -6510,7 +6575,7 @@ const FL_VISITA_COLS=[
   {label:'Distrito',  get:_flDistritoCli},
   {label:'F. Registro', get:r=>_flFmtFecha(_flFechaRegistroVisita(r)), align:'center', sortVal:r=>_flIsoFecha(_flFechaRegistroVisita(r))},
   {label:'F. Cita',   get:r=>_flFmtFecha(r.Fecha_CitaProspecto), align:'center', sortVal:r=>_flIsoFecha(r.Fecha_CitaProspecto)},
-  {label:'F. Visita', get:r=>_flFmtFecha(r.FechaVisita), align:'center', sortVal:r=>_flIsoFecha(r.FechaVisita)},
+  {label:'F. Visita', get:r=>_flFmtFecha(r.FechaVisita), align:'center', sortVal:r=>_flIsoFecha(r.FechaVisita)},  {label:'Estado lead', get:_flEstadoLeadVisita, align:'center'},
 ];
 // N° de departamento: Stock lo trae como NroInmuebleActual y Ventas como NroInmueble
 // (a veces con ".0" al final).
