@@ -1090,7 +1090,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
       </div>
       <div style="padding:0 20px">
         <div class="card" style="padding:0;overflow:hidden;position:relative;isolation:isolate">
-          <div id="mkt-mercado-map" style="height:640px;width:100%"></div>
+          <div id="mkt-mercado-map" style="height:clamp(360px,calc(100vh - 340px),570px);width:100%"></div>
           <div style="position:absolute;bottom:10px;left:10px;background:rgba(15,23,42,.72);color:#fff;font-size:11px;padding:4px 10px;border-radius:6px;pointer-events:none;z-index:1000;font-family:'Plus Jakarta Sans',sans-serif">Ctrl + scroll para hacer zoom</div>
         </div>
         <div id="mkt-mercado-hint" style="display:none;padding:6px 4px 0;font-size:11.5px;color:var(--ink-3)"></div>
