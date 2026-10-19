@@ -176,15 +176,22 @@ TARGET_PROJECTS = [
 
 _ALLOWED_PROJECTS = {p.upper() for p in TARGET_PROJECTS if 'LOMAS' not in p}
 
-def _normalizar_proyectos(registros):
-    """Whitelist de proyectos: renombra Lomas por etapa, descarta todo lo demás."""
+def _normalizar_proyectos(registros, lomas_etapa_fija=None):
+    """Whitelist de proyectos: renombra Lomas por etapa, descarta todo lo demás.
+
+    lomas_etapa_fija: si se indica (ej. "5"), todo registro de Lomas se asigna a
+    esa etapa (prospectos/visitas no distinguen etapa 4 o 5 en el Sheet).
+    """
     result = []
     for r in registros:
         proj = str(r.get("Proyecto", "")).upper().strip()
         if "LOMAS DE CARABAYLLO" in proj:
-            # Buscar número 4 o 5 en el nombre del proyecto o en Etapa
-            m = re.search(r'\b(4|5)\b', proj) or re.search(r'\d+', str(r.get("Etapa", "")))
-            num = m.group() if m else ""
+            if lomas_etapa_fija:
+                num = lomas_etapa_fija
+            else:
+                # Buscar número 4 o 5 en el nombre del proyecto o en Etapa
+                m = re.search(r'\b(4|5)\b', proj) or re.search(r'\d+', str(r.get("Etapa", "")))
+                num = m.group() if m else ""
             if num in ("4", "5"):
                 r = dict(r)
                 r["Proyecto"] = f"LOMAS DE CARABAYLLO {num}"
@@ -759,7 +766,12 @@ def actualizar_cache():
             raw = leer_tab_header(key, header_row=4)
         else:
             raw = leer_tab(key)
-        _cache[key] = _normalizar_proyectos(raw) if key in TABS_CON_PROYECTO else raw
+        if key in TABS_CON_PROYECTO:
+            # Prospectos y visitas no traen etapa de Lomas: todo es etapa 5
+            fija = "5" if key in ("prospectos", "visitas") else None
+            _cache[key] = _normalizar_proyectos(raw, lomas_etapa_fija=fija)
+        else:
+            _cache[key] = raw
     _cache["ventas"] = [r for r in _cache["ventas"]
                         if str(r.get("EstadoOC", "")).strip() == "Activo"]
     # FechaVisita es el campo canónico confirmado en el Google Sheets de visitas

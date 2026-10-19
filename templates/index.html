@@ -1139,7 +1139,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
           <div style="height:320px;padding:8px 16px 16px"><canvas id="mkt-ventas-chart"></canvas></div>
         </div>
         <div class="card" style="margin-bottom:16px">
-          <div class="card-hd"><div><h3>Ventas por proyecto y tipología</h3><p>Unid. por tipología (est.), precios y descuento, stock estimado y evolución mensual de ventas</p></div></div>
+          <div class="card-hd"><div><h3>Ventas por proyecto y tipología</h3><p>Precios, ticket y evolución mensual de ventas por tipología</p></div></div>
           <div style="display:flex;align-items:center;gap:10px;padding:0 18px 14px;flex-wrap:wrap;max-width:100%;box-sizing:border-box">
             <span style="font-size:11px;color:var(--ink-3);font-weight:700;letter-spacing:.04em;text-transform:uppercase">Tipología (dormitorios):</span>
             <div style="position:relative">
@@ -8137,7 +8137,9 @@ function renderMercadoMapa(){
     // tablas de Ventas y Precios Competencia se actualizan a la selección.
     marker.on('click', ()=>{
       const sel = _mselGet('proyecto');
-      if(!_mapaSelPorClic) sel.clear(); // venía de otro filtro: se empieza de cero
+      // Si la selección viene del dropdown, la búsqueda o una zona, el clic solo abre el
+      // cuadro del punto: no toca la selección ni muestra los demás puntos del mapa.
+      if(!_mapaSelPorClic && sel.size>0) return;
       _busqActiva = false;
       if(sel.has(r.proyecto)) sel.delete(r.proyecto); else sel.add(r.proyecto);
       _mapaSelPorClic = sel.size>0;
@@ -8342,10 +8344,6 @@ function renderMercadoTipologia(){
   const fSol = n => n ? 'S/ '+Math.round(n).toLocaleString('es-PE') : '—';
   const fPct = n => n==null ? '—' : (n*100).toFixed(1)+'%';
 
-  // conteo total de ventas por proyecto (todas las tipologías, sin el filtro de dorm) — para estimar el % de mezcla
-  const totalVentasPorProyecto = {};
-  dataVentas.forEach(v=>{ totalVentasPorProyecto[v.proyecto] = (totalVentasPorProyecto[v.proyecto]||0)+1; });
-
   // agrupar por (proyecto, tipología) respetando el filtro de dormitorio
   const grupos = new Map();
   dataVentas.forEach(v=>{
@@ -8364,12 +8362,9 @@ function renderMercadoTipologia(){
     const sM2Venta = ventanaPrecios.length ? ventanaPrecios.reduce((s,v)=>s+(v.precio_m2_venta||0),0)/ventanaPrecios.length : 0;
     const ticketProm = g.ventas.reduce((s,v)=>s+(v.precio_venta||0),0)/g.ventas.length;
     const desc = sM2Lista ? (sM2Lista-sM2Venta)/sM2Lista : null;
-    const totalProyecto = totalVentasPorProyecto[g.proyecto]||1;
-    const unidTipEst = Math.round((proj.unidades_totales||0) * (g.ventas.length/totalProyecto));
-    const stockEst = Math.max(0, unidTipEst - g.ventas.length);
     const meses = {};
     g.ventas.forEach(v=>{ const ym=(v.fecha_venta||'').slice(0,7); if(ym) meses[ym]=(meses[ym]||0)+1; });
-    return { proyecto:g.proyecto, dormLabel:g.dormLabel, etapa:proj.fase_proyecto, unidTipEst, areaMed, sM2Lista, sM2Venta, ticketProm, desc, stockEst, meses, esPropio: esPropio(proj) };
+    return { proyecto:g.proyecto, dormLabel:g.dormLabel, etapa:proj.fase_proyecto, areaMed, sM2Lista, sM2Venta, ticketProm, desc, meses, esPropio: esPropio(proj) };
   });
   filas.sort((a,b)=> a.proyecto.localeCompare(b.proyecto) || _dormOrden(a.dormLabel)-_dormOrden(b.dormLabel));
 
@@ -8389,7 +8384,6 @@ function renderMercadoTipologia(){
     }
   }
   const maxMes = Math.max(1, ...filas.flatMap(f=>mesesOrdenados.map(ym=>f.meses[ym]||0)));
-  const maxStock = Math.max(1, ...filas.map(f=>f.stockEst));
   // "Prom. mensual" = promedio de unidades vendidas sobre los mismos meses que se ven en el heatmap
   const promMensualDe = meses => mesesOrdenados.length ? mesesOrdenados.reduce((s,ym)=>s+(meses[ym]||0),0)/mesesOrdenados.length : 0;
 
@@ -8404,7 +8398,6 @@ function renderMercadoTipologia(){
     const txt = intensidad>0.45 ? '#fff' : 'var(--ink)';
     return `<td style="background:${bg};color:${txt};font-weight:600">${v}</td>`;
   };
-  const barraStock = v => `<span style="display:inline-flex;align-items:center;gap:6px"><b>${v}</b><span style="display:inline-block;width:44px;height:5px;border-radius:3px;background:var(--line-2);overflow:hidden"><span style="display:block;height:100%;width:${Math.round(Math.min(1,v/maxStock)*100)}%;background:var(--brand)"></span></span></span>`;
   const celdasMeses = meses => mesesOrdenados.map(ym=>celdaMes(meses,ym)).join('');
 
   let rowsHtml = filas.map(f=>`
@@ -8412,16 +8405,13 @@ function renderMercadoTipologia(){
       <td class="vp-rowlbl">${f.proyecto}</td>
       <td>${f.dormLabel}</td>
       <td><span class="pill" style="background:var(--line-2);color:var(--ink-2)">${f.etapa||'—'}</span></td>
-      <td>${f.unidTipEst||'—'}</td>
       <td>${f.areaMed?f.areaMed.toFixed(1)+' m²':'—'}</td>
       <td>${fSol(f.sM2Venta)}</td>
       <td>${fSol(f.ticketProm)}</td>
-      <td>${barraStock(f.stockEst)}</td>
       ${celdasMeses(f.meses)}
       <td>${promMensualDe(f.meses).toFixed(1)}</td>
     </tr>`).join('');
 
-  const stockTotalGeneral = filas.reduce((s,f)=>s+f.stockEst,0);
   const mesesTotalGeneral = {};
   filas.forEach(f=>Object.entries(f.meses).forEach(([ym,v])=>{ mesesTotalGeneral[ym]=(mesesTotalGeneral[ym]||0)+v; }));
   const proyectosVisibles = new Set(filas.map(f=>f.proyecto)).size;
@@ -8430,8 +8420,7 @@ function renderMercadoTipologia(){
     <tr class="vp-total-general">
       <td class="vp-rowlbl">COMPETENCIA — TOTAL</td>
       <td></td><td>${proyectosVisibles} filas</td>
-      <td></td><td></td><td></td><td></td>
-      <td>${barraStock(stockTotalGeneral)}</td>
+      <td></td><td></td><td></td>
       ${celdasMeses(mesesTotalGeneral)}
       <td>${promMensualDe(mesesTotalGeneral).toFixed(1)}</td>
     </tr>`;
@@ -8439,9 +8428,9 @@ function renderMercadoTipologia(){
   wrap.innerHTML = `<table class="ventasproy-tabla">
     <thead><tr>
       <th class="vp-rowlbl">Proyecto</th><th>Dorm</th><th>Etapa</th>
-      <th>Unid. tipología (est.)</th><th>Área med.</th>
+      <th>Área med.</th>
       <th>S/m² venta (prom. 3m)</th>
-      <th>Ticket venta (prom.)</th><th>Stock disp. (est.)</th>
+      <th>Ticket venta (prom.)</th>
       ${mesesOrdenados.map(ym=>`<th>${fMesLbl(ym)}</th>`).join('')}
       <th>Prom. mensual</th>
     </tr></thead>
@@ -8574,8 +8563,7 @@ function renderMercadoPrecios(){
     const precioProm = cantVentana ? ventasVentana.reduce((s,v)=>s+v.precio_venta,0)/cantVentana : 0;
     const precioM2Prom = cantVentana ? ventasVentana.reduce((s,v)=>s+v.precio_m2_venta,0)/cantVentana : 0;
     const totalVendidos = proj.unidades_vendidas||0;
-    const stock = Math.max(0, (proj.unidades_totales||0) - totalVendidos);
-    return { proyecto, proj, buckets, cantVentana, velocidad: cantVentana/divisorMeses, precioProm, precioM2Prom, totalVendidos, stock };
+    return { proyecto, proj, buckets, cantVentana, velocidad: cantVentana/divisorMeses, precioProm, precioM2Prom, totalVendidos };
   });
 
   const rowsHtml = [];
@@ -8615,7 +8603,6 @@ function renderMercadoPrecios(){
   addRow(`Precio promedio (${etiquetaPeriodo})`, c=>fSol(c.precioProm), 'pc-summary');
   addRow(`Precio promedio x m² (${etiquetaPeriodo})`, c=>fSol(c.precioM2Prom), 'pc-summary');
   addRow('Total vendidos (histórico)', c=>c.totalVendidos, 'pc-total');
-  addRow('Stock disponible', c=>c.stock, 'pc-total');
 
   const theadCols = cols.map(c=>`<th>${c.proyecto}</th>`).join('');
   wrap.innerHTML = nota + `<table class="precios-tabla">
