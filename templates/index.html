@@ -827,6 +827,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
   <div class="nav-item" onclick="nav('pricing',this)" title="Pricing"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg><span class="nav-lbl">Pricing</span></div>
   <div class="nav-item" onclick="nav('admventas',this)" title="Adm. de Ventas"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg><span class="nav-lbl">Adm. de Ventas</span></div>
   <div class="nav-item" onclick="nav('funnelmkt',this)" title="Marketing"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg><span class="nav-lbl">Marketing</span></div>
+  <div class="nav-item" onclick="nav('asesores',this)" title="Gestión de asesores"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-lbl">Gestión de asesores</span></div>
   <div class="nav-item" onclick="nav('mercado',this)" title="Estudio de Mercado"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4z"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg><span class="nav-lbl">Estudio de Mercado</span></div>
   <div class="nav-item" onclick="nav('stockproy',this)" title="Stock Proyecto"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="nav-lbl">Stock Proyecto</span></div>
 </aside>
@@ -1005,6 +1006,46 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
     <button class="tab-btn tab-ia" onclick="setFlTab('ia',this)">✦ Análisis IA</button>
   </div>
   <div id="fl-content"><div class="loading">Cargando...</div></div>
+</div>
+
+<!-- ═══════════ GESTIÓN DE ASESORES ═══════════ -->
+<div class="panel" id="panel-asesores">
+  <div class="topbar">
+    <div>
+      <div class="crumbs">Dashboard <span>›</span><b>Gestión de asesores</b></div>
+      <h1 class="page-title">Gestión de asesores</h1>
+      <div class="page-sub" id="ase-sub">Cargando...</div>
+    </div>
+    <div class="toolbar" style="flex-wrap:wrap;row-gap:6px;overflow:visible">
+      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
+        <select id="ase-proj" onchange="renderAsesores()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO 4</option><option>LOMAS DE CARABAYLLO 5</option><option>DOMINGO ORUE</option></select>
+      </label>
+      <div class="chip refresh" onclick="loadAll(true)">↻ Actualizar</div>
+      <button class="dark-toggle-btn" onclick="toggleDark()" title="Modo oscuro" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all .2s">◑</button>
+    </div>
+  </div>
+  <div class="dir-date-bar" id="ase-date-bar" style="flex-wrap:wrap;row-gap:6px">
+    <span style="font-size:11px;color:var(--ink-3);font-weight:700;letter-spacing:.06em;text-transform:uppercase">Asesor</span>
+    <label class="chip-sel" style="border-radius:8px;padding:5px 10px">
+      <select id="ase-asesor" onchange="_aseSel=this.value;renderAsesores()"><option value="">Todos los asesores</option></select>
+    </label>
+    <div class="ddb-sep"></div>
+    <span style="font-size:11px;color:var(--ink-3);font-weight:700;letter-spacing:.06em;text-transform:uppercase" title="Fecha de registro del lead">Período</span>
+    <div style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:3px 10px">
+      <span style="font-size:10px;color:var(--ink-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Desde</span>
+      <input type="date" id="ase-desde" onchange="renderAsesores()" style="border:none;background:transparent;font-size:12.5px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;outline:none;padding:2px 0">
+      <span style="color:var(--ink-4);font-size:13px">→</span>
+      <span style="font-size:10px;color:var(--ink-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Hasta</span>
+      <input type="date" id="ase-hasta" onchange="renderAsesores()" style="border:none;background:transparent;font-size:12.5px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;outline:none;padding:2px 0">
+    </div>
+    <button onclick="document.getElementById('ase-desde').value='';document.getElementById('ase-hasta').value='';renderAsesores()" title="Limpiar fechas" style="background:transparent;border:none;color:var(--ink-4);font-size:14px;cursor:pointer;padding:0 4px;line-height:1">✕</button>
+  </div>
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="setAseTab('resumen',this)">Resumen por asesor</button>
+    <button class="tab-btn" onclick="setAseTab('tareas',this)">Tareas vencidas</button>
+    <button class="tab-btn" onclick="setAseTab('citas',this)">Citas sin seguimiento</button>
+  </div>
+  <div id="ase-content"><div class="loading">Cargando...</div></div>
 </div>
 
 <!-- ═══════════ STOCK PROYECTO ═══════════ -->
@@ -1610,6 +1651,7 @@ function renderAll(){
   renderPricing();
   renderAdmVentas();
   renderFunnelMkt();
+  renderAsesores();
   renderStockProy();
   document.querySelectorAll('.page-sub').forEach(el=>{
     if(!el.textContent.includes('Error')&&!el.textContent.includes('Cargando'))
@@ -6586,10 +6628,11 @@ const FL_SEP_COLS=[
   {label:'Proyecto',       get:_flProyectoCli},
   {label:'N° Dpto',        get:_flNroDpto, align:'center'},
   {label:'Canal',          get:_flCanal},
+  {label:'Contacto',       get:r=>String(r.FormaContacto||'').trim()||'—'},
   {label:'Vendedor',       get:_flAsesor},
   {label:'Distrito',       get:_flDistritoCli},
   {label:'F. Registro',    get:r=>_flFmtFecha(_flFechaRegistroPara(r)), align:'center', sortVal:r=>_flIsoFecha(_flFechaRegistroPara(r))},
-  {label:'F. Separación',  get:r=>_flFmtFecha(r.FechaSepDefinitiva), align:'center', sortVal:r=>_flIsoFecha(r.FechaSepDefinitiva)},
+  {label:'F. Separación', get:r=>_flFmtFecha(r.FechaSepDefinitiva), align:'center', sortVal:r=>_flIsoFecha(r.FechaSepDefinitiva)},
   {label:'Estado',         get:r=>String(r.Estado||'').trim()||'—', align:'center'},
 ];
 // Fecha de separación de una venta: Ventas no la trae, está en Stock (FechaSepDefinitiva).
@@ -7445,6 +7488,188 @@ function _prImportar(){
   }catch(e){ alert('No se pudo leer: el texto no tiene el formato esperado.'); }
 }
 
+
+// ══════════════════════════════════════════════════════════════
+// GESTIÓN DE ASESORES — toques, tareas vencidas, citas sin seguimiento, T. respuesta
+// Foto actual de leads ACTIVOS en Prospectos (Estado='Activo'):
+//  · Toques        = Cant_Acciones (acciones registradas en el CRM)
+//  · Tarea vencida = Estado_Tarea='Vencido'; vence en Fecha_TareaNueva
+//  · Cita sin seguimiento = FechaCitado ya pasó, sin visita registrada (cruce con
+//    Visitas) → "sin acción posterior" si además Fecha_UltimaAccion <= FechaCitado
+//  · T. respuesta  = mediana de TiempoRespuesta_min (minutos hábiles, ver ETL)
+// ══════════════════════════════════════════════════════════════
+let _aseTab='resumen', _aseSel='';
+function setAseTab(t,el){
+  _aseTab=t;
+  document.querySelectorAll('#panel-asesores .tab-btn').forEach(b=>b.classList.remove('active'));
+  if(el)el.classList.add('active');
+  renderAsesores();
+}
+function aseSelAsesor(i){
+  const a=(window._aseNames||[])[i]||'';
+  _aseSel=(_aseSel===a?'':a);
+  renderAsesores();
+}
+
+function _aseFechaMs(f){
+  const s=String(f||'').trim();
+  if(!s||s==='nan'||s==='None'||s==='NaT')return null;
+  const t=Date.parse(s.replace(' ','T'));
+  return isNaN(t)?null:t;
+}
+const _aseMediana=a=>{if(!a.length)return null;const v=[...a].sort((x,y)=>x-y),m=v.length>>1;return v.length%2?v[m]:(v[m-1]+v[m])/2;};
+const _aseFmtMin=v=>v==null?'—':v<60?Math.round(v)+' min':v<1440?(v/60).toFixed(1)+' h':(v/1440).toFixed(1)+' d';
+const _asePad=n=>String(n).padStart(2,'0');
+const _aseFmtDia=ms=>{if(ms==null)return '—';const d=new Date(ms);return _asePad(d.getDate())+'-'+_asePad(d.getMonth()+1)+'-'+d.getFullYear();};
+const _aseFmtF=ms=>{if(ms==null)return '—';const d=new Date(ms);return _aseFmtDia(ms)+' '+_asePad(d.getHours())+':'+_asePad(d.getMinutes());};
+
+function _aseCalc(){
+  const proj=document.getElementById('ase-proj')?.value||'';
+  const dIni=document.getElementById('ase-desde')?.value||'', dFin=document.getElementById('ase-hasta')?.value||'';
+  const desdeMs=dIni?Date.parse(dIni+'T00:00:00'):null, hastaMs=dFin?Date.parse(dFin+'T23:59:59'):null;
+  const now=Date.now(), DIA=86400000;
+
+  // Índice de visitas por DNI|proyecto y correo|proyecto → última fecha de visita
+  const vDoc=new Map(), vMail=new Map();
+  (D.visitas||[]).forEach(v=>{
+    const f=_aseFechaMs(v.FechaVisita); if(f==null)return;
+    const py=String(v.Proyecto||'').trim();
+    const doc=String(v.NroDocTitular||'').trim(), mail=String(v.CorreoElectronico||'').trim().toLowerCase();
+    if(doc&&doc!=='nan'&&doc!=='0'){const k=doc+'|'+py;if(!(vDoc.get(k)>=f))vDoc.set(k,f);}
+    if(mail&&mail!=='nan'){const k=mail+'|'+py;if(!(vMail.get(k)>=f))vMail.set(k,f);}
+  });
+  const ultVisita=r=>{
+    const py=String(r.Proyecto||'').trim();
+    const doc=String(r.NroDocumento||'').trim(), mail=String(r.CorreoElectronico||'').trim().toLowerCase();
+    let f=(doc&&doc!=='nan'&&doc!=='0')?vDoc.get(doc+'|'+py):undefined;
+    if(f==null&&mail&&mail!=='nan')f=vMail.get(mail+'|'+py);
+    return f==null?null:f;
+  };
+
+  const por={};
+  const get=a=>por[a]||(por[a]={asesor:a,activos:0,toques:0,sinToque:0,vencidas:0,atrasoSum:0,citasVenc:0,citasSinAcc:0,tr:[],tareas:[],citas:[]});
+  (D.prospectos||[]).forEach(r=>{
+    if(proj&&String(r.Proyecto||'').trim()!==proj)return;
+    if(_isProperVendedor(r))return;
+    if(desdeMs!=null||hastaMs!=null){
+      const fr=_aseFechaMs(r.FechaRegistro);
+      if(fr==null||(desdeMs!=null&&fr<desdeMs)||(hastaMs!=null&&fr>hastaMs))return;
+    }
+    const a=toShort(String(r.Responsable||r.Asesor||'Sin asesor').trim())||'Sin asesor';
+    (window._aseTodos=window._aseTodos||new Set()).add(a);
+    if(_aseSel&&a!==_aseSel)return;
+    const o=get(a);
+    // T. respuesta: todos los leads del filtro (activos o no)
+    const tr=parseFloat(r.TiempoRespuesta_min);
+    if(!isNaN(tr)&&tr>=0){
+      o.tr.push(tr);
+    }
+    if(String(r.Estado||'').trim()!=='Activo')return;
+    o.activos++;
+    const ca=parseFloat(r.Cant_Acciones);
+    if(isNaN(ca)||ca<=0)o.sinToque++; else o.toques+=ca;
+    if(String(r.Estado_Tarea||'').trim()==='Vencido'){
+      const fT=_aseFechaMs(r.Fecha_TareaNueva);
+      const atraso=fT!=null?Math.max(0,Math.floor((now-fT)/DIA)):null;
+      o.vencidas++; if(atraso!=null)o.atrasoSum+=atraso;
+      o.tareas.push({r,asesor:a,fT,atraso,ca:isNaN(ca)?0:ca});
+    }
+    const fC=_aseFechaMs(r.FechaCitado);
+    if(fC!=null&&fC<now){
+      const fV=ultVisita(r);
+      if(fV!=null&&fV>=fC-DIA)return; // la cita se concretó en visita
+      const fU=_aseFechaMs(r.Fecha_UltimaAccion);
+      const sinAcc=fU==null||fU<=fC;
+      o.citasVenc++; if(sinAcc)o.citasSinAcc++;
+      o.citas.push({r,asesor:a,fC,fU,sinAcc,diasVenc:Math.floor((now-fC)/DIA)});
+    }
+  });
+  const arr=Object.values(por).filter(o=>o.activos||o.tr.length);
+  arr.forEach(o=>{
+    o.medTR=_aseMediana(o.tr);
+    o.toquesProm=o.activos?o.toques/o.activos:0;
+    o.atrasoProm=o.vencidas?o.atrasoSum/o.vencidas:0;
+    o.pctVenc=o.activos?o.vencidas/o.activos*100:0;
+  });
+  arr.sort((x,y)=>y.vencidas-x.vencidas||y.activos-x.activos);
+  return arr;
+}
+
+function renderAsesores(){
+  const cont=document.getElementById('ase-content'); if(!cont)return;
+  if(!(D.prospectos||[]).length){cont.innerHTML='<div class="loading">Sin datos de prospectos</div>';return;}
+  const arr=_aseCalc();
+  const selA=document.getElementById('ase-asesor');
+  if(selA){
+    const nombres=[...(window._aseTodos||[])].sort();
+    if(selA.options.length!==nombres.length+1){
+      selA.innerHTML='<option value="">Todos los asesores</option>'+nombres.map(n=>`<option>${n}</option>`).join('');
+    }
+    selA.value=_aseSel;
+  }
+  const sum=k=>arr.reduce((t,o)=>t+o[k],0);
+  const allTr=arr.flatMap(o=>o.tr);
+  const sub=document.getElementById('ase-sub');
+  if(sub)sub.textContent=arr.length+' asesores · '+fN(sum('activos'))+' leads activos · actualizado '+(D.updatedAt||'—');
+
+  const kpis=`<div class="kpi-row kpi-6">
+    ${kpi('Leads activos',fN(sum('activos')),'asignados a asesores')}
+    ${kpi('Toques totales',fN(sum('toques')),'prom. '+(sum('activos')?(sum('toques')/sum('activos')).toFixed(1):'0')+' por lead')}
+    ${kpi('Leads sin ningún toque',fN(sum('sinToque')),'sin acción registrada')}
+    ${kpi('Tareas vencidas',fN(sum('vencidas')),(sum('activos')?(sum('vencidas')/sum('activos')*100).toFixed(0):0)+'% de los activos')}
+    ${kpi('Citas sin seguimiento',fN(sum('citasVenc')),fN(sum('citasSinAcc'))+' sin acción posterior')}
+    ${kpi('T. respuesta (mediana)',_aseFmtMin(_aseMediana(allTr)),'min. hábiles')}
+  </div>`;
+
+  const rojo=v=>v>0?'color:#ef4444;font-weight:700':'';
+  const filtroTxt=_aseSel?' · <b>'+_aseSel+'</b>':'';
+  let body='';
+  if(_aseTab==='resumen'){
+    const rows=arr.map(o=>`<tr>
+        <td><b>${o.asesor}</b></td>
+        <td class="r">${fN(o.activos)}</td>
+        <td class="r">${fN(o.toques)}</td>
+        <td class="r">${o.toquesProm.toFixed(1)}</td>
+        <td class="r" style="${rojo(o.sinToque)}">${fN(o.sinToque)}</td>
+        <td class="r" style="${rojo(o.vencidas)}">${fN(o.vencidas)}</td>
+        <td class="r">${o.pctVenc.toFixed(0)}%</td>
+        <td class="r">${o.vencidas?o.atrasoProm.toFixed(0)+' d':'—'}</td>
+        <td class="r" style="${rojo(o.citasVenc)}">${fN(o.citasVenc)}</td>
+        <td class="r" style="${rojo(o.citasSinAcc)}">${fN(o.citasSinAcc)}</td>
+        <td class="r">${_aseFmtMin(o.medTR)}</td>
+      </tr>`).join('');
+    body=`<div class="card"><div class="card-hd"><div><h3>Desempeño por asesor</h3><p>Leads activos al día de hoy · filtros de asesor y fecha de registro arriba${filtroTxt}</p></div></div>
+      <div style="overflow-x:auto"><table class="tbl"><thead><tr>
+        <th>Asesor</th><th class="r">Leads activos</th><th class="r">Toques</th><th class="r">Toques/lead</th><th class="r">Sin toque</th>
+        <th class="r">Tareas vencidas</th><th class="r">% vencidas</th><th class="r">Atraso prom.</th>
+        <th class="r">Citas sin visita</th><th class="r">…sin acción posterior</th><th class="r">T. respuesta</th>
+      </tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  } else if(_aseTab==='tareas'){
+    const f=arr.filter(o=>!_aseSel||o.asesor===_aseSel).flatMap(o=>o.tareas).sort((a,b)=>(a.fT??Infinity)-(b.fT??Infinity)).slice(0,500);
+    const rows=f.map(t=>`<tr>
+      <td>${t.asesor}</td><td>${(t.r.Nombres||'')+' '+(t.r.ApellidoPaterno||'')}</td><td>${t.r.Proyecto||''}</td>
+      <td>${t.r.SubEstado||''}</td><td>${t.r.Titulo_TareaNueva||''}</td>
+      <td class="r">${_aseFmtF(t.fT)}</td>
+      <td class="r" style="color:#ef4444;font-weight:700">${t.atraso!=null?t.atraso+' d':'—'}</td>
+      <td class="r">${t.ca||0}</td><td class="r">${_aseFmtF(_aseFechaMs(t.r.Fecha_UltimaAccion))}</td></tr>`).join('');
+    body=`<div class="card"><div class="card-hd"><div><h3>Tareas vencidas</h3><p>De la más antigua a la más reciente · máx. 500 filas${filtroTxt}</p></div></div>
+      <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Asesor</th><th>Cliente</th><th>Proyecto</th><th>Sub-estado</th><th>Tarea</th><th class="r">Venció</th><th class="r">Atraso</th><th class="r">Toques</th><th class="r">Última acción</th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="9" style="text-align:center;color:var(--ink-4)">Sin tareas vencidas</td></tr>'}</tbody></table></div></div>`;
+  } else {
+    const f=arr.filter(o=>!_aseSel||o.asesor===_aseSel).flatMap(o=>o.citas).sort((a,b)=>(b.sinAcc-a.sinAcc)||(b.diasVenc-a.diasVenc)).slice(0,500);
+    const rows=f.map(c=>`<tr>
+      <td>${c.asesor}</td><td>${(c.r.Nombres||'')+' '+(c.r.ApellidoPaterno||'')}</td><td>${c.r.Proyecto||''}</td>
+      <td>${c.r.SubEstado||''}</td>
+      <td class="r">${_aseFmtDia(c.fC)}</td>
+      <td class="r" style="color:#ef4444;font-weight:700">${c.diasVenc} d</td>
+      <td class="r">${_aseFmtF(c.fU)}</td>
+      <td>${c.sinAcc?'<span style="color:#ef4444;font-weight:700">Sin acción posterior</span>':'Con acción posterior'}</td></tr>`).join('');
+    body=`<div class="card"><div class="card-hd"><div><h3>Citas sin seguimiento</h3><p>Cita ya vencida y sin visita registrada (cruce con Visitas por DNI/correo + proyecto) · máx. 500 filas${filtroTxt}</p></div></div>
+      <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Asesor</th><th>Cliente</th><th>Proyecto</th><th>Sub-estado</th><th class="r">Fecha cita</th><th class="r">Días vencida</th><th class="r">Última acción</th><th>Seguimiento</th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="8" style="text-align:center;color:var(--ink-4)">Sin citas pendientes de seguimiento</td></tr>'}</tbody></table></div></div>`;
+  }
+  cont.innerHTML=kpis+body;
+}
 
 function nav(id, el){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
