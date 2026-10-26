@@ -468,6 +468,9 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 .dir-date-bar .range-lbl{font-size:11px;color:var(--ink-3);font-weight:500}
 .dir-date-bar select{border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:12px;background:var(--panel);color:var(--ink);cursor:pointer}
 .dir-date-bar .ddb-sep{width:1px;height:18px;background:var(--line);margin:0 6px}
+#panel-asesores table.tbl thead th,#panel-asesores table.tbl tbody td{text-align:center;font-family:'Plus Jakarta Sans',sans-serif;white-space:nowrap}
+#panel-asesores table.tbl thead th:first-child,#panel-asesores table.tbl tbody td:first-child{text-align:left}
+#panel-asesores table.tbl tbody td.r{font-weight:500}
 /* ── PROJ OVERVIEW TABLE ── */
 .proj-ov-bar{height:6px;border-radius:3px;background:#e2e8f0;overflow:hidden;min-width:60px}
 .proj-ov-bar i{display:block;height:100%;border-radius:3px;background:var(--brand)}
@@ -1025,11 +1028,6 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
     </div>
   </div>
   <div class="dir-date-bar" id="ase-date-bar" style="flex-wrap:wrap;row-gap:6px">
-    <span style="font-size:11px;color:var(--ink-3);font-weight:700;letter-spacing:.06em;text-transform:uppercase">Asesor</span>
-    <label class="chip-sel" style="border-radius:8px;padding:5px 10px">
-      <select id="ase-asesor" onchange="_aseSel=this.value;renderAsesores()"><option value="">Todos los asesores</option></select>
-    </label>
-    <div class="ddb-sep"></div>
     <span style="font-size:11px;color:var(--ink-3);font-weight:700;letter-spacing:.06em;text-transform:uppercase" title="Fecha de registro del lead">Período</span>
     <div style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:3px 10px">
       <span style="font-size:10px;color:var(--ink-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Desde</span>
@@ -1039,6 +1037,11 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
       <input type="date" id="ase-hasta" onchange="renderAsesores()" style="border:none;background:transparent;font-size:12.5px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;outline:none;padding:2px 0">
     </div>
     <button onclick="document.getElementById('ase-desde').value='';document.getElementById('ase-hasta').value='';renderAsesores()" title="Limpiar fechas" style="background:transparent;border:none;color:var(--ink-4);font-size:14px;cursor:pointer;padding:0 4px;line-height:1">✕</button>
+    <div class="ddb-sep"></div>
+    <div style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:3px 10px">
+      <span style="font-size:10px;color:var(--ink-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Asesor</span>
+      <select id="ase-asesor" onchange="_aseSel=this.value;renderAsesores()" style="border:none;background:transparent;font-size:12.5px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;outline:none;padding:2px 0"><option value="">Todos los asesores</option></select>
+    </div>
   </div>
   <div class="tab-bar">
     <button class="tab-btn active" onclick="setAseTab('resumen',this)">Resumen por asesor</button>
@@ -7521,6 +7524,14 @@ const _aseMediana=a=>{if(!a.length)return null;const v=[...a].sort((x,y)=>x-y),m
 const _aseFmtMin=v=>v==null?'—':v<60?Math.round(v)+' min':v<1440?(v/60).toFixed(1)+' h':(v/1440).toFixed(1)+' d';
 const _asePad=n=>String(n).padStart(2,'0');
 const _aseFmtDia=ms=>{if(ms==null)return '—';const d=new Date(ms);return _asePad(d.getDate())+'-'+_asePad(d.getMonth()+1)+'-'+d.getFullYear();};
+// Algunos leads (formulario) traen en Nombres el nombre pegado a restos de HTML + "Correo: ... Telefono: ..."
+// ("Ruth Alvaradospan&gt;Correo: ...") — se corta en ese punto y queda solo el nombre.
+const _aseNombre=r=>{
+  const raw=(String(r.Nombres||'')+' '+String(r.ApellidoPaterno||'')).trim();
+  const corte=raw.search(/span\s*(&gt;|>)|&lt;|<|Correo\s*:/i);
+  const n=(corte>=0?raw.slice(0,corte):raw).replace(/\s+/g,' ').trim();
+  return n||'—';
+};
 const _aseFmtF=ms=>{if(ms==null)return '—';const d=new Date(ms);return _aseFmtDia(ms)+' '+_asePad(d.getHours())+':'+_asePad(d.getMinutes());};
 
 function _aseCalc(){
@@ -7598,6 +7609,15 @@ function _aseCalc(){
 function renderAsesores(){
   const cont=document.getElementById('ase-content'); if(!cont)return;
   if(!(D.prospectos||[]).length){cont.innerHTML='<div class="loading">Sin datos de prospectos</div>';return;}
+  // Igual que Marketing y Adm. de Ventas: la primera vez arranca desde el día 1 del mes actual
+  if(!window._aseDatesInitDone){
+    window._aseDatesInitDone=true;
+    const deInput=document.getElementById('ase-desde');
+    if(deInput&&!deInput.value){
+      const hoy=new Date();
+      deInput.value=hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-01';
+    }
+  }
   const arr=_aseCalc();
   const selA=document.getElementById('ase-asesor');
   if(selA){
@@ -7647,7 +7667,7 @@ function renderAsesores(){
   } else if(_aseTab==='tareas'){
     const f=arr.filter(o=>!_aseSel||o.asesor===_aseSel).flatMap(o=>o.tareas).sort((a,b)=>(a.fT??Infinity)-(b.fT??Infinity)).slice(0,500);
     const rows=f.map(t=>`<tr>
-      <td>${t.asesor}</td><td>${(t.r.Nombres||'')+' '+(t.r.ApellidoPaterno||'')}</td><td>${t.r.Proyecto||''}</td>
+      <td>${t.asesor}</td><td>${_aseNombre(t.r)}</td><td>${t.r.Proyecto||''}</td>
       <td>${t.r.SubEstado||''}</td><td>${t.r.Titulo_TareaNueva||''}</td>
       <td class="r">${_aseFmtF(t.fT)}</td>
       <td class="r" style="color:#ef4444;font-weight:700">${t.atraso!=null?t.atraso+' d':'—'}</td>
@@ -7658,7 +7678,7 @@ function renderAsesores(){
   } else {
     const f=arr.filter(o=>!_aseSel||o.asesor===_aseSel).flatMap(o=>o.citas).sort((a,b)=>(b.sinAcc-a.sinAcc)||(b.diasVenc-a.diasVenc)).slice(0,500);
     const rows=f.map(c=>`<tr>
-      <td>${c.asesor}</td><td>${(c.r.Nombres||'')+' '+(c.r.ApellidoPaterno||'')}</td><td>${c.r.Proyecto||''}</td>
+      <td>${c.asesor}</td><td>${_aseNombre(c.r)}</td><td>${c.r.Proyecto||''}</td>
       <td>${c.r.SubEstado||''}</td>
       <td class="r">${_aseFmtDia(c.fC)}</td>
       <td class="r" style="color:#ef4444;font-weight:700">${c.diasVenc} d</td>
