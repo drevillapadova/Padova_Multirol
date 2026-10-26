@@ -798,6 +798,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
   if(window.Chart && Chart.defaults && Chart.defaults.plugins){ Chart.defaults.plugins.datalabels = { display:false }; }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1130,6 +1131,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
             <span id="dibujar-zona-label">Dibujar zona</span>
           </button>
           <button class="btn-clear-fecha" title="Limpiar filtros" onclick="limpiarFiltrosMercado()" style="align-self:center">✕</button>
+          <button type="button" class="chip-sel" style="cursor:pointer;align-self:center;margin-left:auto" onclick="competenciaDomingoOrue()" title="Selecciona la competencia predeterminada de Domingo Orue">Comp. Orue</button>
         </div>
       </div>
       <div style="padding:0 20px">
@@ -1175,6 +1177,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
             </div>
           </div>
           <button class="btn-clear-fecha" title="Limpiar filtros" onclick="limpiarFiltrosVentas()" style="align-self:center">✕</button>
+          <button type="button" class="chip-sel" style="cursor:pointer;align-self:center;margin-left:auto" onclick="competenciaDomingoOrue()" title="Selecciona la competencia predeterminada de Domingo Orue">Comp. Orue</button>
         </div>
       </div>
       <div style="padding:0 20px">
@@ -1271,7 +1274,8 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
             </div>
           </div>
           <button class="btn-clear-fecha" title="Limpiar filtros" onclick="limpiarFiltrosPrecios()" style="align-self:center">✕</button>
-          <button type="button" class="chip-sel" style="cursor:pointer;border:none;margin-left:auto" onclick="_exportarTablaExcel('#mkt-precios-wrap table', 'precios_competencia')">
+          <button type="button" class="chip-sel" style="cursor:pointer;align-self:center;margin-left:auto" onclick="competenciaDomingoOrue()" title="Selecciona la competencia predeterminada de Domingo Orue">Comp. Orue</button>
+          <button type="button" class="chip-sel" style="cursor:pointer;border:none" onclick="_exportarPreciosExcel()">
             <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">⬇</span>
             <span>Descargar Excel</span>
           </button>
@@ -7831,6 +7835,114 @@ function _exportarTablaExcel(tableSelector, nombreArchivo){
   XLSX.writeFile(wb, `${nombreArchivo}_${fecha}.xlsx`);
 }
 
+// ── Excel de Precios Competencia con el mismo formato que se ve en el dashboard
+// (colores por dormitorios, filas resumen/total, encabezados). Lee el <table> ya
+// renderizado, así respeta los filtros elegidos. Usa ExcelJS porque SheetJS
+// (el de _exportarTablaExcel) no permite estilos. ──
+async function _exportarPreciosExcel(){
+  const table = document.querySelector('#mkt-precios-wrap table');
+  if(!table || !table.rows.length){
+    alert('No hay datos para exportar todavía. Elige algún filtro primero.');
+    return;
+  }
+  if(typeof ExcelJS==='undefined'){ _exportarTablaExcel('#mkt-precios-wrap table','precios_competencia'); return; }
+
+  const FONT = 'Plus Jakarta Sans';
+  const INK='FF0F172A', INK2='FF334155', INK3='FF64748B', LINE='FFE5E7EB', LINE2='FFEEF0F3';
+  const BRAND='FF3B82F6', BRAND_SOFT='FFE9F1FE', OK='FF1F9D55', OK_SOFT='FFE3F7E8', BLANCO='FFFFFFFF';
+  const borde = (color, grosor='thin') => ({ style:grosor, color:{argb:color} });
+  const rgbAArgb = s => {
+    const m = String(s||'').match(/\d+(\.\d+)?/g);
+    return m && m.length>=3 ? 'FF'+m.slice(0,3).map(n=>(+n).toString(16).padStart(2,'0')).join('').toUpperCase() : null;
+  };
+
+  const filas = [...table.rows];
+  const nCols = filas[0].cells.length;
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'Padova SAC';
+  const ws = wb.addWorksheet('Precios Competencia', { views:[{ showGridLines:false }] });
+
+  // Título y subtítulo
+  const etiquetaPeriodo = _preciosPeriodoMeses ? `últimos ${_preciosPeriodoMeses} meses` : 'todo el histórico';
+  ws.mergeCells(1,1,1,nCols);
+  const t = ws.getCell(1,1);
+  t.value = 'Precios Competencia';
+  t.font = { name:FONT, size:16, bold:true, color:{argb:INK} };
+  t.alignment = { vertical:'middle', horizontal:'left' };
+  ws.getRow(1).height = 28;
+  ws.mergeCells(2,1,2,nCols);
+  const sub = ws.getCell(2,1);
+  sub.value = `Periodo de ventas: ${etiquetaPeriodo} · Descargado el ${new Date().toLocaleDateString('es-PE')}`;
+  sub.font = { name:FONT, size:10, color:{argb:INK3} };
+  ws.getRow(3).height = 6;
+
+  const base = 4; // primera fila de la tabla en la hoja
+  filas.forEach((tr, i)=>{
+    const rowXl = ws.getRow(base+i);
+    const esHead = tr.parentElement.tagName==='THEAD';
+    const cls = tr.className||'';
+    const esResumen = cls.includes('pc-summary'), esTotal = cls.includes('pc-total');
+    [...tr.cells].forEach((td, j)=>{
+      const c = rowXl.getCell(j+1);
+      const bloque = td.querySelector('span[style*="background"]'); // bloque de color de m² por dormitorios
+      const texto = (td.innerText||td.textContent||'').trim();
+      const colorBloque = bloque ? rgbAArgb(getComputedStyle(bloque).backgroundColor) : null;
+      const esLbl = j===0;
+      c.value = (esLbl && !esHead) ? texto.toUpperCase() : texto; // la etiqueta va en mayúsculas, como en pantalla
+      c.alignment = { vertical:'middle', horizontal: esLbl ? 'left' : 'center', wrapText:false, indent: esLbl ? 1 : 0 };
+      c.border = { bottom: esHead ? borde(LINE,'medium') : borde(LINE2) };
+      if(esLbl) c.border.right = borde(LINE);
+      if(esHead){
+        c.font = { name:FONT, size:11, bold:true, color:{argb:INK} };
+        c.fill = { type:'pattern', pattern:'solid', fgColor:{argb:BLANCO} };
+      } else if(esTotal){
+        c.font = { name:FONT, size:esLbl?10:11, bold:true, color:{argb:OK} };
+        c.fill = { type:'pattern', pattern:'solid', fgColor:{argb:OK_SOFT} };
+      } else if(esResumen){
+        c.font = { name:FONT, size:esLbl?10:11, bold:true, italic:!esLbl, color:{argb: esLbl?INK3:INK2} };
+        c.fill = { type:'pattern', pattern:'solid', fgColor:{argb:BRAND_SOFT} };
+      } else if(colorBloque){
+        c.font = { name:FONT, size:11, bold:true, color:{argb:BLANCO} };
+        c.fill = { type:'pattern', pattern:'solid', fgColor:{argb:colorBloque} };
+      } else if(esLbl){
+        c.font = { name:FONT, size:10, bold:true, color:{argb:INK3} };
+        c.fill = { type:'pattern', pattern:'solid', fgColor:{argb:BLANCO} };
+      } else {
+        c.font = { name:FONT, size:11, color:{argb:INK2} };
+      }
+    });
+    rowXl.height = esHead ? 26 : 21;
+  });
+
+  ws.getColumn(1).width = 38;
+  for(let j=2;j<=nCols;j++){
+    const maxLen = Math.max(...filas.map(tr=>String((tr.cells[j-1]?.innerText)||'').trim().length), 10);
+    ws.getColumn(j).width = Math.min(Math.max(maxLen+6, 20), 34);
+  }
+  // Congela encabezado de proyectos y columna de etiquetas
+  ws.views = [{ state:'frozen', xSplit:1, ySplit:base, showGridLines:false }];
+
+  // Leyenda de colores (dormitorios)
+  const finLeyenda = base + filas.length + 1;
+  const leyenda = ws.getRow(finLeyenda);
+  leyenda.getCell(1).value = 'Color del bloque de m² = dormitorios más frecuentes en ese rango';
+  leyenda.getCell(1).font = { name:FONT, size:9, italic:true, color:{argb:INK3} };
+  Object.entries(PRECIOS_DORM_COLORS).forEach(([d,col], k)=>{
+    const c = leyenda.getCell(2+k);
+    c.value = d+' dorm.';
+    c.font = { name:FONT, size:10, bold:true, color:{argb:BLANCO} };
+    c.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+col.replace('#','').toUpperCase()} };
+    c.alignment = { horizontal:'center', vertical:'middle' };
+  });
+
+  const buf = await wb.xlsx.writeBuffer();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  a.download = `precios_competencia_${new Date().toISOString().slice(0,10)}.xlsx`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+}
+
 function toggleDibujarZona(){
   if(!_mercadoMap) return;
   if(_zonaDibujada){ limpiarZonaDibujada(); return; }
@@ -8266,6 +8378,30 @@ function limpiarFiltrosPrecios(){
   _renderMercadoCompartidas();
 }
 
+// Competencia predeterminada de Domingo Orue: un clic deja elegidos estos proyectos en el
+// filtro de Proyecto (compartido por Mapa, Ventas y Precios) y quita los demás filtros
+// (distrito, inmobiliaria, etapa, búsqueda, zona dibujada) para que se vean todos.
+const COMPETENCIA_DORUE = ['Capulí','OPEN MARSANO','Torre Marsano 28','Element','DOMINGO ORUE 915','DORUE ETAPA 2','Las Begonias','TORRE GERMANIA'];
+function competenciaDomingoOrue(){
+  const data = D.mercado||[];
+  if(!data.length){ alert('Los datos de mercado aún están cargando.'); return; }
+  _limpiarFiltrosCompartidos();
+  _mselGet('precios-etapa').clear();
+  _zonaDibujada = null;
+  if(_zonaLayer && _mercadoMap){ _mercadoMap.removeLayer(_zonaLayer); _zonaLayer = null; }
+  if(_zonaDrawing) _zonaCancelarDibujo();
+  _zonaSetLabel('Dibujar zona');
+  const porNombre = new Map(data.map(r=>[normStr(r.proyecto||'').trim(), r.proyecto]));
+  const faltan = [];
+  COMPETENCIA_DORUE.forEach(n=>{
+    const real = porNombre.get(normStr(n).trim());
+    if(real) _mselGet('proyecto').add(real); else faltan.push(n);
+  });
+  _mselLabelsRapido();
+  _renderMercadoCompartidas();
+  if(faltan.length) console.warn('Competencia Domingo Orue: no se encontraron en el estudio de mercado →', faltan);
+}
+
 function renderMercadoMapa(){
   const wrap = document.getElementById('mkt-mercado-map');
   if(!wrap) return;
@@ -8401,7 +8537,24 @@ function renderMercadoMapa(){
   const hint = document.getElementById('mkt-mercado-hint');
   const nSel = modoClic ? _mselGet('proyecto').size : filtrado.length;
   if(_mselGet('proyecto').size && nSel <= AUTO_ABRIR_LIMITE){
-    _mercadoLayer.eachLayer(m=>{ if(!modoClic || m._sel) m.openPopup(); });
+    // Al hacer clic en un punto el mapa se redibuja y los puntos vuelven a quedar
+    // agrupados en su cluster: un marker dentro de un cluster no está en el mapa y
+    // openPopup() no hace nada. Los que estén ocultos se abren re-expandiendo (spiderfy)
+    // su cluster, sin mover el zoom ni el encuadre.
+    const _ocultos = [];
+    _mercadoLayer.eachLayer(m=>{
+      if(modoClic && !m._sel) return;
+      if(_mercadoLayer.getVisibleParent(m)===m) m.openPopup(); else _ocultos.push(m);
+    });
+    if(_ocultos.length){
+      const _cl = _mercadoLayer.getVisibleParent(_ocultos[0]);
+      if(_cl && _cl.spiderfy){
+        _mercadoLayer.once('spiderfied', ()=>_ocultos.forEach(m=>{
+          if(_mercadoLayer.getVisibleParent(m)===m) m.openPopup();
+        }));
+        _cl.spiderfy();
+      }
+    }
     if(hint) hint.style.display = 'none';
   } else if(_mselGet('proyecto').size && nSel > AUTO_ABRIR_LIMITE){
     if(hint){
