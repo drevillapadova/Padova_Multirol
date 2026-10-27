@@ -1007,6 +1007,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
     <button class="tab-btn" onclick="setFlTab('calidad',this)">Calidad &amp; Canales</button>
     <button class="tab-btn" onclick="setFlTab('metaads',this)">Meta Ads</button>
     <button class="tab-btn" onclick="setFlTab('cruce',this)">Tabla Cruce</button>
+    <button class="tab-btn" onclick="setFlTab('conversion',this)">Conversión</button>
     <button class="tab-btn tab-ia" onclick="setFlTab('ia',this)">✦ Análisis IA</button>
   </div>
   <div id="fl-content"><div class="loading">Cargando...</div></div>
@@ -3646,6 +3647,37 @@ function renderFunnelMkt(){
         document.getElementById('fl-content').innerHTML = '<div style="padding:20px;color:var(--bad)">Error al cargar Meta Ads: '+e.message+'</div>';
       });
     }
+    return;
+  }
+
+  // ══ TAB: CONVERSIÓN ══════════════════════════════════════════════════════
+  // Una fila por proyecto + fila General: Lead > Contactado > Visita > Separado > Vendido,
+  // con el % de paso entre etapas. Respeta período, "Sin Proper" y "Cohorte" de arriba.
+  if(_flTab==='conversion'){
+    const proyectos=[...document.querySelectorAll('#fl-proj option')].map(o=>o.value).filter(v=>v && !/litoral|carabayllo 4/i.test(v));
+    const calc = p => _flCohorte ? _flCalcCohorte(p, _flDateFrom, _flDateTo) : _flCalcPeriodo(p, _flDateFrom, _flDateTo);
+    const filas = proyectos.map(p=>({nombre:p, d:calc(p)}));
+    const gen = {nombre:'General', d:calc('')};
+    const etapas = d=>[d.leadsTotal, d.prospectos, d.visitasN, d.separacionesN, d.ventasN];
+    const celda = (n, ant)=>`<td style="text-align:center"><b>${fN(n)}</b>${ant!=null?`<div style="font-size:10.5px;color:var(--ink-4)">${pct(n,ant||1)}</div>`:''}</td>`;
+    const fila = (f, total)=>{
+      const e=etapas(f.d);
+      return `<tr${total?' style="background:var(--brand-soft);font-weight:700"':''}>
+        <td style="${total?'text-transform:uppercase;letter-spacing:.03em':''}">${f.nombre}</td>
+        ${celda(e[0],null)}${celda(e[1],e[0])}${celda(e[2],e[1])}${celda(e[3],e[2])}${celda(e[4],e[3])}
+        <td style="text-align:center;font-weight:700;color:var(--brand)">${pct(e[4],e[0]||1)}</td>
+      </tr>`;
+    };
+    document.getElementById('fl-content').innerHTML=`
+    <div class="section-title"><h2>CONVERSIÓN</h2><div class="hint">Lead › Contactado › Visita › Separado › Vendido · ${lblA}${_flCohorte?' · cohorte':''}</div></div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hd"><div><h3>Conversión por proyecto</h3><p>Cada etapa muestra la cantidad y, debajo, el % respecto a la etapa anterior · la última columna es Lead › Vendido</p></div></div>
+      <table class="tbl" style="width:100%">
+        <thead><tr><th>Proyecto</th><th style="text-align:center">Leads</th><th style="text-align:center">Contactados</th><th style="text-align:center">Visitas</th><th style="text-align:center">Separados</th><th style="text-align:center">Vendidos</th><th style="text-align:center">Lead › Venta</th></tr></thead>
+        <tbody>${filas.map(f=>fila(f,false)).join('')}</tbody>
+        <tfoot>${fila(gen,true)}</tfoot>
+      </table>
+    </div>`;
     return;
   }
 
