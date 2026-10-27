@@ -4758,11 +4758,11 @@ function renderAdmVentas(){
 // Cobranza por canal: agrupa los pagos de Ingreso x Depósito según quién
 // gestiona la venta. "Vendedor" solo está en Flujo de Caja (Ingreso x
 // Depósito no lo trae), así que se busca por unidad, igual que TipoFinanciamiento
-// o moneda en el resto de Cobranza. Usher y Óptima son empresas tercerizadas
+// o moneda en el resto de Cobranza. UVA y Óptima son empresas tercerizadas
 // que manejan ciertos vendedores/proyectos; el resto cae en Proper (la
 // inmobiliaria directa).
 const _CANAL_VENDEDOR = {
-  'Usher':  ['anthony','antony','roy','jair','stefany','stephanie','niria','usher'],
+  'UVA':    ['anthony','antony','roy','jair','stefany','stephanie','niria','usher'],
   'Óptima': ['nancy'],
   'Proper': ['proper'],
 };
@@ -6463,10 +6463,21 @@ function _abrirModalFinanciamiento(fc, tipo, estado, FX){
     return lista.map((x,i)=>Object.assign({}, r, {_u:x, _primera:i===0}));
   });
   const _soloPrimera = f => r => r._primera ? f(r) : '<span style="color:var(--ink-4)">—</span>';
+  const _pendInfo = r => {
+    for(let y=2025;y<=2027;y++) for(let i=0;i<12;i++){
+      if(_detNum(r[_FC_MESES_TXT[i]+'_'+y])>1) return { ym:y+'-'+String(i+1).padStart(2,'0'), mes:_FC_MM_CORTO[i]+' '+y };
+    }
+    return null;
+  };
+  const _fechaPendienteIso = r => _pendInfo(r)?.ym||'';
+  const _fechaPendiente = r => _pendInfo(r)?.mes || '<span style="color:var(--ink-4)">—</span>';
   const cols = [
     {label:'Cliente', get:r=>_detTitular(r)},
     {label:'N° Dpto.', align:'center', get:r=>r._u.nro},
     {label:'Tipo', align:'center', get:r=>r._u.tp||'—'},
+    // Solo en Pendientes: próxima cuota con saldo (mes más antiguo con saldo en Flujo de
+    // Caja). Flujo de Caja solo conoce el mes, así que todas las filas muestran "Mes AAAA".
+    ...(estado==='cobrado' ? [] : [{label:'Fecha Pago Programado', align:'center', get:_soloPrimera(_fechaPendiente), sortVal:r=>_fechaPendienteIso(r)}]),
     {label:'Monto Venta', align:'center', get:_soloPrimera(r=>_detMonto(_detNum(r.TotalVenta), _detEsUSD(r)))},
     {label:'Moneda', align:'center', get:r=>_detMonedaBadge(_detEsUSD(r))},
     {label:'Monto Pagado', align:'center', get:_soloPrimera(r=>_detMonto(_detNum(r.Pagos_Recibido), _detEsUSD(r)))},
