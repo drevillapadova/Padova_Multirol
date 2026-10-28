@@ -8582,7 +8582,7 @@ async function _exportarPreciosExcel(){
   // Leyenda de colores (dormitorios)
   const finLeyenda = base + filas.length + 1;
   const leyenda = ws.getRow(finLeyenda);
-  leyenda.getCell(1).value = 'Color del bloque de m² = dormitorios más frecuentes en ese rango';
+  leyenda.getCell(1).value = 'Bloque de m² = promedio de las ventas del período elegido (si no hubo, del histórico) · color = dormitorios más frecuentes';
   leyenda.getCell(1).font = { name:FONT, size:9, italic:true, color:{argb:INK3} };
   Object.entries(PRECIOS_DORM_COLORS).forEach(([d,col], k)=>{
     const c = leyenda.getCell(2+k);
@@ -9494,7 +9494,8 @@ function renderMercadoTipologia(){
 }
 
 // ── Precios Competencia: tabla comparativa por proyecto (uno por columna) ──
-const PRECIOS_BUCKETS = [[30,50],[50,60],[60,70],[70,80],[80,90]];
+// El último rango no tiene tope: 90 m² a más (Infinity)
+const PRECIOS_BUCKETS = [[30,50],[50,60],[60,70],[70,80],[80,90],[90,Infinity]];
 // misma familia de colores que el mapa de Competencia (SECTOR_COLORS), sin ámbar ni rojo
 const PRECIOS_DORM_COLORS = {1:'#2f6df6', 2:'#19b36b', 3:'#7b5bd6'};
 let _preciosPeriodoMeses = 6; // null = todo el histórico
@@ -9606,9 +9607,12 @@ function renderMercadoPrecios(){
       const unitsAll = ventas.filter(v=>v.area_total>=lo && v.area_total<hi);
       if(!unitsAll.length) return null;
       const unitsVentana = unitsAll.filter(enVentana);
-      const avgM2 = unitsAll.reduce((s,v)=>s+v.area_total,0)/unitsAll.length;
+      // m² y dormitorios del bloque salen de las MISMAS ventas del período elegido (las de la cantidad y los precios);
+      // solo si en el período no hubo ventas de este rango se usa todo el histórico para mostrar el tamaño de referencia.
+      const base = unitsVentana.length ? unitsVentana : unitsAll;
+      const avgM2 = base.reduce((s,v)=>s+v.area_total,0)/base.length;
       const dormCount = {};
-      unitsAll.forEach(v=>{ dormCount[v.dormitorios] = (dormCount[v.dormitorios]||0)+1; });
+      base.forEach(v=>{ dormCount[v.dormitorios] = (dormCount[v.dormitorios]||0)+1; });
       const dormMode = Object.entries(dormCount).sort((a,b)=>b[1]-a[1])[0]?.[0];
       const avgVenta = unitsVentana.length ? unitsVentana.reduce((s,v)=>s+v.precio_venta,0)/unitsVentana.length : 0;
       const avgM2Precio = unitsVentana.length ? unitsVentana.reduce((s,v)=>s+v.precio_m2_venta,0)/unitsVentana.length : 0;
@@ -9642,7 +9646,7 @@ function renderMercadoPrecios(){
   addRow('N° total de deptos', c=>c.proj.unidades_totales||'—');
 
   PRECIOS_BUCKETS.forEach(([lo,hi], i)=>{
-    addRow(`Dpto. ${lo}-${hi} m²`, c=>{
+    addRow(hi===Infinity ? `Dpto. ${lo}+ m²` : `Dpto. ${lo}-${hi} m²`, c=>{
       const b = c.buckets[i];
       if(!b) return '';
       const color = PRECIOS_DORM_COLORS[b.dormMode] || 'var(--ink-4)';
@@ -9667,7 +9671,7 @@ function renderMercadoPrecios(){
 
   if(legend) legend.innerHTML = Object.entries(PRECIOS_DORM_COLORS).map(([d,c])=>
     `<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:3px;background:${c};display:inline-block"></span>${d} dorm.</span>`
-  ).join('') + `<span>· color del bloque de m² = dormitorios más frecuentes en ese rango</span>`;
+  ).join('') + `<span>· bloque de m² = promedio de las ventas del período elegido (si no hubo, del histórico) · color = dormitorios más frecuentes</span>`;
 }
 
 // ─── INIT ──────────────────────────────────────────────────────────────────
