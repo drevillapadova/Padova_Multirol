@@ -1066,6 +1066,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
     <button class="tab-btn" onclick="setAseTab('tareas',this)">Tareas vencidas</button>
     <button class="tab-btn" onclick="setAseTab('citas',this)">Citas sin seguimiento</button>
     <button class="tab-btn" onclick="setAseTab('tiempos',this)">Tiempos de conversión</button>
+    <button class="tab-btn" onclick="setAseTab('auditoria',this)">Auditoría de leads</button>
   </div>
   <div id="ase-content"><div class="loading">Cargando...</div></div>
 </div>
@@ -7694,6 +7695,7 @@ function _aseCalc(){
     if(f==null&&mail&&mail!=='nan')f=vMail.get(mail+'|'+py);
     return f==null?null:f;
   };
+  window._aseUltVisita=ultVisita;
 
   const por={};
   const get=a=>por[a]||(por[a]={asesor:a,activos:0,toques:0,sinToque:0,vencidas:0,atrasoSum:0,citasVenc:0,citasSinAcc:0,tr:[],tareas:[],citas:[],leads:[]});
@@ -7887,8 +7889,48 @@ function aseInformePDF(){
     columnStyles:{0:{halign:'left',fontStyle:'bold'},1:{halign:'center'},2:{halign:'center',textColor:ROJO,fontStyle:'bold'},3:{halign:'center'},4:{halign:'center'}},
   }));
 
-  // 2) Citas sin acción posterior — con detalle por asesor
+  // Auditoría de leads: lo que pide seguimiento hoy
+  const AUD = _aseAudit(arr);
   let y = doc.lastAutoTable.finalY + 14;
+  if(y > 235){ doc.addPage(); y = 20; }
+  titulo('Auditoría de leads', 'Leads abiertos sin atención y citas vigentes · horario oficial lun-sáb 10:00-18:00', y);
+  y += 14;
+  const filasBul = AUD.bullets.length ? AUD.bullets : ['Sin alertas con los filtros actuales.'];
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...INK);
+  const lineasBul = filasBul.map(t=>doc.splitTextToSize(t, W-2*M-14));
+  const altoBul = lineasBul.reduce((a,l)=>a+l.length*4.6+1.5, 0) + 12;
+  doc.setFillColor(254,242,242); doc.setDrawColor(252,165,165); doc.roundedRect(M,y,W-2*M,altoBul,2,2,'FD');
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...ROJO); doc.text('PARA DECIDIR HOY', M+4, y+6);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...INK);
+  let by = y+12;
+  lineasBul.forEach(l=>{ doc.text('•', M+4, by); doc.text(l, M+9, by); by += l.length*4.6+1.5; });
+  y += altoBul + 6;
+  doc.autoTable(Object.assign({}, estiloTabla, {
+    startY: y,
+    head:[['Asesor','Leads abiertos','GRAVE vencidos','Sin toque','Visitó sin seg.','No asistió','Más antiguo']],
+    body: AUD.filas.length ? AUD.filas.slice().sort((a,b)=>b.graves.length-a.graves.length).map(f=>[f.asesor, fN(f.activos), fN(f.graves.length), fN(f.sin), fN(f.visita), fN(f.noasis), f.graves.length?f.maxDias+' d':'-']) : [['Sin datos','','','','','','']],
+    foot:[['TOTAL', fN(AUD.filas.reduce((t,f)=>t+f.activos,0)), fN(AUD.graves), fN(AUD.filas.reduce((t,f)=>t+f.sin,0)), fN(AUD.filas.reduce((t,f)=>t+f.visita,0)), fN(AUD.filas.reduce((t,f)=>t+f.noasis,0)), '']],
+    showFoot:'lastPage',
+    footStyles:{fillColor:[233,241,254], textColor:INK, fontStyle:'bold', halign:'center'},
+    columnStyles:{0:{halign:'left',fontStyle:'bold'},1:{halign:'center'},2:{halign:'center',textColor:ROJO,fontStyle:'bold'},3:{halign:'center'},4:{halign:'center'},5:{halign:'center'},6:{halign:'center'}},
+  }));
+  const vigMalas = AUD.vigAll.filter(v=>v.est==='sin'||v.est==='venc').sort((a,b)=>a.fC-b.fC);
+  if(vigMalas.length){
+    y = doc.lastAutoTable.finalY + 10;
+    if(y > 245){ doc.addPage(); y = 20; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...INK);
+    doc.text('Citas vigentes sin gestión en las 72 h previas ('+vigMalas.length+' de '+AUD.vigAll.length+')', M, y);
+    doc.autoTable(Object.assign({}, estiloTabla, {
+      startY: y+3,
+      head:[['Asesor','Cliente','Proyecto','Cita','Última gestión','Toques','Estado']],
+      body: vigMalas.map(v=>[v.asesor, _aseNombre(v.r), String(v.r.Proyecto||'-'), _aseFmtF(v.fC), v.fU!=null?_aseFmtF(v.fU):'ninguna', fN(v.toques), v.est==='sin'?'Sin gestión':'Sin recordatorio']),
+      styles:Object.assign({}, estiloTabla.styles, {fontSize:8}),
+      columnStyles:{0:{halign:'left',fontStyle:'bold'},1:{halign:'left'},2:{halign:'center'},3:{halign:'center'},4:{halign:'center'},5:{halign:'center',cellWidth:15},6:{halign:'center',textColor:ROJO,fontStyle:'bold'}},
+    }));
+  }
+
+  // 2) Citas sin acción posterior — con detalle por asesor
+  y = doc.lastAutoTable.finalY + 14;
   if(y > 250){ doc.addPage(); y = 20; }
   titulo('Citas sin acción posterior - detalle', 'La cita ya pasó, no hay visita registrada y el asesor no volvió a gestionar al cliente', y);
   y += 14;
@@ -8031,6 +8073,130 @@ function aseAbrirTiempos(i, k){
   );
 }
 
+// ── AUDITORÍA DE LEADS ─────────────────────────────────────────────────────────────────────
+// Misma idea del reporte de UVA. Solo leads ABIERTOS (Estado=Activo), con el horario oficial de atención
+// (lun–sáb 10:00–18:00): lo que llegó hoy, o el día hábil anterior después de las 18:00, aún no es atraso.
+//  · Lead GRAVE vencido = (1) sin ningún toque y que nadie contactó (SubEstado sin "contactado"), (2) visitó y nadie lo volvió a gestionar, o
+//    (3) no asistió a su cita y nadie lo volvió a contactar. Cada lead se cuenta una sola vez, en ese orden.
+//  · Aparte (no suma en GRAVE): leads que Mantra (IA) ya contactó y pasó al asesor, y el asesor aún no toca (0 toques).
+//  · Cita vigente = FechaCitado de hoy en adelante. Estado según la ÚLTIMA gestión (Fecha_UltimaAccion): no tenemos el
+//    historial de acciones, así que se mira si hubo alguna gestión dentro de las 72 h previas a la cita.
+//  · Efectividad = citas con visita (cita ya pasada y visita desde 1 día antes de la cita) ÷ citas del asesor,
+//    contando también las que aún no llegan a su fecha (igual que UVA). Las de Mantra (IA) van aparte.
+const _ASE_MOTIVO = {sin:'Sin ningún toque', visita:'Visitó sin seguimiento', noasistio:'No asistió y nadie lo recontactó', mantra:'Mantra lo contactó, el asesor no lo retomó'};
+function _aseAudit(arr){
+  const now=Date.now(), DIA=86400000, H=3600000;
+  const h0=new Date(); h0.setHours(0,0,0,0); const hoyMs=h0.getTime();
+  const ultBD=(()=>{const d=new Date(hoyMs); if(d.getDay()===0)d.setDate(d.getDate()-1); return d.getTime();})(); // último día hábil
+  // día hábil en que "cuenta" una llegada: domingo o después de las 18:00 pasa al siguiente día hábil
+  const efect=ms=>{const d=new Date(ms); const h=d.getHours(); d.setHours(0,0,0,0); if(d.getDay()===0||h>=18)d.setDate(d.getDate()+1); while(d.getDay()===0)d.setDate(d.getDate()+1); return d.getTime();};
+  const venc=ms=>efect(ms)<ultBD;
+  const ultV=window._aseUltVisita||(()=>null);
+  const filas=arr.map(o=>{
+    const graves=[], vig=[], mantraSin=[];
+    const st={P:{citas:0,ef:0,no:0,pend:0}, M:{citas:0,ef:0,no:0,pend:0}};
+    let activos=0;
+    o.leads.forEach(r=>{
+      const fC=_aseFechaMs(r.FechaCitado), fU=_aseFechaMs(r.Fecha_UltimaAccion), fR=_aseFechaMs(r.FechaRegistro), fV=ultV(r);
+      const ca=parseFloat(r.Cant_Acciones), toques=isNaN(ca)?0:ca;
+      const cumplida = fC!=null && fC<now && fV!=null && fV>=fC-DIA;
+      if(fC!=null){
+        const k=/mantra/i.test(String(r.Responsable_Anterior||''))?'M':'P';
+        st[k].citas++; if(cumplida) st[k].ef++; else if(fC>=now) st[k].pend++; else st[k].no++;
+      }
+      if(String(r.Estado||'').trim()!=='Activo') return;
+      activos++;
+      let motivo=null, fRef=null;
+      const sinToque = toques<=0 && fR!=null && venc(fR);
+      if(sinToque && !_esContactado(r)){motivo='sin'; fRef=fR;}
+      else if(fV!=null && (fU==null||fU<=fV) && venc(fV)){motivo='visita'; fRef=fV;}
+      else if(fC!=null && fC<now && !cumplida && (fU==null||fU<=fC) && venc(fC)){motivo='noasistio'; fRef=fC;}
+      if(motivo) graves.push({r, asesor:o.asesor, motivo, fRef, dias:Math.floor((now-fRef)/DIA), fU, toques});
+      else if(sinToque && /mantra/i.test(String(r.Responsable_Anterior||''))) mantraSin.push({r, asesor:o.asesor, motivo:'mantra', fRef:fR, dias:Math.floor((now-fR)/DIA), fU, toques});
+      if(fC!=null && fC>=hoyMs){
+        let est;
+        if(toques<=0||fU==null) est='sin';
+        else if(fU>=fC-72*H) est='ok';
+        else if(now>=fC-72*H) est='venc';
+        else est='plazo';
+        vig.push({r, asesor:o.asesor, fC, fU, toques, est, mantra:/mantra/i.test(String(r.Responsable_Anterior||''))});
+      }
+    });
+    const n=m=>graves.filter(g=>g.motivo===m).length;
+    const P=st.P, M=st.M;
+    return {asesor:o.asesor, activos, graves, sin:n('sin'), visita:n('visita'), noasis:n('noasistio'),
+            maxDias:graves.reduce((a,g)=>Math.max(a,g.dias),0), vig, P, M, mantra:mantraSin, nMantra:mantraSin.length,
+            pctP:P.citas?P.ef/P.citas*100:null};
+  }).filter(f=>f.activos||f.P.citas||f.M.citas);
+  const vigAll=filas.flatMap(f=>f.vig);
+  const sumP=k=>filas.reduce((t,f)=>t+f.P[k],0);
+  const res={filas, vigAll,
+    graves:filas.reduce((t,f)=>t+f.graves.length,0),
+    sinGestion:vigAll.filter(v=>v.est==='sin'||v.est==='venc').length,
+    citasP:sumP('citas'), efP:sumP('ef')};
+  res.pctEq=res.citasP?res.efP/res.citasP*100:null;
+  res.mantraSin=filas.reduce((t,f)=>t+f.nMantra,0);
+  res.hoy=vigAll.filter(v=>v.fC<hoyMs+DIA).length;
+  res.manana=vigAll.filter(v=>v.fC>=hoyMs+DIA&&v.fC<hoyMs+2*DIA).length;
+  res.bullets=_aseAuditBullets(res);
+  return res;
+}
+// "Para decidir hoy": frases generadas con las mismas cifras de las tablas
+function _aseAuditBullets(a){
+  const b=[], MIN=5;
+  const topG=a.filas.filter(f=>f.graves.length).sort((x,y)=>y.graves.length-x.graves.length)[0];
+  if(topG) b.push(`${topG.asesor}: ${fN(topG.graves.length)} leads GRAVE vencidos, el mayor del equipo (${fN(a.graves)} en total).`);
+  const topM=a.filas.filter(f=>f.nMantra).sort((x,y)=>y.nMantra-x.nMantra)[0];
+  if(topM) b.push(`${fN(a.mantraSin)} leads que Mantra ya contactó y ningún asesor retomó (0 toques); el mayor: ${topM.asesor} con ${fN(topM.nMantra)}.`);
+  const malas=a.vigAll.filter(v=>v.est==='sin'||v.est==='venc');
+  if(a.vigAll.length){
+    const por={}; malas.forEach(v=>{por[v.asesor]=(por[v.asesor]||0)+1;});
+    const det=Object.entries(por).sort((x,y)=>y[1]-x[1]).map(([k,n])=>k+' '+n).join(', ');
+    b.push(malas.length
+      ? `${fN(malas.length)} de ${fN(a.vigAll.length)} citas vigentes sin gestión en las 72 h previas (${det}).`
+      : `Las ${fN(a.vigAll.length)} citas vigentes tienen gestión dentro de plazo.`);
+    b.push(`Agenda: ${fN(a.hoy)} cita(s) hoy, ${fN(a.manana)} mañana y ${fN(a.vigAll.length)} vigentes en total.`);
+  }
+  const conMuestra=a.filas.filter(f=>f.P.citas>=MIN).sort((x,y)=>x.pctP-y.pctP);
+  if(conMuestra.length) b.push(`Menor efectividad: ${conMuestra[0].asesor} con ${conMuestra[0].pctP.toFixed(0)}% (${conMuestra[0].P.ef} de ${conMuestra[0].P.citas} citas propias).`);
+  const pocos=a.filas.filter(f=>f.P.citas>0&&f.P.citas<MIN).map(f=>f.asesor);
+  if(pocos.length) b.push(`Muestra insuficiente (menos de ${MIN} citas propias) para comparar efectividad: ${pocos.join(', ')}.`);
+  return b;
+}
+const _ASE_EST_VIG = {
+  sin:{t:'Sin gestión', c:'#dc2626', bg:'rgba(220,38,38,.10)'},
+  venc:{t:'Sin recordatorio', c:'#dc2626', bg:'rgba(220,38,38,.10)'},
+  plazo:{t:'En plazo', c:'#b45309', bg:'rgba(245,158,11,.14)'},
+  ok:{t:'Con gestión previa', c:'#15803d', bg:'rgba(34,197,94,.12)'},
+};
+const _aseBadge = k=>{const e=_ASE_EST_VIG[k]; return `<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;color:${e.c};background:${e.bg};white-space:nowrap">${e.t}</span>`;};
+// Detalle (popup) de los leads GRAVE vencidos: i = índice en window._aseAud.filas, o -1 para todos; motivo = 'sin'|'visita'|'noasistio'|null
+function aseAbrirAudit(i, motivo){
+  const A=window._aseAud; if(!A) return;
+  const f=i>=0?A.filas[i]:null;
+  const fuente = motivo==='mantra' ? (f?f.mantra:A.filas.flatMap(x=>x.mantra)) : (f?f.graves:A.filas.flatMap(x=>x.graves));
+  const filas=fuente.filter(g=>!motivo||g.motivo===motivo).slice().sort((a,b)=>b.dias-a.dias);
+  const docOk=v=>{const d=String(v||'').trim();return (d&&d!=='nan'&&d!=='None'&&d!=='0')?d:'—';};
+  const cols=[
+    {label:'Cliente', get:g=>_aseNombre(g.r)},
+    {label:'DNI', align:'center', get:g=>docOk(g.r.NroDocumento)},
+    {label:'Asesor', align:'center', get:g=>g.asesor},
+    {label:'Proyecto', align:'center', get:g=>String(g.r.Proyecto||'—')},
+    {label:'Motivo', align:'center', get:g=>_ASE_MOTIVO[g.motivo], sortVal:g=>g.motivo},
+    {label:'F. referencia', align:'center', get:g=>_aseFmtF(g.fRef), sortVal:g=>g.fRef},
+    {label:'Días vencido', align:'center', get:g=>`<span style="color:#ef4444;font-weight:700">${g.dias} d</span>`, sortVal:g=>g.dias},
+    {label:'Toques', align:'center', get:g=>g.toques, sortVal:g=>g.toques},
+    {label:'Última acción', align:'center', get:g=>_aseFmtF(g.fU), sortVal:g=>g.fU??0},
+    {label:'Sub-estado', align:'center', get:g=>String(g.r.SubEstado||'—')},
+  ];
+  _abrirModalFunnelEtapa(
+    (motivo==='mantra'?'Mantra sin retomar':'Leads GRAVE vencidos')+(f?' — '+f.asesor:'')+(motivo&&motivo!=='mantra'?' · '+_ASE_MOTIVO[motivo]:''),
+    {label:'Leads', val:fN(filas.length), color:'#ef4444'},
+    {label:'Más antiguo', val:(filas[0]?filas[0].dias:0)+' d', color:'#F4A228'},
+    filas, cols
+  );
+}
+
 const _aseTblTop = (id, cols, rows, vacio) => _aseTbl(id, cols, rows, vacio, 500);
 function renderAsesores(){
   const cont=document.getElementById('ase-content'); if(!cont)return;
@@ -8098,6 +8264,56 @@ function renderAsesores(){
     const base=_aseSortSt.tareas ? f : f.slice().sort((a,b)=>(a.fT??Infinity)-(b.fT??Infinity));
     body=`<div class="card"><div class="card-hd"><div><h3>Tareas vencidas</h3><p>${fN(f.length)} tareas${f.length>500?' · se muestran 500':''} · clic en una cabecera para ordenar${filtroTxt}</p></div></div>
       ${_aseTblTop('tareas',cols,base,'Sin tareas vencidas')}</div>`;
+  } else if(_aseTab==='auditoria'){
+    const A=_aseAudit(arr); window._aseAud=A;
+    const pctF=v=>v==null?'—':v.toFixed(0)+'%';
+    const clicA=(n,i,m)=>n?`<span class="findet-clic" onclick="aseAbrirAudit(${i},${m?`'${m}'`:'null'})">${fN(n)}</span>`:'0';
+    const kp=`<div class="kpi-row kpi-4">
+      ${_kpiClic(kpi('Leads GRAVE vencidos',fN(A.graves),'abiertos sin atención · clic para ver detalle'),"aseAbrirAudit(-1,null)")}
+      ${kpi('Citas vigentes',fN(A.vigAll.length),fN(A.hoy)+' hoy · '+fN(A.manana)+' mañana')}
+      ${kpi('Citas sin gestión previa',fN(A.sinGestion),'sin gestión en las 72 h previas')}
+      ${kpi('Efectividad de citas',A.pctEq==null?'—':A.pctEq.toFixed(0)+'%',fN(A.efP)+' de '+fN(A.citasP)+' citas propias')}
+    </div>`;
+    const decidir=`<div class="card" style="margin-bottom:16px;border-left:4px solid #dc2626"><div class="card-hd"><div><h3>Para decidir hoy</h3><p>Generado con las cifras de abajo · al día de hoy${filtroTxt}</p></div></div>
+      <ul style="margin:0;padding:4px 20px 14px 36px;font-size:13px;line-height:1.8;color:var(--ink-2)">${A.bullets.map(t=>`<li>${t}</li>`).join('')||'<li>Sin alertas con los filtros actuales.</li>'}</ul></div>`;
+    const colsG=[
+      {h:'Asesor', v:f=>f.asesor, f:f=>`<b>${f.asesor}</b>`},
+      {h:'Leads abiertos', v:f=>f.activos, f:f=>fN(f.activos), c:'r'},
+      {h:'GRAVE vencidos', v:f=>f.graves.length, f:f=>`<span style="${rojo(f.graves.length)}">${clicA(f.graves.length,A.filas.indexOf(f),null)}</span>`, c:'r'},
+      {h:'Sin ningún toque', v:f=>f.sin, f:f=>clicA(f.sin,A.filas.indexOf(f),'sin'), c:'r'},
+      {h:'Visitó sin seguimiento', v:f=>f.visita, f:f=>clicA(f.visita,A.filas.indexOf(f),'visita'), c:'r'},
+      {h:'No asistió sin recontacto', v:f=>f.noasis, f:f=>clicA(f.noasis,A.filas.indexOf(f),'noasistio'), c:'r'},
+      {h:'Más antiguo', v:f=>f.maxDias, f:f=>f.graves.length?f.maxDias+' d':'—', c:'r'},
+      {h:'Mantra sin retomar', v:f=>f.nMantra, f:f=>clicA(f.nMantra,A.filas.indexOf(f),'mantra'), c:'r'},
+    ];
+    const colsV=[
+      {h:'Asesor', v:x=>x.asesor, f:x=>x.asesor},
+      {h:'Cliente', v:x=>_aseNombre(x.r), f:x=>_aseNombre(x.r)},
+      {h:'Proyecto', v:x=>String(x.r.Proyecto||''), f:x=>x.r.Proyecto||''},
+      {h:'Origen', v:x=>x.mantra?'Mantra':'Asesor', f:x=>x.mantra?'Mantra':'Asesor'},
+      {h:'Cita', v:x=>x.fC, f:x=>_aseFmtF(x.fC), c:'r'},
+      {h:'Última gestión', v:x=>x.fU, f:x=>_aseFmtF(x.fU), c:'r'},
+      {h:'Toques', v:x=>x.toques, f:x=>fN(x.toques), c:'r'},
+      {h:'Estado', v:x=>['sin','venc','plazo','ok'].indexOf(x.est), f:x=>_aseBadge(x.est)},
+    ];
+    const vigBase=_aseSortSt.vig?A.vigAll:A.vigAll.slice().sort((a,b)=>a.fC-b.fC);
+    const colsE=[
+      {h:'Asesor', v:f=>f.asesor, f:f=>`<b>${f.asesor}</b>`},
+      {h:'Citas propias', v:f=>f.P.citas, f:f=>fN(f.P.citas), c:'r'},
+      {h:'Efectivas', v:f=>f.P.ef, f:f=>fN(f.P.ef), c:'r'},
+      {h:'No efectivas', v:f=>f.P.no, f:f=>fN(f.P.no), c:'r'},
+      {h:'Pendientes', v:f=>f.P.pend, f:f=>fN(f.P.pend), c:'r'},
+      {h:'% efectividad', v:f=>f.pctP, f:f=>f.P.citas<5?`<span style="color:var(--ink-4)" title="Menos de 5 citas propias: muestra insuficiente">${pctF(f.pctP)} *</span>`:`<b>${pctF(f.pctP)}</b>`, c:'r'},
+      {h:'Citas de Mantra', v:f=>f.M.citas, f:f=>fN(f.M.citas), c:'r'},
+      {h:'Efectivas Mantra', v:f=>f.M.ef, f:f=>fN(f.M.ef), c:'r'},
+    ];
+    body=kp+decidir+
+      `<div class="card" style="margin-bottom:16px"><div class="card-hd"><div><h3>Leads GRAVE vencidos por asesor</h3><p>Leads abiertos sin ningún toque, que visitaron sin seguimiento o que no asistieron a su cita y nadie los recontactó · horario oficial lun–sáb 10:00–18:00 · «Mantra sin retomar» = Mantra (IA) ya lo contactó y el asesor aún no lo toca (no suma en GRAVE) · <b style="color:var(--brand)">clic en un número para ver los leads</b></p></div></div>
+      ${_aseTbl('auditG',colsG,A.filas,'Sin datos')}</div>`+
+      `<div class="card" style="margin-bottom:16px"><div class="card-hd"><div><h3>Citas vigentes y su gestión</h3><p>Citas de hoy en adelante de leads abiertos · el estado mira si hubo alguna gestión en las 72 h previas a la cita (según la última acción registrada)${A.vigAll.length>500?' · se muestran 500':''}</p></div></div>
+      ${_aseTblTop('vig',colsV,vigBase,'Sin citas vigentes')}</div>`+
+      `<div class="card"><div class="card-hd"><div><h3>Efectividad de citas</h3><p>Citas con visita ÷ citas del asesor (incluye las que aún no llegan a su fecha, por eso puede subir) · las de Mantra (IA) van aparte · * muestra insuficiente (menos de 5 citas)</p></div></div>
+      ${_aseTbl('auditE',colsE,A.filas.filter(f=>f.P.citas||f.M.citas),'Sin citas')}</div>`;
   } else if(_aseTab==='tiempos'){
     const T=_aseTiempos(arr); window._aseT=T;
     const dd = st => st ? (st.med%1?st.med.toFixed(1):st.med)+' d' : '—';
