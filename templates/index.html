@@ -6627,6 +6627,10 @@ const _flFechaVisitaPara = r=>{
 // (esa vive en Prospectos) — mismo cruce por DNI/nombre+Proyecto que _flFechaVisitaPara,
 // pero acá se toma la MÁS ANTIGUA (el primer registro), no la más reciente.
 const _flFechaRegistroPara = r=>{
+  // Ventas y Stock traen la fecha de creación del prospecto (FechaProspecto = FechaRegistro del lead): es el dato directo,
+  // y sirve aunque el lead sea anterior a lo que hay en Prospectos.
+  const directa = String(r.FechaProspecto||'').trim();
+  if(directa && directa!=='nan' && directa!=='None' && directa!=='NaT') return directa;
   const doc = String(r.NroDocumento||r.NroDocumentoTitular||'').trim();
   const tieneDoc = doc && doc!=='nan' && doc!=='None' && doc!=='0';
   const proy = String(r.Proyecto||'').trim();
@@ -6637,13 +6641,7 @@ const _flFechaRegistroPara = r=>{
     return nombreNorm && normStr(p.Nombres||'')===nombreNorm;
   });
   let cand = candidatas;
-  // Sin coincidencia por DNI/nombre (ej. lead "Wil Wil" sin DNI vs comprador "Wilson Sullca"): Ventas guarda en
-  // FechaProspecto la fecha exacta en que se creó el prospecto, que es la FechaRegistro del lead → cruce por esa
-  // fecha + proyecto y, en último caso, por correo.
-  if(!cand.length){
-    const fp = String(r.FechaProspecto||'').trim().slice(0,19);
-    if(fp.length===19) cand = (D.prospectos||[]).filter(p=>(!proy || String(p.Proyecto||'').trim()===proy) && String(p.FechaRegistro||'').trim().slice(0,19)===fp);
-  }
+  // Sin FechaProspecto ni coincidencia por DNI/nombre: cruce por correo.
   if(!cand.length){
     const correo = String(r.CorreoElectronico||r.Correo||'').trim().toLowerCase();
     if(correo.includes('@')) cand = (D.prospectos||[]).filter(p=>(!proy || String(p.Proyecto||'').trim()===proy) && String(p.CorreoElectronico||'').trim().toLowerCase()===correo);
