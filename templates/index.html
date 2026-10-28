@@ -799,6 +799,8 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
 </script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1022,9 +1024,16 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
       <div class="page-sub" id="ase-sub">Cargando...</div>
     </div>
     <div class="toolbar" style="flex-wrap:wrap;row-gap:6px;overflow:visible">
-      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
-        <select id="ase-proj" onchange="renderAsesores()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO 4</option><option>LOMAS DE CARABAYLLO 5</option><option>DOMINGO ORUE</option></select>
-      </label>
+      <div style="position:relative">
+        <button type="button" class="chip-sel msel-btn" style="border:1px solid var(--line)" onclick="aseMsToggle('proj')">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
+          <span id="ase-proj-label">Todos los proyectos</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
+        </button>
+        <div class="msel-panel" id="ase-proj-panel" style="display:none;min-width:260px">
+          <div class="msel-tools"><button type="button" onclick="aseMsTodos('proj')">Todos</button><button type="button" onclick="aseMsLimpiar('proj')">Limpiar</button></div>
+          <div id="ase-proj-list"></div>
+        </div>
+      </div>
       <div class="chip refresh" onclick="loadAll(true)">↻ Actualizar</div>
       <button class="dark-toggle-btn" onclick="toggleDark()" title="Modo oscuro" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all .2s">◑</button>
     </div>
@@ -1040,15 +1049,23 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
     </div>
     <button onclick="document.getElementById('ase-desde').value='';document.getElementById('ase-hasta').value='';renderAsesores()" title="Limpiar fechas" style="background:transparent;border:none;color:var(--ink-4);font-size:14px;cursor:pointer;padding:0 4px;line-height:1">✕</button>
     <div class="ddb-sep"></div>
-    <div style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:3px 10px">
-      <span style="font-size:10px;color:var(--ink-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Asesor</span>
-      <select id="ase-asesor" onchange="_aseSel=this.value;renderAsesores()" style="border:none;background:transparent;font-size:12.5px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;outline:none;padding:2px 0"><option value="">Todos los asesores</option></select>
+    <div style="position:relative">
+      <div class="msel-btn" onclick="aseMsToggle('ases')" style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:3px 10px;cursor:pointer">
+        <span style="font-size:10px;color:var(--ink-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Asesor</span>
+        <span id="ase-ases-label" style="font-size:12.5px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;padding:2px 0">Todos los asesores</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
+      </div>
+      <div class="msel-panel" id="ase-ases-panel" style="display:none;min-width:240px">
+        <div class="msel-tools"><button type="button" onclick="aseMsTodos('ases')">Todos</button><button type="button" onclick="aseMsLimpiar('ases')">Limpiar</button></div>
+        <div id="ase-ases-list"></div>
+      </div>
     </div>
+    <button type="button" class="chip-sel" style="cursor:pointer;align-self:center;margin-left:auto;font-weight:600;color:var(--brand)" onclick="aseInformePDF()" title="Descarga un PDF con las citas sin acción posterior (con detalle) y el resumen de tareas vencidas, según el período y filtros elegidos">⬇ Informe PDF</button>
   </div>
   <div class="tab-bar">
     <button class="tab-btn active" onclick="setAseTab('resumen',this)">Resumen por asesor</button>
     <button class="tab-btn" onclick="setAseTab('tareas',this)">Tareas vencidas</button>
     <button class="tab-btn" onclick="setAseTab('citas',this)">Citas sin seguimiento</button>
+    <button class="tab-btn" onclick="setAseTab('tiempos',this)">Tiempos de conversión</button>
   </div>
   <div id="ase-content"><div class="loading">Cargando...</div></div>
 </div>
@@ -3135,12 +3152,31 @@ function _flCalcCohorte(proj, from, to){
     ok.sort((a,b)=>String(a.iso||'9').localeCompare(String(b.iso||'9')));
     return ok[0].r;
   };
+  // Muchos leads no traen DNI ni el mismo correo que su visita/venta. Evolta guarda en la venta la fecha exacta en que se
+  // creó el prospecto (FechaProspecto = FechaRegistro del lead), así que, si el cruce por DNI/correo no encuentra la venta,
+  // se busca por FechaProspecto + proyecto y, con el DNI/correo de esa venta, se buscan también su visita y su separación.
+  const clavePros = (f, proy)=>{const t=String(f||'').trim().slice(0,19); return t.length===19 ? t+'|'+pk(proy) : null;};
+  const iVenPros = new Map();
+  (D.ventas||[]).filter(esDpto).filter(prop).forEach(v=>{
+    const k = clavePros(v.FechaProspecto, v.Proyecto);
+    if(!k) return;
+    if(!iVenPros.has(k)) iVenPros.set(k, []);
+    iVenPros.get(k).push({v, iso:_toISODate(v.FechaVenta||v.FechaEntrega_Minuta)});
+  });
   const visF=[], sp=[], ve=[]; const vistos=new Set();
   const unico = (arr, r)=>{ if(!r||vistos.has(r)) return; vistos.add(r); arr.push(r); };
   base.lb.forEach(l=>{
-    unico(visF, buscar(iVis,l));
-    unico(sp,   buscar(iSep,l));
-    unico(ve,   buscar(iVen,l));
+    let vta = buscar(iVen,l);
+    if(!vta){
+      const reg = _toISODate(l.FechaRegistro);
+      const vp = (iVenPros.get(clavePros(l.FechaRegistro, l.Proyecto))||[]).filter(x=>!reg||!x.iso||x.iso>=reg)
+        .sort((a,b)=>String(a.iso||'9').localeCompare(String(b.iso||'9')))[0];
+      vta = vp ? vp.v : null;
+    }
+    const viaVenta = vta ? {Proyecto:l.Proyecto, FechaRegistro:l.FechaRegistro, NroDocumento:vta.NroDocumentoTitular, CorreoElectronico:vta.CorreoElectronico||vta.Correo} : null;
+    unico(visF, buscar(iVis,l) || (viaVenta && buscar(iVis,viaVenta)));
+    unico(sp,   buscar(iSep,l) || (viaVenta && buscar(iSep,viaVenta)));
+    unico(ve,   vta);
   });
   return Object.assign({}, base, {
     visF, sp, ve, visitasN:visF.length, separacionesN:sp.length, ventasN:ve.length, esCohorte:true,
@@ -6106,7 +6142,7 @@ function _filasDetalleHTML(filas, cols, sort){
     base.sort((a,b)=>String(a.Titular||'').localeCompare(String(b.Titular||'')));
   }
   return base
-    .map(r=>`<tr>${cols.map(c=>`<td style="text-align:${c.align||'left'}">${c.get(r)}</td>`).join('')}</tr>`)
+    .map(r=>`<tr>${cols.map(c=>`<td style="text-align:${c.align||'left'}${_flEsFecha(c)?';white-space:nowrap':''}">${c.get(r)}</td>`).join('')}</tr>`)
     .join('');
 }
 let _cobMesState = null; // {filas, cols} — para poder refiltrar sin reabrir el modal
@@ -6600,9 +6636,24 @@ const _flFechaRegistroPara = r=>{
     if(tieneDoc) return String(p.NroDocumento||'').trim()===doc;
     return nombreNorm && normStr(p.Nombres||'')===nombreNorm;
   });
-  if(!candidatas.length) return null;
-  candidatas.sort((a,b)=>String(a.FechaRegistro||'').localeCompare(String(b.FechaRegistro||'')));
-  return candidatas[0].FechaRegistro;
+  let cand = candidatas;
+  // Sin coincidencia por DNI/nombre (ej. lead "Wil Wil" sin DNI vs comprador "Wilson Sullca"): Ventas guarda en
+  // FechaProspecto la fecha exacta en que se creó el prospecto, que es la FechaRegistro del lead → cruce por esa
+  // fecha + proyecto y, en último caso, por correo.
+  if(!cand.length){
+    const fp = String(r.FechaProspecto||'').trim().slice(0,19);
+    if(fp.length===19) cand = (D.prospectos||[]).filter(p=>(!proy || String(p.Proyecto||'').trim()===proy) && String(p.FechaRegistro||'').trim().slice(0,19)===fp);
+  }
+  if(!cand.length){
+    const correo = String(r.CorreoElectronico||r.Correo||'').trim().toLowerCase();
+    if(correo.includes('@')) cand = (D.prospectos||[]).filter(p=>(!proy || String(p.Proyecto||'').trim()===proy) && String(p.CorreoElectronico||'').trim().toLowerCase()===correo);
+  }
+  if(!cand.length){
+    const correoV = String(r.CorreoElectronico||r.Correo||'').trim().toLowerCase();
+    return _flRegistroViaVenta(tieneDoc?doc:'', correoV.includes('@')?correoV:'', proy);
+  }
+  cand.sort((a,b)=>String(a.FechaRegistro||'').localeCompare(String(b.FechaRegistro||'')));
+  return cand[0].FechaRegistro;
 };
 
 const FL_LEAD_COLS=[
@@ -6628,9 +6679,30 @@ const FL_CITAS_COLS=(()=>{
   cols.push({label:'Responsable Anterior', get:r=>String(r.Responsable_Anterior||'').trim()||'—'});
   return cols;
 })();
+// Último recurso para Visitas y Separaciones (no traen FechaProspecto): se busca la venta del mismo cliente (DNI o correo +
+// proyecto) y, con el FechaProspecto de esa venta, el lead cuya FechaRegistro es exactamente esa fecha.
+const _flRegistroViaVenta = (doc, correo, proy)=>{
+  if(!doc && !correo) return null;
+  const fechasP = [];
+  (D.ventas||[]).forEach(x=>{
+    if(proy && String(x.Proyecto||'').trim()!==proy) return;
+    const okDoc = doc && String(x.NroDocumentoTitular||'').trim()===doc;
+    const okMail = correo && String(x.CorreoElectronico||x.Correo||'').trim().toLowerCase()===correo;
+    const fp = String(x.FechaProspecto||'').trim().slice(0,19);
+    if((okDoc||okMail) && fp.length===19) fechasP.push(fp);
+  });
+  if(!fechasP.length) return null;
+  const set = new Set(fechasP);
+  const regs = (D.prospectos||[]).filter(p=>(!proy || String(p.Proyecto||'').trim()===proy) && set.has(String(p.FechaRegistro||'').trim().slice(0,19)))
+    .map(p=>String(p.FechaRegistro).trim()).sort();
+  return regs.length ? regs[0] : null;
+};
 // Fecha de registro del lead para una fila de Visitas: cruce con Prospectos por DNI y, si no
 // hay coincidencia, por correo (mismo proyecto); se toma el registro más antiguo.
 const _flFechaRegistroVisita = r=>{
+  // El ETL ya trae la fecha de registro del prospecto en la propia visita (Fecha_RegistroProspecto): es el dato directo
+  const directa = String(r.Fecha_RegistroProspecto||'').trim();
+  if(directa && directa!=='nan' && directa!=='None' && directa!=='NaT') return directa;
   const doc = String(r.NroDocTitular||'').trim();
   const tieneDoc = doc && doc!=='nan' && doc!=='None' && doc!=='0';
   const correo = String(r.CorreoElectronico||'').trim().toLowerCase();
@@ -6639,7 +6711,7 @@ const _flFechaRegistroVisita = r=>{
   let cand = tieneDoc ? delProy.filter(p=>String(p.NroDocumento||'').trim()===doc) : [];
   if(!cand.length && correo) cand = delProy.filter(p=>String(p.CorreoElectronico||'').trim().toLowerCase()===correo);
   const fechas = cand.map(p=>String(p.FechaRegistro||'').trim()).filter(f=>f && f!=='nan' && f!=='None').sort();
-  return fechas.length ? fechas[0] : null;
+  return fechas.length ? fechas[0] : _flRegistroViaVenta(tieneDoc?doc:'', correo, proy);
 };
 // Estado del lead de una visita (Abierto/Cerrado): Visitas no lo trae, se toma del prospecto
 // cruzado por DNI/correo + proyecto. Si hay varios registros, manda el más reciente.
@@ -6774,6 +6846,8 @@ function _flPopupSetSort(idx){
 
 // Todas las columnas centradas salvo Nombre.
 const _flAl = c => c.label==='Nombre' ? 'left' : 'center';
+// Columnas de fecha (F. Registro, F. Venta, F. Visita...): siempre en una sola línea, no partidas en el guion.
+const _flEsFecha = c => /^(F\.|Fecha)/i.test(String(c.label||'').trim());
 function _flRenderPopupTable(){
   if(!_flPopupState) return;
   const {titulo, kpi1, kpi2, filas, cols} = _flPopupState;
@@ -6846,7 +6920,7 @@ function _flRenderPopupTable(){
       return _flPopupSortDir==='asc' ? cmp : -cmp;
     });
   }
-  const rows = filasOrdenadas.map(r=>`<tr>${cols.map(c=>`<td style="text-align:${_flAl(c)}">${c.get(r)}</td>`).join('')}</tr>`).join('');
+  const rows = filasOrdenadas.map(r=>`<tr>${cols.map(c=>`<td style="text-align:${_flAl(c)}${_flEsFecha(c)?';white-space:nowrap':''}">${c.get(r)}</td>`).join('')}</tr>`).join('');
   document.getElementById('fl-cli-tbody').innerHTML = rows ||
     `<tr><td colspan="${cols.length}" style="text-align:center;color:var(--ink-4);padding:20px">Sin registros</td></tr>`;
   document.getElementById('fl-cli-overlay').classList.add('open');
@@ -7548,18 +7622,38 @@ function _prImportar(){
 //    Visitas) → "sin acción posterior" si además Fecha_UltimaAccion <= FechaCitado
 //  · T. respuesta  = mediana de TiempoRespuesta_min (minutos hábiles, ver ETL)
 // ══════════════════════════════════════════════════════════════
-let _aseTab='resumen', _aseSel='';
+let _aseTab='resumen';
+const _aseProjs=new Set(), _aseAses=new Set(); // selección múltiple; vacío = todos
 function setAseTab(t,el){
   _aseTab=t;
   document.querySelectorAll('#panel-asesores .tab-btn').forEach(b=>b.classList.remove('active'));
   if(el)el.classList.add('active');
   renderAsesores();
 }
-function aseSelAsesor(i){
-  const a=(window._aseNames||[])[i]||'';
-  _aseSel=(_aseSel===a?'':a);
-  renderAsesores();
+// Filtros de selección múltiple (Proyecto / Asesor), mismo desplegable con casillas que Resumen comercial.
+const _ASE_MS = {
+  proj:{set:_aseProjs, todos:'Todos los proyectos', plural:'proyectos', items:()=>DIR_PROJS},
+  ases:{set:_aseAses,  todos:'Todos los asesores',  plural:'asesores',  items:()=>[...(window._aseTodos||[])].sort()},
+};
+function aseMsToggle(k){
+  const panel=document.getElementById('ase-'+k+'-panel');
+  const abierto=panel.style.display==='block';
+  document.querySelectorAll('.msel-panel').forEach(x=>x.style.display='none');
+  if(!abierto){ aseMsRender(k); panel.style.display='block'; }
 }
+function aseMsRender(k){
+  const c=_ASE_MS[k], list=document.getElementById('ase-'+k+'-list');
+  if(list) list.innerHTML=c.items().map(v=>{
+    const esc=v.replace(/"/g,'&quot;');
+    return `<label class="msel-item" data-val="${esc}"><input type="checkbox" ${c.set.has(v)?'checked':''} onchange="aseMsSet('${k}',this.closest('.msel-item').dataset.val,this.checked)"><span>${v}</span></label>`;
+  }).join('') || '<div style="padding:6px 8px;font-size:12px;color:var(--ink-4)">Sin datos</div>';
+  const n=c.set.size, lbl=document.getElementById('ase-'+k+'-label');
+  if(lbl) lbl.textContent=n?(n===1?[...c.set][0]:n+' '+c.plural):c.todos;
+}
+function aseMsSet(k,v,on){ const c=_ASE_MS[k]; if(on)c.set.add(v); else c.set.delete(v); aseMsRender(k); renderAsesores(); }
+function aseMsTodos(k){ const c=_ASE_MS[k]; c.items().forEach(v=>c.set.add(v)); aseMsRender(k); renderAsesores(); }
+function aseMsLimpiar(k){ _ASE_MS[k].set.clear(); aseMsRender(k); renderAsesores(); }
+const _aseSelTxt=()=>_aseAses.size?[..._aseAses].join(', '):'';
 
 function _aseFechaMs(f){
   const s=String(f||'').trim();
@@ -7582,7 +7676,6 @@ const _aseNombre=r=>{
 const _aseFmtF=ms=>{if(ms==null)return '—';const d=new Date(ms);return _aseFmtDia(ms)+' '+_asePad(d.getHours())+':'+_asePad(d.getMinutes());};
 
 function _aseCalc(){
-  const proj=document.getElementById('ase-proj')?.value||'';
   const dIni=document.getElementById('ase-desde')?.value||'', dFin=document.getElementById('ase-hasta')?.value||'';
   const desdeMs=dIni?Date.parse(dIni+'T00:00:00'):null, hastaMs=dFin?Date.parse(dFin+'T23:59:59'):null;
   const now=Date.now(), DIA=86400000;
@@ -7605,9 +7698,9 @@ function _aseCalc(){
   };
 
   const por={};
-  const get=a=>por[a]||(por[a]={asesor:a,activos:0,toques:0,sinToque:0,vencidas:0,atrasoSum:0,citasVenc:0,citasSinAcc:0,tr:[],tareas:[],citas:[]});
+  const get=a=>por[a]||(por[a]={asesor:a,activos:0,toques:0,sinToque:0,vencidas:0,atrasoSum:0,citasVenc:0,citasSinAcc:0,tr:[],tareas:[],citas:[],leads:[]});
   (D.prospectos||[]).forEach(r=>{
-    if(proj&&String(r.Proyecto||'').trim()!==proj)return;
+    if(_aseProjs.size&&!_aseProjs.has(String(r.Proyecto||'').trim()))return;
     if(_isProperVendedor(r))return;
     if(desdeMs!=null||hastaMs!=null){
       const fr=_aseFechaMs(r.FechaRegistro);
@@ -7615,8 +7708,9 @@ function _aseCalc(){
     }
     const a=toShort(String(r.Responsable||r.Asesor||'Sin asesor').trim())||'Sin asesor';
     (window._aseTodos=window._aseTodos||new Set()).add(a);
-    if(_aseSel&&a!==_aseSel)return;
+    if(_aseAses.size&&!_aseAses.has(a))return;
     const o=get(a);
+    o.leads.push(r);
     // T. respuesta: todos los leads del filtro (activos o no)
     const tr=parseFloat(r.TiempoRespuesta_min);
     if(!isNaN(tr)&&tr>=0){
@@ -7653,6 +7747,293 @@ function _aseCalc(){
   return arr;
 }
 
+// Orden por cabecera (1er clic: texto asc / número desc; 2do clic invierte) y tabla genérica
+// de esta sección. cols: {h, v(fila)=valor para ordenar, f(fila)=html de la celda, c: clase opcional}.
+let _aseSortSt = {};
+function aseSortBy(id, i, esTexto){
+  const st = _aseSortSt[id];
+  _aseSortSt[id] = (st && st.i===i) ? {i, dir: st.dir==='asc'?'desc':'asc'} : {i, dir: esTexto?'asc':'desc'};
+  renderAsesores();
+}
+function _aseTbl(id, cols, rows, vacio, limite){
+  const st = _aseSortSt[id];
+  let data = rows;
+  if(st && cols[st.i]){
+    const v = cols[st.i].v, k = st.dir==='asc' ? 1 : -1;
+    data = [...rows].sort((a,b)=>{
+      const x=v(a), y=v(b);
+      if(x==null && y==null) return 0;
+      if(x==null) return 1;
+      if(y==null) return -1;
+      return (typeof x==='string' || typeof y==='string' ? String(x).localeCompare(String(y),'es') : x-y) * k;
+    });
+  }
+  if(limite) data = data.slice(0, limite);
+  const th = cols.map((c,i)=>{
+    const flecha = st && st.i===i ? (st.dir==='asc'?' ▲':' ▼') : '';
+    const esTexto = typeof (rows[0] ? c.v(rows[0]) : 0)==='string';
+    return `<th style="cursor:pointer;user-select:none" title="Ordenar" onclick="aseSortBy('${id}',${i},${esTexto})">${c.h}${flecha}</th>`;
+  }).join('');
+  const tr = data.map(r=>'<tr>'+cols.map(c=>`<td${c.c?` class="${c.c}"`:''}>${c.f(r)}</td>`).join('')+'</tr>').join('')
+    || `<tr><td colspan="${cols.length}" style="text-align:center;color:var(--ink-4)">${vacio}</td></tr>`;
+  return `<div style="overflow-x:auto"><table class="tbl"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>`;
+}
+
+// Detalle (popup) de las citas sin seguimiento: i = índice del asesor en window._aseArr, o -1 para todos.
+// soloSinAcc=true deja solo las que además no tienen ninguna acción posterior a la cita.
+function aseAbrirCitas(i, soloSinAcc){
+  const arr = window._aseArr||[];
+  const o = i>=0 ? arr[i] : null;
+  const filas = (o ? o.citas : arr.flatMap(x=>x.citas)).filter(c=>!soloSinAcc || c.sinAcc)
+    .slice().sort((a,b)=>(b.sinAcc-a.sinAcc)||(b.diasVenc-a.diasVenc));
+  const cols = [
+    {label:'Cliente', get:c=>_aseNombre(c.r)},
+    {label:'DNI', align:'center', get:c=>{const d=String(c.r.NroDocumento||'').trim();return (d&&d!=='nan'&&d!=='None'&&d!=='0')?d:'—';}},
+    {label:'Asesor', align:'center', get:c=>c.asesor},
+    {label:'Proyecto', align:'center', get:c=>String(c.r.Proyecto||'—')},
+    {label:'Sub-estado', align:'center', get:c=>String(c.r.SubEstado||'—')},
+    {label:'Fecha cita', align:'center', get:c=>_aseFmtDia(c.fC), sortVal:c=>c.fC},
+    {label:'Días vencida', align:'center', get:c=>`<span style="color:#ef4444;font-weight:700">${c.diasVenc} d</span>`, sortVal:c=>c.diasVenc},
+    {label:'Última acción', align:'center', get:c=>_aseFmtF(c.fU), sortVal:c=>c.fU??0},
+    {label:'Seguimiento', align:'center', get:c=>c.sinAcc?'<span style="color:#ef4444;font-weight:700">Sin acción posterior</span>':'Con acción posterior', sortVal:c=>c.sinAcc?0:1},
+  ];
+  _abrirModalFunnelEtapa(
+    'Citas sin seguimiento'+(o?' — '+o.asesor:'')+(soloSinAcc?' · sin acción posterior':''),
+    {label:'Citas', val:fN(filas.length), color:'#ef4444'},
+    {label:'Sin acción posterior', val:fN(filas.filter(c=>c.sinAcc).length), color:'#F4A228'},
+    filas, cols
+  );
+}
+
+// Informe PDF de Gestión de asesores: usa el período/proyecto/asesor elegidos arriba.
+// 1) Tareas vencidas en general (solo resumen por asesor, sin detalle de tareas)
+// 2) Citas sin acción posterior, por asesor y con el detalle de cada cita.
+function aseInformePDF(){
+  const J = window.jspdf && window.jspdf.jsPDF;
+  if(!J || typeof J.API.autoTable!=='function'){ alert('No se pudo cargar el generador de PDF (revisa tu conexión a internet e inténtalo de nuevo).'); return; }
+  const arr = _aseCalc();
+  const doc = new J({unit:'mm', format:'a4'});
+  const W = 210, M = 14;
+  const BRAND=[59,130,246], INK=[15,23,42], INK3=[100,116,139], ROJO=[220,38,38], SOFT=[245,248,255], LINEA=[226,232,240];
+  const desde = document.getElementById('ase-desde')?.value||'', hasta = document.getElementById('ase-hasta')?.value||'';
+  const fIso = v => v ? v.split('-').reverse().join('-') : '';
+  const periodo = desde||hasta ? (desde?fIso(desde):'inicio')+'  al  '+(hasta?fIso(hasta):'hoy') : 'Todo el histórico';
+  const proj = _aseProjs.size ? [..._aseProjs].join(', ') : 'Todos los proyectos';
+  const ahora = new Date();
+  const generado = _aseFmtDia(ahora.getTime())+' '+_asePad(ahora.getHours())+':'+_asePad(ahora.getMinutes());
+
+  // Encabezado
+  doc.setFillColor(...BRAND); doc.rect(0,0,W,30,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(18);
+  doc.text('Informe de Gestión de Asesores', M, 14);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10);
+  doc.text('Padova · Citas sin acción posterior y tareas vencidas', M, 22);
+
+  // Filtros usados
+  doc.setTextColor(...INK3); doc.setFontSize(9);
+  const lineaFiltros = [['Período de registro', periodo], ['Proyecto', proj], ['Asesor', _aseSelTxt()||'Todos'], ['Generado', generado]];
+  let fx = M;
+  // Con selección múltiple el texto puede ser largo: cada filtro tiene su ancho y se corta en 2 líneas como máximo
+  const anchos = {'Período de registro':44, 'Proyecto':50, 'Asesor':50, 'Generado':34};
+  lineaFiltros.forEach(([k,v])=>{
+    const w = anchos[k];
+    doc.setFont('helvetica','bold'); doc.text(k.toUpperCase(), fx, 38);
+    doc.setFont('helvetica','normal'); doc.setTextColor(...INK); doc.setFontSize(8.5);
+    let lin = doc.splitTextToSize(String(v), w-3);
+    if(lin.length>2) lin = [lin[0], lin[1].replace(/.{0,2}$/, '') + '…'];
+    lin.forEach((t,i)=>doc.text(t, fx, 43+i*4));
+    doc.setFontSize(9); doc.setTextColor(...INK3);
+    fx += w;
+  });
+
+  // Tarjetas de resumen
+  const sum = k => arr.reduce((t,o)=>t+o[k],0);
+  const activos = sum('activos'), venc = sum('vencidas'), atr = sum('atrasoSum');
+  const tarjetas = [
+    ['Tareas vencidas', fN(venc), ROJO],
+    ['% de leads activos', activos?(venc/activos*100).toFixed(0)+'%':'0%', ROJO],
+    ['Atraso promedio', venc?(atr/venc).toFixed(0)+' días':'—', INK],
+    ['Citas sin acción', fN(sum('citasSinAcc')), ROJO],
+  ];
+  const cw = (W-2*M-3*4)/4;
+  tarjetas.forEach(([lbl,val,col],i)=>{
+    const x = M + i*(cw+4);
+    doc.setFillColor(...SOFT); doc.setDrawColor(...LINEA); doc.roundedRect(x,50,cw,20,2,2,'FD');
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...INK3); doc.text(lbl.toUpperCase(), x+4, 57);
+    doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(...col); doc.text(val, x+4, 66);
+  });
+
+  const titulo = (txt, sub, y) => {
+    doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(...INK); doc.text(txt, M, y);
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...INK3); doc.text(sub, M, y+5);
+    doc.setDrawColor(...BRAND); doc.setLineWidth(.6); doc.line(M, y+7.5, M+14, y+7.5); doc.setLineWidth(.2);
+  };
+  const estiloTabla = {
+    theme:'grid', margin:{left:M,right:M},
+    styles:{font:'helvetica', fontSize:8.5, cellPadding:2, textColor:INK, lineColor:LINEA, lineWidth:.2, valign:'middle'},
+    headStyles:{fillColor:BRAND, textColor:255, fontStyle:'bold', halign:'center'},
+    alternateRowStyles:{fillColor:SOFT},
+  };
+
+  // 1) Tareas vencidas — general, sin detalle
+  titulo('Tareas vencidas - resumen general', 'Leads activos con la tarea pendiente ya vencida, por asesor', 82);
+  const filasT = arr.filter(o=>o.activos).slice().sort((a,b)=>b.vencidas-a.vencidas).map(o=>[
+    o.asesor, fN(o.activos), fN(o.vencidas), o.pctVenc.toFixed(0)+'%', o.vencidas?o.atrasoProm.toFixed(0)+' d':'-',
+  ]);
+  doc.autoTable(Object.assign({}, estiloTabla, {
+    startY: 92,
+    head:[['Asesor','Leads activos','Tareas vencidas','% vencidas','Atraso prom.']],
+    body: filasT.length ? filasT : [['Sin datos','','','','']],
+    foot:[['TOTAL', fN(activos), fN(venc), activos?(venc/activos*100).toFixed(0)+'%':'0%', venc?(atr/venc).toFixed(0)+' d':'-']],
+    footStyles:{fillColor:[233,241,254], textColor:INK, fontStyle:'bold', halign:'center'},
+    columnStyles:{0:{halign:'left',fontStyle:'bold'},1:{halign:'center'},2:{halign:'center',textColor:ROJO,fontStyle:'bold'},3:{halign:'center'},4:{halign:'center'}},
+  }));
+
+  // 2) Citas sin acción posterior — con detalle por asesor
+  let y = doc.lastAutoTable.finalY + 14;
+  if(y > 250){ doc.addPage(); y = 20; }
+  titulo('Citas sin acción posterior - detalle', 'La cita ya pasó, no hay visita registrada y el asesor no volvió a gestionar al cliente', y);
+  y += 14;
+  const conCitas = arr.map(o=>({o, filas:o.citas.filter(c=>c.sinAcc).sort((a,b)=>b.diasVenc-a.diasVenc)}))
+    .filter(x=>x.filas.length).sort((a,b)=>b.filas.length-a.filas.length);
+  if(!conCitas.length){
+    doc.setFont('helvetica','italic'); doc.setFontSize(10); doc.setTextColor(...INK3);
+    doc.text('No hay citas sin acción posterior en el período elegido.', M, y+4);
+  }
+  conCitas.forEach(({o,filas})=>{
+    if(y > 255){ doc.addPage(); y = 20; }
+    doc.setFillColor(233,241,254); doc.roundedRect(M,y,W-2*M,8,1.5,1.5,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...INK); doc.text(o.asesor, M+3, y+5.4);
+    doc.setTextColor(...ROJO); doc.text(filas.length+(filas.length===1?' cita':' citas'), W-M-3, y+5.4, {align:'right'});
+    doc.autoTable(Object.assign({}, estiloTabla, {
+      startY: y+10,
+      head:[['Cliente','DNI','Proyecto','Sub-estado','Fecha cita','Días venc.','Última acción']],
+      body: filas.map(c=>{
+        const d = String(c.r.NroDocumento||'').trim();
+        return [_aseNombre(c.r), (d&&d!=='nan'&&d!=='None'&&d!=='0')?d:'-', String(c.r.Proyecto||'-'), String(c.r.SubEstado||'-'),
+                _aseFmtDia(c.fC), c.diasVenc+' d', c.fU!=null?_aseFmtDia(c.fU):'-'];
+      }),
+      styles:Object.assign({}, estiloTabla.styles, {fontSize:8}),
+      columnStyles:{0:{halign:'left'},1:{halign:'center',cellWidth:21},2:{halign:'center'},3:{halign:'center'},4:{halign:'center',cellWidth:22},5:{halign:'center',cellWidth:17,textColor:ROJO,fontStyle:'bold'},6:{halign:'center',cellWidth:24}},
+    }));
+    y = doc.lastAutoTable.finalY + 8;
+  });
+
+  // Pie de página con numeración
+  const n = doc.getNumberOfPages();
+  for(let i=1;i<=n;i++){
+    doc.setPage(i);
+    doc.setDrawColor(...LINEA); doc.line(M, 287, W-M, 287);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...INK3);
+    doc.text('Padova · Informe de Gestión de Asesores', M, 292);
+    doc.text('Página '+i+' de '+n, W-M, 292, {align:'right'});
+  }
+  doc.save('informe_asesores_'+ahora.toISOString().slice(0,10)+'.pdf');
+}
+
+// Tiempos entre etapas (días) de los leads de cada asesor: Lead → Visita, Visita → Minuta y
+// Lead → Minuta. "Minuta" = fecha de la venta (FechaVenta); FechaEntrega_Minuta es una fecha
+// programada (fin de mes), no la firma. Cruce Prospecto → Visita/Venta por DNI o correo + proyecto;
+// se toma la primera visita/venta con fecha >= al registro del lead.
+function _aseTiempos(arr){
+  const validDoc = v=>{const d=String(v||'').trim();return (d && d!=='nan' && d!=='None' && d!=='0')?d.toUpperCase():null;};
+  const validMail = v=>{const m=String(v||'').trim().toLowerCase();return (m && m!=='nan' && m!=='none' && m.includes('@'))?m:null;};
+  const pk = v=>{const x=String(v||'').toUpperCase().trim();return x.startsWith('LOMAS DE CARABAYLLO')?'LOMAS DE CARABAYLLO':x;};
+  const esDpto = r=>normStr(r.TipoInmueble||'').includes('departamento');
+  const indexar = (rows, docF, mailF, fechaF)=>{
+    const m = new Map();
+    rows.forEach(r=>{
+      const iso = _toISODate(fechaF(r));
+      if(!iso) return;
+      const proy = pk(r.Proyecto), doc = validDoc(docF(r)), mail = validMail(mailF(r));
+      [doc?'d:'+doc:null, mail?'e:'+mail:null].forEach(k=>{
+        if(!k) return;
+        const key = proy+'|'+k;
+        if(!m.has(key)) m.set(key, []);
+        m.get(key).push(iso);
+      });
+    });
+    return m;
+  };
+  const iVis = indexar((D.visitas||[]).filter(esDpto), r=>r.NroDocTitular, r=>r.CorreoElectronico, r=>r.FechaVisita);
+  const ventasDpto = (D.ventas||[]).filter(esDpto);
+  const iVen = indexar(ventasDpto, r=>r.NroDocumentoTitular, r=>r.CorreoElectronico||r.Correo, r=>r.FechaVenta);
+  // Muchos leads no traen DNI ni el mismo correo que la visita/venta (ej. el lead "Wil Wil" vs el cliente
+  // "Wilson Sullca"), pero Evolta guarda en la venta la fecha exacta en que se creó el prospecto
+  // (FechaProspecto = FechaRegistro del lead) → segundo cruce: FechaProspecto + proyecto.
+  const clavePros = (f, proy)=>{const t=String(f||'').trim().slice(0,19); return t.length===19 ? t+'|'+pk(proy) : null;};
+  const iVenPros = new Map();
+  ventasDpto.forEach(v=>{
+    const k = clavePros(v.FechaProspecto, v.Proyecto), iso = _toISODate(v.FechaVenta);
+    if(!k || !iso) return;
+    if(!iVenPros.has(k)) iVenPros.set(k, []);
+    iVenPros.get(k).push({iso, v});
+  });
+  const buscar = (idx, lead, reg)=>{
+    const proy = pk(lead.Proyecto), cands = [];
+    const doc = validDoc(lead.NroDocumento), mail = validMail(lead.CorreoElectronico);
+    if(doc)  cands.push(...(idx.get(proy+'|d:'+doc)||[]));
+    if(mail) cands.push(...(idx.get(proy+'|e:'+mail)||[]));
+    const ok = cands.filter(f=>f>=reg).sort();
+    return ok.length ? ok[0] : null;
+  };
+  const dias = (a,b)=>Math.round((Date.parse(b+'T00:00:00')-Date.parse(a+'T00:00:00'))/86400000);
+  const stat = c=>{
+    if(!c.length) return null;
+    const v=c.map(x=>x.d).sort((x,y)=>x-y), m=v.length>>1;
+    return {n:v.length, med:v.length%2?v[m]:(v[m-1]+v[m])/2, prom:v.reduce((t,x)=>t+x,0)/v.length, casos:c};
+  };
+  const calc = leads=>{
+    const lv=[], vm=[], lm=[];
+    leads.forEach(l=>{
+      const reg = _toISODate(l.FechaRegistro); if(!reg) return;
+      let fV = buscar(iVis, l, reg), fM = buscar(iVen, l, reg);
+      const vp = (iVenPros.get(clavePros(l.FechaRegistro, l.Proyecto))||[]).filter(x=>x.iso>=reg).sort((a,b)=>a.iso<b.iso?-1:1)[0];
+      if(vp){
+        if(!fM) fM = vp.iso;
+        // la visita se busca con el DNI/correo de la venta (el lead puede no tenerlos)
+        if(!fV) fV = buscar(iVis, {Proyecto:l.Proyecto, NroDocumento:vp.v.NroDocumentoTitular, CorreoElectronico:vp.v.CorreoElectronico||vp.v.Correo}, reg);
+      }
+      if(fV) lv.push({l, reg, fV, fM, vta:vp&&vp.v, d:dias(reg, fV)});
+      if(fM) lm.push({l, reg, fV, fM, vta:vp&&vp.v, d:dias(reg, fM)});
+      if(fV && fM && fM>=fV) vm.push({l, reg, fV, fM, vta:vp&&vp.v, d:dias(fV, fM)});
+    });
+    return {n:leads.length, lv:stat(lv), vm:stat(vm), lm:stat(lm)};
+  };
+  return { filas: arr.filter(o=>o.leads.length).map(o=>Object.assign({asesor:o.asesor}, calc(o.leads))),
+           general: calc(arr.flatMap(o=>o.leads)) };
+}
+
+// Detalle (popup) de los casos detrás de un tiempo: i = índice del asesor en window._aseT.filas, o -1 para todos;
+// k = 'lv' (Lead › Visita) | 'vm' (Visita › Minuta) | 'lm' (Lead › Minuta).
+function aseAbrirTiempos(i, k){
+  const T = window._aseT; if(!T) return;
+  const f = i>=0 ? T.filas[i] : T.general;
+  const st = f && f[k]; if(!st) return;
+  const nom = {lv:'Lead › Visita', vm:'Visita › Minuta', lm:'Lead › Minuta'}[k];
+  const fd = iso => iso ? iso.split('-').reverse().join('-') : '—';
+  const docOk = v=>{const d=String(v||'').trim();return (d&&d!=='nan'&&d!=='None'&&d!=='0')?d:'';};
+  const asesorDe = c => toShort(String(c.l.Responsable||c.l.Asesor||'Sin asesor').trim())||'Sin asesor';
+  const cols = [
+    // Si el lead no trae DNI (ej. "Wil Wil") y se cruzó por la venta, se muestran el nombre y DNI reales del comprador
+    {label:'Cliente', get:c=>(c.vta&&!docOk(c.l.NroDocumento)&&String(c.vta.NombresTitular||'').trim())||_aseNombre(c.l)},
+    {label:'DNI', align:'center', get:c=>docOk(c.l.NroDocumento)||(c.vta&&docOk(c.vta.NroDocumentoTitular))||'—'},
+    {label:'Asesor', align:'center', get:c=>asesorDe(c)},
+    {label:'Proyecto', align:'center', get:c=>String(c.l.Proyecto||'—')},
+    {label:'F. registro', align:'center', get:c=>fd(c.reg), sortVal:c=>c.reg},
+    {label:'F. visita', align:'center', get:c=>fd(c.fV), sortVal:c=>c.fV||''},
+    {label:'F. minuta', align:'center', get:c=>fd(c.fM), sortVal:c=>c.fM||''},
+    {label:'Días '+nom, align:'center', get:c=>`<b>${c.d} d</b>`, sortVal:c=>c.d},
+  ];
+  _abrirModalFunnelEtapa(
+    nom+(i>=0?' — '+f.asesor:' — todos'),
+    {label:'Casos', val:fN(st.n), color:'#14AFBE'},
+    {label:'Mediana · promedio', val:(st.med%1?st.med.toFixed(1):st.med)+' d · '+st.prom.toFixed(1)+' d', color:'#F4A228'},
+    st.casos.slice().sort((a,b)=>b.d-a.d), cols
+  );
+}
+
+const _aseTblTop = (id, cols, rows, vacio) => _aseTbl(id, cols, rows, vacio, 500);
 function renderAsesores(){
   const cont=document.getElementById('ase-content'); if(!cont)return;
   if(!(D.prospectos||[]).length){cont.innerHTML='<div class="loading">Sin datos de prospectos</div>';return;}
@@ -7666,14 +8047,8 @@ function renderAsesores(){
     }
   }
   const arr=_aseCalc();
-  const selA=document.getElementById('ase-asesor');
-  if(selA){
-    const nombres=[...(window._aseTodos||[])].sort();
-    if(selA.options.length!==nombres.length+1){
-      selA.innerHTML='<option value="">Todos los asesores</option>'+nombres.map(n=>`<option>${n}</option>`).join('');
-    }
-    selA.value=_aseSel;
-  }
+  window._aseArr=arr;
+  aseMsRender('proj'); aseMsRender('ases');
   const sum=k=>arr.reduce((t,o)=>t+o[k],0);
   const allTr=arr.flatMap(o=>o.tr);
   const sub=document.getElementById('ase-sub');
@@ -7684,56 +8059,81 @@ function renderAsesores(){
     ${kpi('Toques totales',fN(sum('toques')),'prom. '+(sum('activos')?(sum('toques')/sum('activos')).toFixed(1):'0')+' por lead')}
     ${kpi('Leads sin ningún toque',fN(sum('sinToque')),'sin acción registrada')}
     ${kpi('Tareas vencidas',fN(sum('vencidas')),(sum('activos')?(sum('vencidas')/sum('activos')*100).toFixed(0):0)+'% de los activos')}
-    ${kpi('Citas sin seguimiento',fN(sum('citasVenc')),fN(sum('citasSinAcc'))+' sin acción posterior')}
+    ${_kpiClic(kpi('Citas sin seguimiento',fN(sum('citasVenc')),fN(sum('citasSinAcc'))+' sin acción posterior · clic para ver detalle'),'aseAbrirCitas(-1,false)')}
     ${kpi('T. respuesta (mediana)',_aseFmtMin(_aseMediana(allTr)),'min. hábiles')}
   </div>`;
 
   const rojo=v=>v>0?'color:#ef4444;font-weight:700':'';
-  const filtroTxt=_aseSel?' · <b>'+_aseSel+'</b>':'';
+  const filtroTxt=_aseAses.size?' · <b>'+_aseSelTxt()+'</b>':'';
   let body='';
+  const clic = (n, i, soloSinAcc) => n ? `<span class="findet-clic" onclick="aseAbrirCitas(${i},${soloSinAcc})">${fN(n)}</span>` : fN(n);
   if(_aseTab==='resumen'){
-    const rows=arr.map(o=>`<tr>
-        <td><b>${o.asesor}</b></td>
-        <td class="r">${fN(o.activos)}</td>
-        <td class="r">${fN(o.toques)}</td>
-        <td class="r">${o.toquesProm.toFixed(1)}</td>
-        <td class="r" style="${rojo(o.sinToque)}">${fN(o.sinToque)}</td>
-        <td class="r" style="${rojo(o.vencidas)}">${fN(o.vencidas)}</td>
-        <td class="r">${o.pctVenc.toFixed(0)}%</td>
-        <td class="r">${o.vencidas?o.atrasoProm.toFixed(0)+' d':'—'}</td>
-        <td class="r" style="${rojo(o.citasVenc)}">${fN(o.citasVenc)}</td>
-        <td class="r" style="${rojo(o.citasSinAcc)}">${fN(o.citasSinAcc)}</td>
-        <td class="r">${_aseFmtMin(o.medTR)}</td>
-      </tr>`).join('');
-    body=`<div class="card"><div class="card-hd"><div><h3>Desempeño por asesor</h3><p>Leads activos al día de hoy · filtros de asesor y fecha de registro arriba${filtroTxt}</p></div></div>
-      <div style="overflow-x:auto"><table class="tbl"><thead><tr>
-        <th>Asesor</th><th class="r">Leads activos</th><th class="r">Toques</th><th class="r">Toques/lead</th><th class="r">Sin toque</th>
-        <th class="r">Tareas vencidas</th><th class="r">% vencidas</th><th class="r">Atraso prom.</th>
-        <th class="r">Citas sin visita</th><th class="r">…sin acción posterior</th><th class="r">T. respuesta</th>
-      </tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    const cols=[
+      {h:'Asesor', v:o=>o.asesor, f:o=>`<b>${o.asesor}</b>`},
+      {h:'Leads activos', v:o=>o.activos, f:o=>fN(o.activos), c:'r'},
+      {h:'Toques', v:o=>o.toques, f:o=>fN(o.toques), c:'r'},
+      {h:'Toques/lead', v:o=>o.toquesProm, f:o=>o.toquesProm.toFixed(1), c:'r'},
+      {h:'Sin toque', v:o=>o.sinToque, f:o=>`<span style="${rojo(o.sinToque)}">${fN(o.sinToque)}</span>`, c:'r'},
+      {h:'Tareas vencidas', v:o=>o.vencidas, f:o=>`<span style="${rojo(o.vencidas)}">${fN(o.vencidas)}</span>`, c:'r'},
+      {h:'% vencidas', v:o=>o.pctVenc, f:o=>o.pctVenc.toFixed(0)+'%', c:'r'},
+      {h:'Atraso prom.', v:o=>o.vencidas?o.atrasoProm:null, f:o=>o.vencidas?o.atrasoProm.toFixed(0)+' d':'—', c:'r'},
+      {h:'Citas sin visita', v:o=>o.citasVenc, f:o=>`<span style="${rojo(o.citasVenc)}">${clic(o.citasVenc,arr.indexOf(o),false)}</span>`, c:'r'},
+      {h:'…sin acción posterior', v:o=>o.citasSinAcc, f:o=>`<span style="${rojo(o.citasSinAcc)}">${clic(o.citasSinAcc,arr.indexOf(o),true)}</span>`, c:'r'},
+      {h:'T. respuesta', v:o=>o.medTR, f:o=>_aseFmtMin(o.medTR), c:'r'},
+    ];
+    body=`<div class="card"><div class="card-hd"><div><h3>Desempeño por asesor</h3><p>Leads activos al día de hoy · filtros de asesor y fecha de registro arriba${filtroTxt} · <b style="color:var(--brand)">clic en un número de citas para ver el detalle</b> · clic en una cabecera para ordenar</p></div></div>
+      ${_aseTbl('resumen',cols,arr,'Sin datos')}</div>`;
   } else if(_aseTab==='tareas'){
-    const f=arr.filter(o=>!_aseSel||o.asesor===_aseSel).flatMap(o=>o.tareas).sort((a,b)=>(a.fT??Infinity)-(b.fT??Infinity)).slice(0,500);
-    const rows=f.map(t=>`<tr>
-      <td>${t.asesor}</td><td>${_aseNombre(t.r)}</td><td>${t.r.Proyecto||''}</td>
-      <td>${t.r.SubEstado||''}</td><td>${t.r.Titulo_TareaNueva||''}</td>
-      <td class="r">${_aseFmtF(t.fT)}</td>
-      <td class="r" style="color:#ef4444;font-weight:700">${t.atraso!=null?t.atraso+' d':'—'}</td>
-      <td class="r">${t.ca||0}</td><td class="r">${_aseFmtF(_aseFechaMs(t.r.Fecha_UltimaAccion))}</td></tr>`).join('');
-    body=`<div class="card"><div class="card-hd"><div><h3>Tareas vencidas</h3><p>De la más antigua a la más reciente · máx. 500 filas${filtroTxt}</p></div></div>
-      <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Asesor</th><th>Cliente</th><th>Proyecto</th><th>Sub-estado</th><th>Tarea</th><th class="r">Venció</th><th class="r">Atraso</th><th class="r">Toques</th><th class="r">Última acción</th></tr></thead>
-      <tbody>${rows||'<tr><td colspan="9" style="text-align:center;color:var(--ink-4)">Sin tareas vencidas</td></tr>'}</tbody></table></div></div>`;
+    const f=arr.flatMap(o=>o.tareas);
+    const cols=[
+      {h:'Asesor', v:t=>t.asesor, f:t=>t.asesor},
+      {h:'Cliente', v:t=>_aseNombre(t.r), f:t=>_aseNombre(t.r)},
+      {h:'Proyecto', v:t=>String(t.r.Proyecto||''), f:t=>t.r.Proyecto||''},
+      {h:'Sub-estado', v:t=>String(t.r.SubEstado||''), f:t=>t.r.SubEstado||''},
+      {h:'Tarea', v:t=>String(t.r.Titulo_TareaNueva||''), f:t=>t.r.Titulo_TareaNueva||''},
+      {h:'Venció', v:t=>t.fT, f:t=>_aseFmtF(t.fT), c:'r'},
+      {h:'Atraso', v:t=>t.atraso, f:t=>`<span style="color:#ef4444;font-weight:700">${t.atraso!=null?t.atraso+' d':'—'}</span>`, c:'r'},
+      {h:'Toques', v:t=>t.ca||0, f:t=>t.ca||0, c:'r'},
+      {h:'Última acción', v:t=>_aseFechaMs(t.r.Fecha_UltimaAccion), f:t=>_aseFmtF(_aseFechaMs(t.r.Fecha_UltimaAccion)), c:'r'},
+    ];
+    // Sin orden elegido: de la más antigua a la más reciente
+    const base=_aseSortSt.tareas ? f : f.slice().sort((a,b)=>(a.fT??Infinity)-(b.fT??Infinity));
+    body=`<div class="card"><div class="card-hd"><div><h3>Tareas vencidas</h3><p>${fN(f.length)} tareas${f.length>500?' · se muestran 500':''} · clic en una cabecera para ordenar${filtroTxt}</p></div></div>
+      ${_aseTblTop('tareas',cols,base,'Sin tareas vencidas')}</div>`;
+  } else if(_aseTab==='tiempos'){
+    const T=_aseTiempos(arr); window._aseT=T;
+    const dd = st => st ? (st.med%1?st.med.toFixed(1):st.med)+' d' : '—';
+    const celda = (st,k,i) => st ? `<span class="findet-clic" onclick="aseAbrirTiempos(${i},'${k}')"><b>${dd(st)}</b></span><div style="font-size:10.5px;color:var(--ink-4)">prom. ${st.prom.toFixed(1)} d · ${fN(st.n)} casos</div>` : '<span style="color:var(--ink-4)">—</span>';
+    const g=T.general;
+    const kp=`<div class="kpi-row kpi-3">
+      ${_kpiClic(kpi('Lead › Visita',dd(g.lv),g.lv?'mediana · '+fN(g.lv.n)+' casos · clic para ver detalle':'sin casos'),"aseAbrirTiempos(-1,'lv')")}
+      ${_kpiClic(kpi('Visita › Minuta',dd(g.vm),g.vm?'mediana · '+fN(g.vm.n)+' casos · clic para ver detalle':'sin casos'),"aseAbrirTiempos(-1,'vm')")}
+      ${_kpiClic(kpi('Lead › Minuta',dd(g.lm),g.lm?'mediana · '+fN(g.lm.n)+' casos · clic para ver detalle':'sin casos'),"aseAbrirTiempos(-1,'lm')")}
+    </div>`;
+    const cols=[
+      {h:'Asesor', v:o=>o.asesor, f:o=>`<b>${o.asesor}</b>`},
+      {h:'Leads', v:o=>o.n, f:o=>fN(o.n), c:'r'},
+      {h:'Lead › Visita', v:o=>o.lv?o.lv.med:null, f:o=>celda(o.lv,'lv',T.filas.indexOf(o)), c:'r'},
+      {h:'Visita › Minuta', v:o=>o.vm?o.vm.med:null, f:o=>celda(o.vm,'vm',T.filas.indexOf(o)), c:'r'},
+      {h:'Lead › Minuta', v:o=>o.lm?o.lm.med:null, f:o=>celda(o.lm,'lm',T.filas.indexOf(o)), c:'r'},
+    ];
+    body=kp+`<div class="card"><div class="card-hd"><div><h3>Tiempos de conversión por asesor</h3><p>Mediana de días (en grande), promedio y casos debajo · leads registrados en el período · Minuta = fecha de venta · cruce por DNI o correo en el mismo proyecto, solo avances posteriores al registro · <b style="color:var(--brand)">clic en una mediana para ver el detalle</b> · clic en una cabecera para ordenar${filtroTxt}</p></div></div>
+      ${_aseTbl('tiempos',cols,T.filas,'Sin datos')}</div>`;
   } else {
-    const f=arr.filter(o=>!_aseSel||o.asesor===_aseSel).flatMap(o=>o.citas).sort((a,b)=>(b.sinAcc-a.sinAcc)||(b.diasVenc-a.diasVenc)).slice(0,500);
-    const rows=f.map(c=>`<tr>
-      <td>${c.asesor}</td><td>${_aseNombre(c.r)}</td><td>${c.r.Proyecto||''}</td>
-      <td>${c.r.SubEstado||''}</td>
-      <td class="r">${_aseFmtDia(c.fC)}</td>
-      <td class="r" style="color:#ef4444;font-weight:700">${c.diasVenc} d</td>
-      <td class="r">${_aseFmtF(c.fU)}</td>
-      <td>${c.sinAcc?'<span style="color:#ef4444;font-weight:700">Sin acción posterior</span>':'Con acción posterior'}</td></tr>`).join('');
-    body=`<div class="card"><div class="card-hd"><div><h3>Citas sin seguimiento</h3><p>Cita ya vencida y sin visita registrada (cruce con Visitas por DNI/correo + proyecto) · máx. 500 filas${filtroTxt}</p></div></div>
-      <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Asesor</th><th>Cliente</th><th>Proyecto</th><th>Sub-estado</th><th class="r">Fecha cita</th><th class="r">Días vencida</th><th class="r">Última acción</th><th>Seguimiento</th></tr></thead>
-      <tbody>${rows||'<tr><td colspan="8" style="text-align:center;color:var(--ink-4)">Sin citas pendientes de seguimiento</td></tr>'}</tbody></table></div></div>`;
+    const f=arr.flatMap(o=>o.citas);
+    const cols=[
+      {h:'Asesor', v:c=>c.asesor, f:c=>c.asesor},
+      {h:'Cliente', v:c=>_aseNombre(c.r), f:c=>_aseNombre(c.r)},
+      {h:'Proyecto', v:c=>String(c.r.Proyecto||''), f:c=>c.r.Proyecto||''},
+      {h:'Sub-estado', v:c=>String(c.r.SubEstado||''), f:c=>c.r.SubEstado||''},
+      {h:'Fecha cita', v:c=>c.fC, f:c=>_aseFmtDia(c.fC), c:'r'},
+      {h:'Días vencida', v:c=>c.diasVenc, f:c=>`<span style="color:#ef4444;font-weight:700">${c.diasVenc} d</span>`, c:'r'},
+      {h:'Última acción', v:c=>c.fU, f:c=>_aseFmtF(c.fU), c:'r'},
+      {h:'Seguimiento', v:c=>c.sinAcc?0:1, f:c=>c.sinAcc?'<span style="color:#ef4444;font-weight:700">Sin acción posterior</span>':'Con acción posterior'},
+    ];
+    const base=_aseSortSt.citas ? f : f.slice().sort((a,b)=>(b.sinAcc-a.sinAcc)||(b.diasVenc-a.diasVenc));
+    body=`<div class="card"><div class="card-hd"><div><h3>Citas sin seguimiento</h3><p>Cita ya vencida y sin visita registrada (cruce con Visitas por DNI/correo + proyecto)${f.length>500?' · se muestran 500':''} · clic en una cabecera para ordenar${filtroTxt}</p></div></div>
+      ${_aseTblTop('citas',cols,base,'Sin citas pendientes de seguimiento')}</div>`;
   }
   cont.innerHTML=kpis+body;
 }

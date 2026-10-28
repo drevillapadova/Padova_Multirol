@@ -314,7 +314,7 @@ COLS_VENTAS = [
 COLS_STOCK = [
     'Proyecto','Etapa','Edificio','TipoInmueble','Modelo','NroInmuebleActual','NroPiso','Vista',
     'Estado','Moneda','PrecioVenta','PrecioLista','PrecioVentaSoles',
-    'AreaTechada','AreaLibre','NroDormitorios','FechaSepDefinitiva','PrecioM2',
+    'AreaTechada','AreaLibre','NroDormitorios','FechaSepDefinitiva','FechaProspecto','PrecioM2',
     'NroDocumento','Nombres','Correo','Distrito','NivelInteres','ComoSeEntero','FormaContacto',
     'Vendedor',
 ]
@@ -332,7 +332,7 @@ COLS_PROSPECTOS = [
 COLS_VISITAS = [
     'Proyecto','Etapa','TipoInmueble','NombresTitular','NroDocTitular',
     'CorreoElectronico','Distrito_Procedencia','ComoSeEntero','FormaContacto','Vendedor',
-    'FechaVisita','Fecha_CitaProspecto','Descrip_UltimaAccion','VisitaUnicaxMesProyecto',
+    'FechaVisita','Fecha_CitaProspecto','Fecha_RegistroProspecto','Descrip_UltimaAccion','VisitaUnicaxMesProyecto',
 ]
 
 
