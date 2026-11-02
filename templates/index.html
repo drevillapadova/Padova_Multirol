@@ -969,10 +969,17 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
       <h1 class="page-title">Funnel de conversión · Marketing</h1>
       <div class="page-sub" id="fl-sub">Cargando...</div>
     </div>
-    <div class="toolbar" style="flex-wrap:wrap;row-gap:6px">
-      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
-        <select id="fl-proj" onchange="renderFunnelMkt()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO 4</option><option>LOMAS DE CARABAYLLO 5</option><option>DOMINGO ORUE</option></select>
-      </label>
+    <div class="toolbar" style="flex-wrap:wrap;row-gap:6px;overflow:visible">
+      <div style="position:relative">
+        <button type="button" class="chip-sel msel-btn" style="border:1px solid var(--line)" onclick="flMsToggle()">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
+          <span id="fl-proj-label">Todos los proyectos</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
+        </button>
+        <div class="msel-panel" id="fl-proj-panel" style="display:none;min-width:260px">
+          <div class="msel-tools"><button type="button" onclick="flMsTodos()">Todos</button><button type="button" onclick="flMsLimpiar()">Limpiar</button></div>
+          <div id="fl-proj-list"></div>
+        </div>
+      </div>
       <div class="chip refresh" onclick="loadAll(true)">↻ Actualizar</div>
       <button class="dark-toggle-btn" onclick="toggleDark()" title="Modo oscuro" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all .2s">◑</button>
     </div>
@@ -1327,7 +1334,7 @@ Chart.defaults.plugins.legend.labels.boxWidth = 10;
 Chart.defaults.plugins.legend.labels.padding = 14;
 
 const API = '';
-let D = {funnel:{}, ventas:[], stock:[], campanas:{}, desist:[], prospectos:[], visitas:[], inversion:[], ingresoDeposito:[], flujoCaja:[], mercado:[], mercadoVentas:[], metaCobranza:[], escrituraPublica:[], updatedAt:'—'};
+let D = {funnel:{}, ventas:[], ventasDev:[], stock:[], campanas:{}, desist:[], prospectos:[], visitas:[], inversion:[], ingresoDeposito:[], flujoCaja:[], mercado:[], mercadoVentas:[], metaCobranza:[], escrituraPublica:[], updatedAt:'—'};
 let _jmktMetrica = 'leads';
 
 const MES_ES = {'01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio','07':'Julio','08':'Agosto','09':'Setiembre','10':'Octubre','11':'Noviembre','12':'Diciembre'};
@@ -1428,8 +1435,33 @@ const ASESOR_MAP=[
 const _multiProjPats=new Set(ASESOR_MAP.map(a=>a.pat).filter((p,i,arr)=>arr.indexOf(p)!==i));
 const normKey=nm=>nm.toLowerCase().replace(/\s+/g,' ').trim();
 // Comparación de proyecto: Lomas genérico coincide con Lomas 4 y Lomas 5
+// Filtro de proyectos de Marketing (selección múltiple; vacío = todos). _flProjVal() devuelve ''
+// (todos), un nombre (uno) o un arreglo (varios): así el código que ya trabajaba con un solo
+// proyecto sigue igual y matchProj acepta también el arreglo.
+const _flProjs=new Set();
+function _flProjVal(){
+  const a=DIR_PROJS.filter(p=>_flProjs.has(p));
+  return a.length===0?'':a.length===1?a[0]:a;
+}
+function flMsToggle(){
+  const panel=document.getElementById('fl-proj-panel');
+  const abierto=panel.style.display==='block';
+  document.querySelectorAll('.msel-panel').forEach(x=>x.style.display='none');
+  if(!abierto){ flMsRender(); panel.style.display='block'; }
+}
+function flMsRender(){
+  const list=document.getElementById('fl-proj-list');
+  if(list) list.innerHTML=DIR_PROJS.map(v=>`<label class="msel-item" data-val="${v}"><input type="checkbox" ${_flProjs.has(v)?'checked':''} onchange="flMsSet(this.closest('.msel-item').dataset.val,this.checked)"><span>${v}</span></label>`).join('');
+  const n=_flProjs.size, lbl=document.getElementById('fl-proj-label');
+  if(lbl) lbl.textContent=n?(n===1?[..._flProjs][0]:n+' proyectos'):'Todos los proyectos';
+}
+function flMsSet(v,on){ if(on)_flProjs.add(v); else _flProjs.delete(v); flMsRender(); renderFunnelMkt(); }
+function flMsTodos(){ DIR_PROJS.forEach(v=>_flProjs.add(v)); flMsRender(); renderFunnelMkt(); }
+function flMsLimpiar(){ _flProjs.clear(); flMsRender(); renderFunnelMkt(); }
+
 function matchProj(rProj, filterProj){
   if(!filterProj) return true;
+  if(Array.isArray(filterProj)) return filterProj.some(f=>matchProj(rProj, f));
   const rp=String(rProj||'').toUpperCase().trim();
   const fp=filterProj.toUpperCase().trim();
   if(rp===fp) return true;
@@ -1642,6 +1674,7 @@ async function loadAll(forzarRefresh){
     ]);
     D.funnel          = fR.data||{};
     D.ventas          = vR.ventas||[];
+    D.ventasDev       = vR.ventas_devueltas||[]; // devueltas: solo para Vendidos de la Tabla Cruce
     D.stock           = [...(vR.ventas||[]),...(vR.separaciones||[])];
     D.campanas        = cR.data||{};
     D.prospectos      = pR.data||[];
@@ -2966,6 +2999,7 @@ const FL_DIM_OPTS = [
   {val:'modelo',    lbl:'Modelo/Tipología', stages:null,                               fn: r=>{const d=String(r.NroDormitorios||'').trim();const m=String(r.Modelo||'').trim();return d&&/^\d+$/.test(d)?d+'D':(m||'Sin modelo');}},
   {val:'mes',       lbl:'Mes',              stages:null,                               fn: r=>{const mo=_extractMes(r);return mo?MES_ES[mo]||mo:'Sin mes';}},
   {val:'distrito',  lbl:'Distrito',         stages:['visita','separacion','venta'],    fn: r=>String(r.Distrito_Procedencia||r.Distrito||'Sin distrito').trim()},
+  {val:'estadovta', lbl:'Estado de venta',  stages:['venta'],                          fn: r=>String(r.EstadoOC||'').trim()==='Devuelto'?'Devuelto':'Vigente'},
   {val:'financ',    lbl:'Financiamiento',   stages:['separacion','venta'],             fn: r=>String(r.TipoFinanciamiento||'Sin dato').trim()},
   {val:'motivo',    lbl:'Motivo Cerrado',   stages:['leads','contactados'],            fn: r=>String(r.Motivo_Cerrado_Actual||r.MotivoCierre||'Sin motivo').trim()},
 ];
@@ -3091,13 +3125,17 @@ function _flCalcPeriodo(proj, from, to){
   if(from||to) sp=sp.filter(r=>_matchDateRange(r.FechaSepDefinitiva, from, to));
   if(_flExcludeExt) sp=sp.filter(r=>!_esRegistroProper(r));
   let ve=(D.ventas||[]).filter(r=>normStr(r.TipoInmueble||'').includes('departamento'));
-  if(proj) ve=ve.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
+  if(proj) ve=ve.filter(r=>matchProj(r.Proyecto, proj));
   if(from||to) ve=ve.filter(r=>_matchDateRange(r.FechaVenta||r.FechaEntrega_Minuta||'', from, to));
   if(_flExcludeExt) ve=ve.filter(r=>!_esRegistroProper(r));
+  let veDev=(D.ventasDev||[]).filter(r=>normStr(r.TipoInmueble||'').includes('departamento'));
+  if(proj) veDev=veDev.filter(r=>matchProj(r.Proyecto, proj));
+  if(from||to) veDev=veDev.filter(r=>_matchDateRange(r.FechaVenta||r.FechaEntrega_Minuta||'', from, to));
+  if(_flExcludeExt) veDev=veDev.filter(r=>!_esRegistroProper(r));
   const trV=lb.map(r=>parseFloat(r.TiempoRespuesta_min||'')).filter(v=>!isNaN(v)&&v>=0).sort((a,b)=>a-b);
   const _validDate=v=>{const s=String(v||'').trim();return s&&s!=='nan'&&s!=='None'&&s!=='-'&&s!=='';};
   return {
-    lb, pr, visF:vi, sp, ve,
+    lb, pr, visF:vi, sp, ve, veDev,
     leadsTotal:lb.length,
     leadsDNI:lb.filter(r=>{const d=String(r.NroDocumento||'').trim();return d&&d!=='nan'&&d!=='None'&&d!=='0';}).length,
     leadsDigital:lb.filter(r=>_isDigital(r.ComoSeEntero)).length,
@@ -3140,6 +3178,7 @@ function _flCalcCohorte(proj, from, to){
   const iVis = indexar((D.visitas||[]).filter(esDpto).filter(prop), r=>r.NroDocTitular, r=>r.CorreoElectronico, r=>r.FechaVisita);
   const iSep = indexar(_flSeparacionesUnicas(D.stock||[]).filter(esDpto).filter(prop), r=>r.NroDocumento, r=>r.Correo, r=>r.FechaSepDefinitiva);
   const iVen = indexar((D.ventas||[]).filter(esDpto).filter(prop), r=>r.NroDocumentoTitular, r=>r.CorreoElectronico||r.Correo, r=>r.FechaVenta||r.FechaEntrega_Minuta);
+  const iVenDev = indexar((D.ventasDev||[]).filter(esDpto).filter(prop), r=>r.NroDocumentoTitular, r=>r.CorreoElectronico||r.Correo, r=>r.FechaVenta||r.FechaEntrega_Minuta);
   // primera fila (la más antigua) del índice con fecha >= registro del lead
   const buscar = (idx, lead)=>{
     const proy = pk(lead.Proyecto);
@@ -3164,7 +3203,7 @@ function _flCalcCohorte(proj, from, to){
     if(!iVenPros.has(k)) iVenPros.set(k, []);
     iVenPros.get(k).push({v, iso:_toISODate(v.FechaVenta||v.FechaEntrega_Minuta)});
   });
-  const visF=[], sp=[], ve=[]; const vistos=new Set();
+  const visF=[], sp=[], ve=[], veDev=[]; const vistos=new Set();
   const unico = (arr, r)=>{ if(!r||vistos.has(r)) return; vistos.add(r); arr.push(r); };
   base.lb.forEach(l=>{
     let vta = buscar(iVen,l);
@@ -3178,9 +3217,11 @@ function _flCalcCohorte(proj, from, to){
     unico(visF, buscar(iVis,l) || (viaVenta && buscar(iVis,viaVenta)));
     unico(sp,   buscar(iSep,l) || (viaVenta && buscar(iSep,viaVenta)));
     unico(ve,   vta);
+    // venta devuelta del mismo lead (solo si no tiene una vigente): aparece en Vendidos de la Tabla Cruce con estado Devuelto
+    if(!vta) unico(veDev, buscar(iVenDev,l));
   });
   return Object.assign({}, base, {
-    visF, sp, ve, visitasN:visF.length, separacionesN:sp.length, ventasN:ve.length, esCohorte:true,
+    visF, sp, ve, veDev, visitasN:visF.length, separacionesN:sp.length, ventasN:ve.length, esCohorte:true,
   });
 }
 
@@ -3217,8 +3258,9 @@ async function _flMarketingSnapshot(proj, from, to){
   // o "separaciones de Helio en agosto"). Este desglose por proyecto (con su propia
   // evolución mensual) lo cubre sin que el usuario tenga que cambiar el filtro.
   let porProyecto=null;
-  if(!proj){
-    const projList=[...document.querySelectorAll('#fl-proj option')].map(o=>o.value).filter(Boolean);
+  const projTxt = Array.isArray(proj) ? proj.join(', ') : proj;
+  if(!proj || Array.isArray(proj)){
+    const projList = Array.isArray(proj) ? proj : DIR_PROJS;
     porProyecto=projList.map(p=>{
       const dp=_flCalcPeriodo(p, from, to);
       return {
@@ -3264,9 +3306,10 @@ async function _flMarketingSnapshot(proj, from, to){
   ].filter(d=>d.base>0).map(d=>({...d, dropout_pct:Math.round(d.perdido/d.base*100)}));
 
   const snapshot={
-    proyecto_filtrado: proj || 'Todos',
-    nota_alcance: proj
+    proyecto_filtrado: projTxt || 'Todos',
+    nota_alcance: (proj && !Array.isArray(proj))
       ? `Todo este JSON (funnel, canales_top, evolucion_mensual, etc.) ya está filtrado al proyecto ${proj}. No hay desglose por otro proyecto.`
+      : Array.isArray(proj) ? `Todo este JSON (funnel, canales_top, evolucion_mensual, etc.) son AGREGADOS solo de los proyectos seleccionados (${projTxt}); el campo por_proyecto los desglosa.`
       : 'Los campos de nivel superior (funnel, canales_top, evolucion_mensual, etc.) son AGREGADOS de TODOS los proyectos juntos. Para una cifra de un proyecto específico (ej. "separaciones de Helio en agosto"), usa SIEMPRE el array por_proyecto: cada entrada ahí trae su propia evolucion_mensual ya filtrada a ese proyecto. Nunca reportes una cifra del nivel superior como si fuera de un proyecto específico.',
     nota_alcance_producto: 'Las cifras de "separaciones" y "ventas" en todo este JSON ya incluyen SOLO unidades tipo Departamento (estacionamientos, depósitos y otros tipos ya están excluidos del conteo, no hace falta filtrarlos de nuevo).',
     funnel:{
@@ -3287,8 +3330,8 @@ async function _flMarketingSnapshot(proj, from, to){
   };
   if(porProyecto) snapshot.por_proyecto = porProyecto;
 
-  // Meta Ads: solo disponible con un proyecto específico seleccionado (no "Todos").
-  if(proj){
+  // Meta Ads: solo disponible con un proyecto específico seleccionado (no "Todos" ni varios).
+  if(proj && !Array.isArray(proj)){
     try{
       const qs=new URLSearchParams();
       if(from) qs.set('desde', from);
@@ -3339,7 +3382,7 @@ async function _flGenerarPPT(){
   const tieneComparacion = !!(_flComp && (_flDateFrom2 || _flDateTo2));
   const from2 = _flDateFrom2, to2 = _flDateTo2;
 
-  const projList = [...document.querySelectorAll('#fl-proj option')].map(o=>o.value).filter(Boolean);
+  const projList = DIR_PROJS;
 
   const _diasEnRango = (f,t) => {
     if(!f || !t) return 7; // sin rango exacto: evita dividir por 0 al promediar
@@ -3414,7 +3457,7 @@ let _flChatCtxAnterior = null;
 // filtros desde el último mensaje, reutiliza el snapshot en vez de recalcularlo
 // (evita repetir el fetch a Meta Ads en cada pregunta del chat).
 async function _flGetChatContext(){
-  const proj = document.getElementById('fl-proj')?.value||'';
+  const proj = _flProjVal();
   const sig = [proj, _flDateFrom||'', _flDateTo||'', _flComp?1:0, _flComp?_flDateFrom2||'':'', _flComp?_flDateTo2||'':''].join('|');
   if(sig!==_flChatCtxSignature){
     _flChatCtxActual = await _flMarketingSnapshot(proj, _flDateFrom, _flDateTo);
@@ -3422,7 +3465,7 @@ async function _flGetChatContext(){
     _flChatCtxSignature = sig;
   }
   return {
-    proyecto: proj||'Todos',
+    proyecto: Array.isArray(proj)?proj.join(', '):(proj||'Todos'),
     periodoA: _flPeriodLabel(_flDateFrom,_flDateTo),
     periodoB: _flComp?_flPeriodLabel(_flDateFrom2,_flDateTo2):null,
     datosActual: _flChatCtxActual,
@@ -3456,7 +3499,7 @@ function _flCrossSetSort(key){
 }
 
 function renderFunnelMkt(){
-  const proj = document.getElementById('fl-proj')?.value||'';
+  const proj = _flProjVal();
   // Por defecto (solo la 1ra vez) el filtro "Desde" arranca en el día 1 del mes
   // actual en vez de vacío, para no mostrar siempre el histórico completo.
   if(!_flDatesInitDone){
@@ -3495,7 +3538,7 @@ function renderFunnelMkt(){
 
   const A = _flCalcPeriodo(proj, _flDateFrom, _flDateTo);
   const B = _flComp ? _flCalcPeriodo(proj, _flDateFrom2, _flDateTo2) : null;
-  const {lb:leadBase, visF, sp:sepBase, ve:ventaBase, leadsTotal, leadsDNI, leadsDigital, prospectos, citasN, visitasN, separacionesN, ventasN, medTR} = A;
+  const {lb:leadBase, visF, sp:sepBase, ve:ventaBase, veDev:ventaDevBase, leadsTotal, leadsDNI, leadsDigital, prospectos, citasN, visitasN, separacionesN, ventasN, medTR} = A;
   const trFmt = v => v!=null?(v<60?Math.round(v)+'min':Math.round(v/60)+'h '+Math.round(v%60)+'min'):'—';
   const COLORS=['#60a5fa','#34d399','#a78bfa','#fbbf24','#fb923c','#f472b6','#f87171'];
   const CC=['#60a5fa','#a78bfa','#34d399','#fbbf24','#f472b6','#fb923c','#38bdf8','#94a3b8'];
@@ -3691,10 +3734,10 @@ function renderFunnelMkt(){
   // Una fila por proyecto + fila General: Lead > Contactado > Visita > Separado > Vendido,
   // con el % de paso entre etapas. Respeta período, "Sin Proper" y "Cohorte" de arriba.
   if(_flTab==='conversion'){
-    const proyectos=[...document.querySelectorAll('#fl-proj option')].map(o=>o.value).filter(v=>v && !/litoral|carabayllo 4/i.test(v));
+    const proyectos=proj ? [].concat(proj) : DIR_PROJS.filter(v=>!/litoral|carabayllo 4/i.test(v));
     const calc = p => _flCohorte ? _flCalcCohorte(p, _flDateFrom, _flDateTo) : _flCalcPeriodo(p, _flDateFrom, _flDateTo);
     const filas = proyectos.map(p=>({nombre:p, d:calc(p)}));
-    const gen = {nombre:'General', d:calc('')};
+    const gen = {nombre:'General', d:calc(proj)};
     const etapas = d=>[d.leadsTotal, d.prospectos, d.visitasN, d.separacionesN, d.ventasN];
     const celda = (n, ant)=>`<td style="text-align:center"><b>${fN(n)}</b>${ant!=null?`<div style="font-size:10.5px;color:var(--ink-4)">${pct(n,ant||1)}</div>`:''}</td>`;
     const fila = (f, total)=>{
@@ -3725,7 +3768,7 @@ function renderFunnelMkt(){
       {val:'contactados', lbl:'CONTACTADOS',      fn:_=>leadBase.filter(_esContactado)},
       {val:'visita',      lbl:'CON VISITA',       fn:_=>visF},
       {val:'separacion',  lbl:'SEPARADOS',        fn:_=>sepBase},
-      {val:'venta',       lbl:'VENDIDOS',         fn:_=>ventaBase},
+      {val:'venta',       lbl:'VENDIDOS',         fn:_=>[...ventaBase,...(ventaDevBase||[])]},
     ];
     const stageOpt=FL_STAGE_OPTS.find(s=>s.val===_flCrossStage)||FL_STAGE_OPTS[0];
     const stageData=stageOpt.fn(leadBase);
@@ -4278,12 +4321,12 @@ function renderFunnelMkt(){
     evoBase.forEach(r=>{
       const iso = _evoDateF(r);
       if(!iso) return;
-      const p = proj ? proj : String(r.Proyecto||'Sin proyecto').trim();
+      const p = (proj && !Array.isArray(proj)) ? proj : String(r.Proyecto||'Sin proyecto').trim();
       if(!dayMap[iso]) dayMap[iso]={};
       dayMap[iso][p] = (dayMap[iso][p]||0)+1;
     });
 
-    const allProyectos = proj ? [proj] : [...new Set(evoBase.map(r=>String(r.Proyecto||'Sin proyecto').trim()))].filter(Boolean).sort();
+    const allProyectos = (proj && !Array.isArray(proj)) ? [proj] : [...new Set(evoBase.map(r=>String(r.Proyecto||'Sin proyecto').trim()))].filter(Boolean).sort();
 
     // Si no hay datos suficientes mostrar mensaje
     if(Object.keys(dayMap).length===0){
@@ -4311,7 +4354,7 @@ function renderFunnelMkt(){
     }));
 
     // Totales por período (línea gris de referencia)
-    if(!proj && allProyectos.length>1){
+    if((!proj || Array.isArray(proj)) && allProyectos.length>1){
       datasets.unshift({
         label:'Total leads',
         data: periods.map(d=>Object.values(periodMap[d]||{}).reduce((a,b)=>a+b,0)),
@@ -4380,7 +4423,7 @@ function renderFunnelMkt(){
         options:{
             onClick:_evoClick((di,i)=>{
             const per=periods[i]; const ds=datasets[di]; if(!per||!ds) return null;
-            const p=ds.label; const todos=(p==='Total leads')||!!proj;
+            const p=ds.label; const todos=(p==='Total leads')||(!!proj&&!Array.isArray(proj));
             const filas=evoBase.filter(r=>_evoEnPeriodo(_evoDateF(r),per,_gran) && (todos || String(r.Proyecto||'Sin proyecto').trim()===p));
             return {etapa:evoStageOpt.val, filas, titulo:evoStageOpt.lbl+' · '+_tituloPer(per,_gran)+(todos?'':' · '+p),
               kpi2Lbl:_granUniCap(_gran), kpi2Val:_tituloPer(per,_gran)};
@@ -5843,12 +5886,12 @@ function _renderMetaAdsTab(j){
   if(!wrap) return;
   window._metaAdsLastPayload = j;
   if(j.error){ wrap.innerHTML = `<div style="padding:20px;color:var(--bad);font-size:13px">${j.error}</div>`; return; }
-  const proj = document.getElementById('fl-proj')?.value||'';
+  const proj = _flProjVal();
 
-  if(!proj){
+  if(!proj || Array.isArray(proj)){
     _destroyMetaEvoCharts();
     wrap.innerHTML = `<div style="padding:60px 20px;text-align:center;color:var(--ink-4);font-size:13px">
-      Selecciona un proyecto arriba (≡) para ver el detalle de Meta Ads.
+      Selecciona un solo proyecto arriba (≡) para ver el detalle de Meta Ads.
     </div>`;
     return;
   }
@@ -6793,6 +6836,7 @@ const FL_VENTA_COLS=[
   {label:'F. Separación',   get:r=>_flFmtFecha(_flFechaSepPara(r)), align:'center', sortVal:r=>_flFechaSepPara(r)},
   {label:'F. Venta',        get:r=>_flFmtFecha(r.FechaVenta||r.FechaEntrega_Minuta), align:'center', sortVal:r=>_flIsoFecha(r.FechaVenta||r.FechaEntrega_Minuta)},
   {label:'Financiamiento',  get:r=>String(r.TipoFinanciamiento||'').split('/')[0].trim()||'—'}, // viene "XX/YY/ZZ": solo el primero
+  {label:'Estado',          get:r=>String(r.EstadoOC||'').trim()==='Devuelto'?'Devuelto':'Vigente', align:'center'},
 ];
 
 const _comMoneda = r=>String(r.TipoMoneda||'').toUpperCase().includes('DOLAR') ? '$' : 'S/';

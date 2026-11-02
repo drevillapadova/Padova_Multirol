@@ -772,6 +772,10 @@ def actualizar_cache():
             _cache[key] = _normalizar_proyectos(raw, lomas_etapa_fija=fija)
         else:
             _cache[key] = raw
+    # Las ventas devueltas no entran a _cache["ventas"] (cobranza, funnel, etc.); se guardan aparte
+    # solo para que Marketing pueda mostrarlas en Vendidos de la Tabla Cruce con su estado.
+    _cache["ventas_devueltas"] = [r for r in _cache["ventas"]
+                                  if str(r.get("EstadoOC", "")).strip() == "Devuelto"]
     _cache["ventas"] = [r for r in _cache["ventas"]
                         if str(r.get("EstadoOC", "")).strip() == "Activo"]
     # FechaVisita es el campo canónico confirmado en el Google Sheets de visitas
@@ -833,6 +837,7 @@ def api_ventas():
 
     return jsonify({
         "ventas":       ventas,
+        "ventas_devueltas": filtrar_proyecto(_cache.get("ventas_devueltas", []), proyecto),
         "separaciones": seps,
         "updated_at":   _cache["updated_at"]
     })
