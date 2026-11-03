@@ -6322,7 +6322,7 @@ function _cobMesExportarExcel(){
   const titulo = document.getElementById('cob-mes-titulo-mes')?.textContent || 'cobranza';
   const slug = titulo.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
     .replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') || 'cobranza';
-  _exportarTablaExcel('#cob-mes-table', 'cobranza_'+slug);
+  _exportarTablaExcel('#cob-mes-table', 'cobranza_'+slug, titulo);
 }
 document.addEventListener('keydown', e=>{
   if(e.key==='Escape') cerrarModalDetalle();
@@ -6352,6 +6352,7 @@ function _abrirModalCuotasMes(fc, mesCol, mesLabel, FX, ingDep, mesYM){
 
   const cols = [
     {label:'Cliente', get:r=>_detTitular(r)},
+    {label:'DNI', align:'center', get:r=>String(r.NroDocumentoTitular||'—')},
     {label:'Proyecto', align:'center', get:r=>String(r.Proyecto||'').trim()||'—'},
     {label:'N° Dpto.', align:'center', get:r=>_admUnidadesTxt(r,'<br>')},
     {label:'Monto Cuota', align:'center', get:r=>_detMonto(_h(r).montoCuota, _detEsUSD(r))},
@@ -6585,6 +6586,7 @@ function _abrirModalFinanciamiento(fc, tipo, estado, FX){
   const _fechaPendiente = r => _pendInfo(r)?.mes || '<span style="color:var(--ink-4)">—</span>';
   const cols = [
     {label:'Cliente', get:r=>_detTitular(r)},
+    {label:'DNI', align:'center', get:r=>String(r.NroDocumentoTitular||'—')},
     {label:'N° Dpto.', align:'center', get:r=>r._u.nro},
     {label:'Tipo', align:'center', get:r=>r._u.tp||'—'},
     // Solo en Pendientes: próxima cuota con saldo (mes más antiguo con saldo en Flujo de
@@ -6976,7 +6978,8 @@ function _flExportarExcel(){
   const titulo = _flPopupState?.titulo || 'clientes';
   const slug = titulo.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
     .replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') || 'clientes';
-  _exportarTablaExcel('#fl-cli-table', 'funnel_'+slug);
+  const k = _flPopupState;
+  _exportarTablaExcel('#fl-cli-table', 'funnel_'+slug, titulo, k&&k.kpi1 ? k.kpi1.label+': '+k.kpi1.val+(k.kpi2?' · '+k.kpi2.label+': '+k.kpi2.val:'') : '');
 }
 function cerrarModalFunnel(){
   _flFiltCerrar();
@@ -8519,21 +8522,130 @@ function _zonaSetLabel(txt){
 }
 
 // ── Descargar a Excel la tabla tal cual se ve en pantalla (respeta los filtros
-// que tengas puestos) — lee directo el <table> ya renderizado. ──
-function _exportarTablaExcel(tableSelector, nombreArchivo){
-  const table = document.querySelector(tableSelector);
-  if(!table || !table.rows.length){
-    alert('No hay datos para exportar todavía. Elige algún filtro primero.');
-    return;
-  }
+// que tengas puestos) — lee directo el <table> ya renderizado y la entrega con formato
+// (título, encabezado con color, filas alternadas, montos y números como número, filtros,
+// encabezado congelado y filas "Total" resaltadas). Usa ExcelJS porque SheetJS no permite
+// estilos; si ExcelJS no cargó, cae al Excel simple. titulo/subtitulo son opcionales. ──
+function _exportarTablaExcelSimple(table, nombreArchivo){
   // raw:true evita que SheetJS intente adivinar fechas: sin esto, convierte
   // texto tipo "2026-09-19" a fecha interpretándolo como UTC y luego lo
   // muestra en la zona horaria local, restando 1 día a todas las fechas.
   const ws = XLSX.utils.table_to_sheet(table, {raw:true});
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Datos');
-  const fecha = new Date().toISOString().slice(0,10);
-  XLSX.writeFile(wb, `${nombreArchivo}_${fecha}.xlsx`);
+  XLSX.writeFile(wb, `${nombreArchivo}_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+async function _exportarTablaExcel(tableSelector, nombreArchivo, titulo, subtitulo){
+  const table = document.querySelector(tableSelector);
+  if(!table || !table.rows.length){
+    alert('No hay datos para exportar todavía. Elige algún filtro primero.');
+    return;
+  }
+  if(typeof ExcelJS==='undefined'){ _exportarTablaExcelSimple(table, nombreArchivo); return; }
+  try{
+    const FONT='Plus Jakarta Sans';
+    const INK='FF0F172A', INK2='FF334155', INK3='FF64748B', LINE='FFE5E7EB', LINE2='FFEEF0F3';
+    const BRAND='FF3B82F6', BRAND_SOFT='FFE9F1FE', ZEBRA='FFF8FAFC', BLANCO='FFFFFFFF';
+    const borde=(color,grosor='thin')=>({style:grosor, color:{argb:color}});
+    const relleno=argb=>({type:'pattern', pattern:'solid', fgColor:{argb}});
+    const limpia=el=>String(el.innerText||el.textContent||'').replace(/\s+/g,' ').replace(/\s*[↑↓▾▼]+\s*$/,'').trim();
+
+    const filas=[...table.rows].filter(tr=>tr.offsetParent!==null || tr.getClientRects().length);
+    if(!filas.length){ alert('No hay datos para exportar todavía.'); return; }
+    const nCols=Math.max(...filas.map(tr=>[...tr.cells].reduce((a,c)=>a+(c.colSpan||1),0)));
+    const headRows=filas.filter(tr=>tr.parentElement.tagName==='THEAD');
+    const nHead=headRows.length||1;
+    const hdrs=[...(filas[nHead-1].cells)].map(c=>limpia(c).toLowerCase());
+    const colTexto=hdrs.map(h=>/dni|n°|nro|n\.|dpto|tel|cel|c[oó]d|ruc|doc|a[ñn]o|mes/.test(h));
+
+    const wb=new ExcelJS.Workbook();
+    wb.creator='Padova SAC';
+    const ws=wb.addWorksheet('Datos',{views:[{showGridLines:false}]});
+
+    // Título y subtítulo
+    const tit=titulo||String(nombreArchivo||'Detalle').replace(/_/g,' ').replace(/^./,c=>c.toUpperCase());
+    ws.mergeCells(1,1,1,nCols);
+    const t=ws.getCell(1,1);
+    t.value=tit;
+    t.font={name:FONT,size:16,bold:true,color:{argb:INK}};
+    t.alignment={vertical:'middle',horizontal:'left'};
+    ws.getRow(1).height=28;
+    ws.mergeCells(2,1,2,nCols);
+    const sub=ws.getCell(2,1);
+    sub.value=(subtitulo?subtitulo+' · ':'')+'Descargado el '+new Date().toLocaleDateString('es-PE');
+    sub.font={name:FONT,size:10,color:{argb:INK3}};
+    ws.getRow(3).height=6;
+
+    const base=4;
+    const anchos=new Array(nCols).fill(10);
+    let zebra=0;
+    filas.forEach((tr,i)=>{
+      const rowXl=ws.getRow(base+i);
+      const esHead=tr.parentElement.tagName==='THEAD';
+      const primero=limpia(tr.cells[0]||tr);
+      const esTotal=!esHead && (tr.parentElement.tagName==='TFOOT' || /^total\b|^general$/i.test(primero));
+      if(!esHead && !esTotal) zebra++;
+      let col=1;
+      [...tr.cells].forEach((td,j)=>{
+        const texto=limpia(td);
+        const c=rowXl.getCell(col);
+        let valor=texto, fmt=null, num=false;
+        if(!esHead && texto && !colTexto[j]){
+          let m;
+          if((m=texto.match(/^(S\/|US\$|\$)\s?(-?[\d,]+(?:\.\d+)?)$/))){
+            valor=parseFloat(m[2].replace(/,/g,'')); fmt=(m[1]==='S/'?'"S/ "':'"$ "')+'#,##0.00'; num=true;
+          } else if((m=texto.match(/^(-?\d+(?:\.\d+)?)%$/))){
+            valor=parseFloat(m[1])/100; fmt=Number.isInteger(parseFloat(m[1]))?'0%':'0.0%'; num=true;
+          } else if(/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(texto)){
+            valor=parseFloat(texto.replace(/,/g,'')); fmt=texto.includes('.')?'#,##0.00':'#,##0'; num=true;
+          } else if(/^-?\d{1,6}$/.test(texto)){
+            valor=parseInt(texto,10); fmt='#,##0'; num=true;
+          } else if(/^-?\d+\.\d+$/.test(texto)){
+            valor=parseFloat(texto); fmt='#,##0.0#'; num=true;
+          }
+        }
+        c.value=valor;
+        if(fmt) c.numFmt=fmt;
+        const alinea=td.style.textAlign||getComputedStyle(td).textAlign;
+        const horiz=esHead?(j===0?'left':'center'):num?'right':(alinea==='center'?'center':'left');
+        c.alignment={vertical:'middle',horizontal:esHead&&alinea==='left'?'left':horiz,wrapText:false,indent:(!num&&horiz==='left')?1:0};
+        if(esHead){
+          c.font={name:FONT,size:11,bold:true,color:{argb:INK}};
+          c.fill=relleno(BRAND_SOFT);
+          c.border={bottom:borde(BRAND,'medium')};
+        } else if(esTotal){
+          c.font={name:FONT,size:11,bold:true,color:{argb:BRAND}};
+          c.fill=relleno(BRAND_SOFT);
+          c.border={top:borde(BRAND,'thin'),bottom:borde(LINE2)};
+        } else {
+          const nego=getComputedStyle(td).fontWeight>=600;
+          c.font={name:FONT,size:11,bold:nego,color:{argb:INK2}};
+          c.fill=relleno(zebra%2===0?ZEBRA:BLANCO);
+          c.border={bottom:borde(LINE2)};
+        }
+        const largo=String(texto).length+(num?2:0);
+        const cs=td.colSpan||1;
+        if(cs>1) ws.mergeCells(base+i,col,base+i,col+cs-1);
+        else anchos[col-1]=Math.max(anchos[col-1], Math.min(largo,48));
+        col+=cs;
+      });
+      rowXl.height=esHead?26:21;
+    });
+    anchos.forEach((w,j)=>{ ws.getColumn(j+1).width=Math.min(Math.max(w+4,11),52); });
+    ws.views=[{state:'frozen',ySplit:base+nHead-1,showGridLines:false}];
+    if(nHead===1 && filas.length>1) ws.autoFilter={from:{row:base,column:1},to:{row:base,column:nCols}};
+    ws.pageSetup={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0};
+
+    const buf=await wb.xlsx.writeBuffer();
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+    a.download=`${nombreArchivo}_${new Date().toISOString().slice(0,10)}.xlsx`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  }catch(err){
+    console.error('Excel con formato falló, se baja el simple:',err);
+    _exportarTablaExcelSimple(table, nombreArchivo);
+  }
 }
 
 // ── Excel de Precios Competencia con el mismo formato que se ve en el dashboard
