@@ -8460,7 +8460,164 @@ const SECTOR_COLORS = {
   'CALLAO':       '#fbbf24',
 };
 const SECTOR_COLOR_DEFAULT = '#94a3b8';
-let _mercadoMap = null, _mercadoLayer = null;
+let _mercadoMap = null, _mercadoLayer = null, _mercadoSelLayer = null;
+let _mercadoVistaKey = null; // filtros con los que se encuadró el mapa por última vez
+let _mapaUltimoClic = null; // último proyecto marcado con clic (su cuadro se abre aunque haya muchos elegidos)
+
+// Proyectos distintos (p. ej. etapas de un mismo condominio) con la MISMA coordenada
+// quedaban uno encima del otro: solo se podía hacer clic en el de arriba y sus cuadros se
+// apilaban. Se reparten en un círculo de ~20 m alrededor del punto original.
+let _mercadoPosCache = null, _mercadoPosData = null;
+function _mercadoPos(r){
+  const data = D.mercado||[];
+  if(_mercadoPosData!==data){
+    _mercadoPosData = data; _mercadoPosCache = new Map();
+    const grupos = new Map();
+    data.forEach(x=>{
+      const k = (+x.lat).toFixed(5)+','+(+x.lng).toFixed(5);
+      if(!grupos.has(k)) grupos.set(k, []);
+      grupos.get(k).push(x);
+    });
+    grupos.forEach(g=>{
+      if(g.length===1){ _mercadoPosCache.set(g[0], [+g[0].lat, +g[0].lng]); return; }
+      const R = 0.00018; // ~20 m
+      g.forEach((x,i)=>{
+        const ang = -Math.PI/2 + 2*Math.PI*i/g.length;
+        _mercadoPosCache.set(x, [+x.lat + R*Math.sin(ang), +x.lng + R*Math.cos(ang)/Math.cos(x.lat*Math.PI/180)]);
+      });
+    });
+  }
+  return _mercadoPosCache.get(r) || [+r.lat, +r.lng];
+}
+
+// ── Cuadros (popups) sin superponerse: si varios están abiertos y sus puntos están cerca,
+// cada cuadro prueba ubicarse arriba, a los costados o debajo de su punto, el primer lugar
+// libre que no choque con otro cuadro ni tape otro punto elegido. Si se movió de su lugar
+// normal se une a su punto con una línea. Se recalcula al hacer zoom y al abrir/cerrar cuadros.
+let _mercadoLineasLayer = null, _mercadoAcomodarPend = false;
+function _mercadoAcomodarCuadrosPronto(){
+  if(_mercadoAcomodarPend) return;
+  _mercadoAcomodarPend = true;
+  setTimeout(()=>{ _mercadoAcomodarPend = false; _mercadoAcomodarCuadros(); }, 30);
+}
+function _mercadoAcomodarCuadros(){
+  if(!_mercadoMap) return;
+  if(!_mercadoLineasLayer) _mercadoLineasLayer = L.layerGroup().addTo(_mercadoMap);
+  _mercadoLineasLayer.clearLayers();
+  const abiertos = [];
+  [_mercadoSelLayer, _mercadoLayer].forEach(capa=>{ if(capa) capa.eachLayer(m=>{
+    if(m.isPopupOpen && m.isPopupOpen()) abiertos.push(m);
+  }); });
+  if(!abiertos.length) return;
+  const mapRect = _mercadoMap.getContainer().getBoundingClientRect();
+  const size = _mercadoMap.getSize();
+  // 1) Volver cada cuadro a su posición normal (encima del punto) y medirlo.
+  const items = abiertos.map(m=>{
+    const pop = m.getPopup();
+    if(!pop._mktBase) pop._mktBase = L.point(pop.options.offset||[0,7]);
+    pop.options.autoPan = false; // reubicar no debe mover el mapa
+    pop.options.offset = pop._mktBase;
+    pop.update();
+    if(pop._tipContainer) pop._tipContainer.style.visibility = '';
+    const r = pop._wrapper.getBoundingClientRect();
+    const P = _mercadoMap.latLngToContainerPoint(m.getLatLng());
+    return { m, pop, P, x:r.left-mapRect.left, y:r.top-mapRect.top, w:r.width, h:r.height };
+  });
+  // Puntos con cuadro abierto = obstáculos (un cuadro no debe tapar el punto de otro)
+  const R_PUNTO = 13;
+  items.forEach(it=>{ it.obst = {x:it.P.x-R_PUNTO, y:it.P.y-R_PUNTO, w:2*R_PUNTO, h:2*R_PUNTO}; });
+  const GAP = 4;
+  const ptsU = { x0:Math.min(...items.map(i=>i.P.x))-R_PUNTO, y0:Math.min(...items.map(i=>i.P.y))-R_PUNTO,
+                 x1:Math.max(...items.map(i=>i.P.x))+R_PUNTO, y1:Math.max(...items.map(i=>i.P.y))+R_PUNTO };
+  const inter = (a,b)=>{
+    const ix = Math.min(a.x+a.w, b.x+b.w) - Math.max(a.x, b.x) + GAP;
+    const iy = Math.min(a.y+a.h, b.y+b.h) - Math.max(a.y, b.y) + GAP;
+    return ix>0 && iy>0 ? ix*iy : 0;
+  };
+  // 2) Lugares posibles para cada cuadro alrededor de su punto.
+  const D = 16;
+  items.forEach(it=>{
+    const {P, w, h} = it;
+    it.cand = [
+      {x:it.x, y:it.y},                       // arriba (normal)
+      {x:P.x+D, y:P.y-h/2},                   // derecha
+      {x:P.x-D-w, y:P.y-h/2},                 // izquierda
+      {x:P.x+D*0.6, y:P.y-D*0.6-h},           // arriba-derecha
+      {x:P.x-D*0.6-w, y:P.y-D*0.6-h},         // arriba-izquierda
+      {x:P.x-w/2, y:P.y+D},                   // abajo
+      {x:P.x+D*0.6, y:P.y+D*0.6},             // abajo-derecha
+      {x:P.x-D*0.6-w, y:P.y+D*0.6},           // abajo-izquierda
+    ];
+    // grilla más amplia (columnas más alejadas a los lados) por si las cercanas están ocupadas
+    [-2*w-2*D, -w-D, -w/2, D, w+2*D].forEach(gx=>[-h-D, -h/2, D].forEach(gy=>{
+      it.cand.push({x:P.x+gx, y:P.y+gy});
+    }));
+  });
+  // 3) Ubicación golosa en un orden dado: cada cuadro toma el lugar más barato.
+  // Taparse con otro cuadro (o tapar un punto elegido) pesa mucho más que salirse del
+  // mapa, porque después el mapa se desplaza para que todos los cuadros entren.
+  const colocar = orden=>{
+    const puestos = []; let total = 0;
+    let U = null; // caja que encierra los cuadros ya puestos (con los puntos)
+    orden.forEach(it=>{
+      let mejor = null, mejorCosto = Infinity, mejorU = null;
+      for(let i=0;i<it.cand.length;i++){
+        const a = {x:it.cand[i].x, y:it.cand[i].y, w:it.w, h:it.h};
+        // Salirse del mapa NO cuenta si el mapa se puede desplazar para que entre (paso 5):
+        // solo cuenta lo que el conjunto de cuadros + puntos excede el tamaño del mapa.
+        const u = U ? {x0:Math.min(U.x0,a.x), y0:Math.min(U.y0,a.y), x1:Math.max(U.x1,a.x+a.w), y1:Math.max(U.y1,a.y+a.h)}
+                    : {x0:Math.min(a.x,ptsU.x0), y0:Math.min(a.y,ptsU.y0), x1:Math.max(a.x+a.w,ptsU.x1), y1:Math.max(a.y+a.h,ptsU.y1)};
+        const exX = Math.max(0, (u.x1-u.x0) - (size.x-16)), exY = Math.max(0, (u.y1-u.y0) - (size.y-16));
+        let costo = (exX*a.h + exY*a.w)*0.2 + i*0.5; // a igualdad, preferir el orden de la lista (arriba primero)
+        puestos.forEach(b=>costo += inter(a,b)*4);
+        items.forEach(o=>{ if(o!==it) costo += inter(a,o.obst)*4; }); // el propio punto no cuenta: el cuadro va pegado a él
+        if(costo < mejorCosto){ mejorCosto = costo; mejor = a; mejorU = u; }
+      }
+      puestos.push(mejor); total += mejorCosto; U = mejorU;
+    });
+    return {total, puestos};
+  };
+  // Con pocos cuadros se prueban todos los órdenes y se queda el mejor; con muchos,
+  // de arriba hacia abajo en pantalla.
+  items.sort((a,b)=>a.P.y-b.P.y || a.P.x-b.P.x);
+  const permutar = arr=> arr.length<=1 ? [arr] : arr.flatMap((x,i)=>permutar([...arr.slice(0,i), ...arr.slice(i+1)]).map(r=>[x,...r]));
+  const ordenes = items.length<=5 ? permutar(items) : [items];
+  let mejor = null, mejorOrden = null;
+  ordenes.forEach(o=>{ const r = colocar(o); if(!mejor || r.total < mejor.total){ mejor = r; mejorOrden = o; } });
+  // 4) Aplicar: mover cada cuadro a su lugar y unirlo a su punto con una línea.
+  mejorOrden.forEach((it, k)=>{
+    const lugar = mejor.puestos[k], {P, w, h} = it;
+    const dx = lugar.x - it.x, dy = lugar.y - it.y;
+    if(Math.abs(dx)<1 && Math.abs(dy)<1) return;
+    it.pop.options.offset = it.pop._mktBase.add(L.point(Math.round(dx), Math.round(dy)));
+    it.pop.update();
+    if(it.pop._tipContainer) it.pop._tipContainer.style.visibility = 'hidden';
+    const qx = Math.max(lugar.x, Math.min(P.x, lugar.x+w));
+    const qy = Math.max(lugar.y, Math.min(P.y, lugar.y+h));
+    L.polyline([_mercadoMap.containerPointToLatLng(P), _mercadoMap.containerPointToLatLng(L.point(qx,qy))],
+      { color:'#0f172a', weight:1.5, opacity:0.75, interactive:false }).addTo(_mercadoLineasLayer);
+  });
+  // 5) Si algún cuadro quedó fuera del mapa y todos caben juntos, desplazar el mapa.
+  const M = 8;
+  const x0 = Math.min(ptsU.x0, ...mejor.puestos.map(r=>r.x)), y0 = Math.min(ptsU.y0, ...mejor.puestos.map(r=>r.y));
+  const x1 = Math.max(ptsU.x1, ...mejor.puestos.map(r=>r.x+r.w)), y1 = Math.max(ptsU.y1, ...mejor.puestos.map(r=>r.y+r.h));
+  let px = 0, py = 0;
+  if(x1-x0 <= size.x-2*M){ if(x0 < M) px = x0-M; else if(x1 > size.x-M) px = x1-(size.x-M); }
+  if(y1-y0 <= size.y-2*M){ if(y0 < M) py = y0-M; else if(y1 > size.y-M) py = y1-(size.y-M); }
+  if(px || py) _mercadoMap.panBy([Math.round(px), Math.round(py)], { animate:false }); // sin animación: un reacomodo seguido no la corta a medias
+}
+
+// Quitar un proyecto de la selección desde el mapa (X del cuadro), sin mover el encuadre.
+function _mapaQuitarProyecto(proyecto){
+  const sel = _mselGet('proyecto');
+  if(!sel.has(proyecto)) return;
+  sel.delete(proyecto);
+  if(_mapaUltimoClic===proyecto) _mapaUltimoClic = null;
+  if(!sel.size){ _mapaSelPorClic = false; _busqActiva = false; }
+  _zonaMantenerVista = true;
+  _mselLabelsRapido();
+  setTimeout(_renderMercadoCompartidas, 0);
+}
 
 // ── Contorno del distrito seleccionado (polígono real, no solo los puntos) ──
 let _distritosGeoJSON = null, _distritosGeoJSONCargando = null, _distritoBoundaryLayer = null;
@@ -9051,6 +9208,8 @@ function _mselRenderChips(){
 }
 function _mselQuitarChip(b){
   const d = b.parentElement.dataset;
+  if(_mapaSelPorClic && d.k==='proyecto') _zonaMantenerVista = true; // selección hecha en el mapa: no reencuadrar
+  if(d.k==='proyecto' && _mapaUltimoClic===d.v) _mapaUltimoClic = null;
   mselSetValues(d.k, [d.v], false, {keepClic:true});
 }
 function _mselInitChips(){
@@ -9274,13 +9433,22 @@ function renderMercadoMapa(){
       const latlng = _mercadoMap.containerPointToLatLng(pt);
       _mercadoMap.setZoomAround(latlng, _mercadoMap.getZoom() + (e.deltaY < 0 ? 1 : -1));
     }, { passive:false });
+    // Reacomodar los cuadros abiertos para que no se superpongan
+    _mercadoMap.on('zoomend popupopen popupclose resize', _mercadoAcomodarCuadrosPronto);
   }
   if(_mercadoLayer) _mercadoMap.removeLayer(_mercadoLayer);
+  if(_mercadoSelLayer) _mercadoMap.removeLayer(_mercadoSelLayer);
+  _mercadoMap.closePopup();
+  // Puntos normales: agrupados en clusters. Puntos elegidos (los que muestran su cuadro):
+  // en una capa aparte SIN agrupar, así siempre están visibles y su cuadro se puede abrir
+  // sin depender de expandir (spiderfy) el cluster.
   _mercadoLayer = L.markerClusterGroup({
-    maxClusterRadius: 55,
+    maxClusterRadius: z => z>=15 ? 35 : 55,
     disableClusteringAtZoom: 17,
     spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
   }).addTo(_mercadoMap);
+  _mercadoSelLayer = L.layerGroup().addTo(_mercadoMap);
 
   const fSol = n => 'S/ '+Number(n||0).toLocaleString('es-PE',{minimumFractionDigits:0,maximumFractionDigits:0});
   const fOracion = s => {
@@ -9292,7 +9460,6 @@ function renderMercadoMapa(){
     const min = Math.round(r.area_min), max = Math.round(r.area_max);
     return min===max ? `${min} m²` : `${min} - ${max} m²`;
   };
-  const puntos = [];
   // L.markerClusterGroup solo agrupa L.marker (con ícono), no circleMarker — por eso
   // el punto de color se hace con un ícono propio (div) en vez de un circleMarker.
   const _iconoPunto = (color, estado) => {
@@ -9310,11 +9477,26 @@ function renderMercadoMapa(){
     });
   };
 
+  // Cuántos proyectos "elegidos" hay y si se muestran sus cuadros.
+  const AUTO_ABRIR_LIMITE = 4;
+  const selProy = _mselGet('proyecto');
+  const nSel = modoClic ? selProy.size : (selProy.size ? filtrado.length : 0);
+  const abrirTodos = nSel>0 && nSel <= AUTO_ABRIR_LIMITE;
+  const puntos = [];
+  const aAbrir = [];
+
   filtrado.forEach(r=>{
     const color = SECTOR_COLORS[(r.sector||'').toUpperCase()] || SECTOR_COLOR_DEFAULT;
-    const esSel = modoClic && _mselGet('proyecto').has(r.proyecto);
-    const marker = L.marker([r.lat, r.lng], { icon: _iconoPunto(color, !modoClic ? '' : (esSel?'on':'off')) });
+    const esSel = modoClic && selProy.has(r.proyecto);
+    // "Destacado" = elegido por el usuario (clic, dropdown, búsqueda o zona) con su cuadro a la vista
+    const destacado = modoClic ? esSel : (abrirTodos && selProy.has(r.proyecto));
+    const pos = _mercadoPos(r);
+    const marker = L.marker(pos, {
+      icon: _iconoPunto(color, !modoClic ? '' : (esSel?'on':'off')),
+      zIndexOffset: destacado ? 1000 : 0,
+    });
     marker._sel = esSel;
+    marker._destacado = destacado;
     marker.bindPopup(`
       <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:10.5px;line-height:1.35;min-width:150px">
         <div style="font-weight:700;font-size:11.5px;margin-bottom:1px">${r.proyecto}</div>
@@ -9326,64 +9508,62 @@ function renderMercadoMapa(){
         <div><b>Metraje (rango):</b> ${fMetraje(r)}</div>
         <div><b>Ticket:</b> ${fSol(r.precio_promedio)}</div>
       </div>
-    `, { autoClose:false, closeOnClick:false, minWidth:120, maxWidth:220 });
+    `, { autoClose:false, closeOnClick:false, minWidth:120, maxWidth:220, autoPan: r.proyecto===_mapaUltimoClic });
+    // La X del cuadro de un punto elegido = quitarlo de la selección (igual que volver a
+    // hacerle clic). En un punto no elegido la X solo cierra el cuadro.
+    marker.on('popupopen', e=>{
+      const btn = e.popup.getElement() && e.popup.getElement().querySelector('.leaflet-popup-close-button');
+      if(btn && !btn._mktX){
+        btn._mktX = true;
+        L.DomEvent.on(btn, 'click', ()=>{ if(marker._destacado) _mapaQuitarProyecto(r.proyecto); });
+      }
+    });
     // Clic en el punto = sumar/quitar ese proyecto del filtro compartido, así las
     // tablas de Ventas y Precios Competencia se actualizan a la selección.
     marker.on('click', ()=>{
       const sel = _mselGet('proyecto');
-      // Si la selección viene del dropdown, la búsqueda o una zona, el clic solo abre el
-      // cuadro del punto: no toca la selección ni muestra los demás puntos del mapa.
+      // Si la selección viene del dropdown, la búsqueda o una zona, el clic solo abre/cierra
+      // el cuadro del punto: no toca la selección ni muestra los demás puntos del mapa.
       if(!_mapaSelPorClic && sel.size>0) return;
       _busqActiva = false;
-      if(sel.has(r.proyecto)) sel.delete(r.proyecto); else sel.add(r.proyecto);
+      if(sel.has(r.proyecto)){ sel.delete(r.proyecto); _mapaUltimoClic = null; }
+      else { sel.add(r.proyecto); _mapaUltimoClic = r.proyecto; }
       _mapaSelPorClic = sel.size>0;
       _zonaMantenerVista = true; // no mover el mapa al seleccionar
       setTimeout(_renderMercadoCompartidas, 0);
     });
-    marker.addTo(_mercadoLayer);
-    puntos.push([r.lat, r.lng]);
+    marker.addTo(destacado ? _mercadoSelLayer : _mercadoLayer);
+    if(destacado && (abrirTodos || r.proyecto===_mapaUltimoClic)) aAbrir.push(marker);
+    puntos.push(pos);
   });
-  // Los cuadros se abren solos si son pocos proyectos filtrados; si son muchos y
-  // muy juntos, mejor evitar el amontonamiento y usar las tablas de comparación
-  // (Ventas por proyecto y tipología / Precios Competencia) para verlos todos.
-  const AUTO_ABRIR_LIMITE = 4;
+  // Los cuadros se abren solos si son pocos proyectos elegidos (hasta 4); si son más,
+  // solo el último que se marcó con clic, y el resto se ve en las tablas de comparación.
+  aAbrir.forEach(m=>m.openPopup());
+  _mercadoAcomodarCuadrosPronto();
   const hint = document.getElementById('mkt-mercado-hint');
-  const nSel = modoClic ? _mselGet('proyecto').size : filtrado.length;
-  if(_mselGet('proyecto').size && nSel <= AUTO_ABRIR_LIMITE){
-    // Al hacer clic en un punto el mapa se redibuja y los puntos vuelven a quedar
-    // agrupados en su cluster: un marker dentro de un cluster no está en el mapa y
-    // openPopup() no hace nada. Los que estén ocultos se abren re-expandiendo (spiderfy)
-    // su cluster, sin mover el zoom ni el encuadre.
-    const _ocultos = [];
-    _mercadoLayer.eachLayer(m=>{
-      if(modoClic && !m._sel) return;
-      if(_mercadoLayer.getVisibleParent(m)===m) m.openPopup(); else _ocultos.push(m);
-    });
-    if(_ocultos.length){
-      const _cl = _mercadoLayer.getVisibleParent(_ocultos[0]);
-      if(_cl && _cl.spiderfy){
-        _mercadoLayer.once('spiderfied', ()=>_ocultos.forEach(m=>{
-          if(_mercadoLayer.getVisibleParent(m)===m) m.openPopup();
-        }));
-        _cl.spiderfy();
-      }
-    }
-    if(hint) hint.style.display = 'none';
-  } else if(_mselGet('proyecto').size && nSel > AUTO_ABRIR_LIMITE){
-    if(hint){
+  if(hint){
+    if(nSel > AUTO_ABRIR_LIMITE){
       hint.style.display = '';
-      hint.innerHTML = `Son ${nSel} proyectos — para verlos todos ordenados, mejor revisa las tablas de <b>Ventas Competencia</b> o <b>Precios Competencia</b>. Haz clic en un punto del mapa para ver su cuadro.`;
-    }
-  } else if(hint){
-    hint.style.display = 'none';
+      hint.innerHTML = `Son ${nSel} proyectos — para verlos todos ordenados, mejor revisa las tablas de <b>Ventas Competencia</b> o <b>Precios Competencia</b>. ` +
+        (modoClic ? 'Haz clic en un punto marcado (o en la X de su cuadro) para quitarlo.' : 'Haz clic en un punto del mapa para ver su cuadro.');
+    } else hint.style.display = 'none';
   }
 
   // Si hay algún filtro activo, llevar el mapa a la selección; si no, vista general de Lima
   const hayFiltro = _mselGet('distrito').size || _mselGet('inmobiliaria').size || _mselGet('proyecto').size || busqueda || _zonaDibujada;
-  if(_zonaMantenerVista){
+  // Solo se reencuadra si cambió lo que define la vista (distrito, inmobiliaria, proyectos
+  // elegidos en el dropdown/búsqueda, zona). Un repintado por otra causa — p. ej. el que
+  // queda pendiente al cerrar un dropdown con un clic en el mapa — no debe mover el mapa.
+  // Con selección por clic se ven todos los puntos igual que sin selección: no cuenta.
+  const _ord = set=>[...set].sort();
+  const vistaKey = JSON.stringify([_ord(_mselGet('distrito')), _ord(_mselGet('inmobiliaria')),
+    modoClic ? [] : _ord(_mselGet('proyecto')), _zonaDibujada ? _zonaDibujada.length : 0]);
+  const vistaCambio = vistaKey !== _mercadoVistaKey;
+  _mercadoVistaKey = vistaKey;
+  if(_zonaMantenerVista || !vistaCambio){
     _zonaMantenerVista = false; // se consume una sola vez, el próximo cambio de filtro sí reencuadra normal
   } else if(hayFiltro && puntos.length){
-    _mercadoMap.fitBounds(puntos, { maxZoom: 15, padding:[30,30] });
+    _mercadoMap.fitBounds(puntos, { maxZoom: 15, paddingTopLeft:[30, abrirTodos?200:30], paddingBottomRight:[30,30] }); // espacio arriba para los cuadros
   } else if(!hayFiltro){
     _mercadoMap.setView([-12.05,-77.04], 11);
   }
