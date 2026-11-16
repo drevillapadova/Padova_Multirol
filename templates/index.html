@@ -320,6 +320,36 @@ table.tbl tfoot td.r{text-align:right;font-family:var(--mono)}
 .pvm-row .t .mk{position:absolute;top:0;bottom:0;width:2px;background:var(--ink-3)}
 .pvm-row .t .me{position:absolute;top:0;bottom:0;border-radius:5px;background:linear-gradient(90deg,oklch(0.88 0.08 250),oklch(0.7 0.14 250))}
 
+/* Pricing: avance por tramos */
+#pr-kpis .kpi .sub{display:block;line-height:1.45}
+.pr-alertas{display:flex;flex-direction:column;gap:8px;padding:12px 18px 16px}
+.pr-alerta{display:flex;gap:10px;align-items:flex-start;font-size:12.5px;color:var(--ink-2);line-height:1.45}
+.pr-alerta i{flex:0 0 9px;height:9px;border-radius:50%;margin-top:5px}
+.pr-bar{height:7px;background:var(--line-2);border-radius:99px;overflow:hidden}
+.pr-bar i{display:block;height:100%;border-radius:99px}
+tr.pr-act td{background:rgba(244,162,40,.10)}
+.pr-grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:900px){.pr-grid2{grid-template-columns:1fr}}
+.pr-sw{display:inline-flex;align-items:center;gap:8px;background:none;border:none;cursor:pointer;padding:5px 0;font:600 12.5px 'Plus Jakarta Sans',sans-serif;color:var(--ink)}
+.pr-sw i{width:32px;height:18px;border-radius:999px;background:#cbd3df;position:relative;flex:none;transition:background .15s}
+.pr-sw i::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:999px;background:#fff;box-shadow:0 1px 2px rgba(10,22,40,.25);transition:left .15s}
+.pr-sw[aria-pressed="true"] i{background:var(--brand)}
+.pr-sw[aria-pressed="true"] i::after{left:16px}
+html.dark .pr-sw i{background:#475569}
+.pr-precios-hd{display:flex;flex-direction:column;gap:4px;padding:12px 18px 0;font-size:12.5px;color:var(--ink-2)}
+.pr-inp{width:100%;padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font-size:12.5px;font-family:inherit}
+.pr-inp:focus{outline:none;border-color:#0D7377}
+.pr-cfg-tbl th{text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3)}
+.pr-cfg-tbl td{padding:5px 6px}
+.pr-x{background:transparent;border:none;color:var(--ink-4);font-size:15px;cursor:pointer}
+.pr-campos{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px 16px;padding:14px 18px 18px}
+.pr-campo{display:flex;flex-direction:column;gap:5px;font-size:11.5px;font-weight:600;color:var(--ink-2)}
+.pr-campo small{font-weight:400;color:var(--ink-4);font-size:10.5px}
+.pr-lista{margin:0;padding-left:18px;font-size:12px;color:var(--ink-2);line-height:1.7}
+.pr-guardar{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;padding:14px 18px;margin-bottom:16px;position:sticky;bottom:8px;z-index:3}
+.pr-aviso{padding:12px 18px;margin-bottom:16px;font-size:12.5px;color:var(--ink-2);border-left:4px solid #F4A228}
+.pr-nota{font-size:11.5px;color:var(--ink-3);line-height:1.55;margin:0 2px 20px}
+
 /* ── CELLBAR (mini inline spark) ── */
 .cellbar{display:flex;align-items:center;gap:8px;justify-content:flex-end}
 .cellbar .track{width:54px;height:4px;background:#eef2f6;border-radius:3px;overflow:hidden;flex-shrink:0}
@@ -902,12 +932,12 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
   <div class="topbar">
     <div>
       <div class="crumbs">Dashboard <span>›</span><b>Pricing</b></div>
-      <h1 class="page-title">Pricing · pm2 vs. tramos</h1>
+      <h1 class="page-title">Pricing · avance por tramos</h1>
       <div class="page-sub" id="pr-sub">Cargando...</div>
     </div>
     <div class="toolbar">
       <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
-        <select id="pr-proj" onchange="renderPricing()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO 4</option><option>LOMAS DE CARABAYLLO 5</option><option>DOMINGO ORUE</option></select>
+        <select id="pr-proj" onchange="_prResAt=null;renderPricing()"><option value="DOMINGO ORUE">Domingo Orué</option><option disabled>Helio (sin plan de tramos)</option><option disabled>Sunny (sin plan de tramos)</option><option disabled>Litoral 900 (sin plan de tramos)</option><option disabled>Lomas 4 (sin plan de tramos)</option><option disabled>Lomas 5 (sin plan de tramos)</option></select>
       </label>
       <div class="chip refresh" onclick="loadAll(true)">↻ Actualizar</div>
       <button class="dark-toggle-btn" onclick="toggleDark()" title="Modo oscuro" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all .2s">◑</button>
@@ -917,7 +947,8 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
   <div class="tab-bar" id="pr-tab-bar">
     <button class="tab-btn active" onclick="setPrTab('resumen',this)">Resumen</button>
     <button class="tab-btn" onclick="setPrTab('ventas',this)">Ventas</button>
-    <button class="tab-btn" onclick="setPrTab('tramos',this)">Tramos</button>
+    <button class="tab-btn" onclick="setPrTab('stock',this)">Precios por depa</button>
+    <button class="tab-btn" onclick="setPrTab('config',this)">Configuración</button>
   </div>
   <div id="pr-content"><div class="loading">Cargando...</div></div>
 </div>
@@ -7227,36 +7258,17 @@ function renderStockProy(){
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// PRICING — pm2 vendido de departamentos vs. los tramos de precio
+// PRICING — avance por tramos y recaudación proyectada (método de Bruce Arce)
 // ══════════════════════════════════════════════════════════════════════════
-// Un "tramo" es un rango de unidades vendidas (acumuladas por proyecto, solo
-// departamentos, ventas activas — las separaciones no cuentan) con un pm2
-// objetivo. La venta N° k de un proyecto cae en el tramo donde desde<=k<=hasta y
-// se compara contra el pm2 objetivo de ese tramo.
-// pm2 de una venta = Precio de venta en S/ ÷ m² efectivo (área techada + ½ área libre,
-// de Stock) — el mismo criterio que el Resumen comercial.
-// Los tramos se guardan en este navegador (localStorage); se pueden exportar/
-// importar como JSON para llevarlos a otra PC.
-const PR_LS_KEY = 'pricingTramosV1';
-const PR_PROJS = ['HELIO - SANTA BEATRIZ','SUNNY','LITORAL 900','LOMAS DE CARABAYLLO 4','LOMAS DE CARABAYLLO 5','DOMINGO ORUE'];
-const _prCorto = p => p.replace('LOMAS DE CARABAYLLO','LOMAS').replace('HELIO - SANTA BEATRIZ','HELIO');
+// Todo el cálculo vive en Python (pricing.py → /api/pricing). Aquí solo se
+// pinta. El tramo de una venta lo define su n° de orden; cada depa tiene un
+// precio objetivo por tramo (área × S/ m² del tramo × factor del depa) y la
+// recaudación proyectada = lo vendido + lo que falta al precio del tramo en
+// que le tocaría salir. El plan de tramos se edita en la pestaña Configuración.
 let _prTab = 'resumen';
-let _prCfg = null;            // {tol:número(%), tramos:[{p,desde,hasta,pm2}]}
-let _prFiltroEst = 'todas';   // pestaña Ventas: todas | bad | warn | ok
-let _prBusq = '';
-let _prSortIdx = null, _prSortDir = 'desc';
-let _prVentasVis = [];        // filas visibles de la pestaña Ventas (para ordenar sin recalcular)
-
-function _prLoadCfg(){
-  if(_prCfg) return _prCfg;
-  try{
-    const j = JSON.parse(localStorage.getItem(PR_LS_KEY)||'null');
-    if(j && Array.isArray(j.tramos)){ _prCfg = {tol:Number(j.tol)||3, tramos:j.tramos}; return _prCfg; }
-  }catch(e){}
-  _prCfg = {tol:3, tramos:[]};
-  return _prCfg;
-}
-function _prSaveCfg(){ try{ localStorage.setItem(PR_LS_KEY, JSON.stringify(_prCfg)); }catch(e){} }
+let _prRes = null, _prResAt = null, _prCargando = false, _prErr = '';
+let _prSort = {ventas:{i:null,dir:'desc'}, stock:{i:null,dir:'asc'}};
+let _prBusq = {ventas:'', stock:''};
 
 function setPrTab(tab, el){
   _prTab = tab;
@@ -7265,397 +7277,497 @@ function setPrTab(tab, el){
   renderPricing();
 }
 
-// Ventas de departamentos por proyecto, ordenadas por fecha, con su n° de venta
-// (k) dentro del proyecto, m², pm2 y descuento ya calculados.
-function _prData(){
-  const stockArea = {};
-  (D.stock||[]).forEach(r=>{
-    const dni = String(r.NroDocumento||'').trim();
-    if(!dni) return;
-    const k = _m2Key(r.Proyecto, r.NroInmuebleActual||r.NroInmueble, dni);
-    if(!(k in stockArea)) stockArea[k] = r;
-  });
-  const porProy = {};
-  (D.ventas||[]).forEach(r=>{
-    if(!normStr(r.TipoInmueble||'').includes('departamento')) return;
-    const p = String(r.Proyecto||'').trim().toUpperCase();
-    (porProy[p] = porProy[p]||[]).push(r);
-  });
-  const out = {};
-  Object.entries(porProy).forEach(([p,arr])=>{
-    const conFecha = arr.map(r=>({r, iso:_toISODate(r.FechaVenta||r.FechaEntrega_Minuta)||''}));
-    conFecha.sort((a,b)=>a.iso.localeCompare(b.iso));
-    out[p] = conFecha.map(({r,iso},i)=>{
-      const precio = Number(r.PrecioVentaSoles||r.PrecioVenta||0);
-      const area = stockArea[_m2Key(r.Proyecto, r.NroInmueble, r.NroDocumentoTitular)];
-      const m2 = area ? _m2Efectivo(area) : 0;
-      const base = Number(r.PrecioBase||0), venta = Number(r.PrecioVenta||0);
-      return {
-        r, p, seq:i+1, iso, precio, m2,
-        pm2: (precio>0 && m2>0) ? precio/m2 : null,
-        desc: (base>0 && venta>0) ? 1-venta/base : null,
-        nro: String(r.NroInmueble||'').replace(/\.0+$/,'') || '—',
-      };
-    });
-  });
-  return out;
+async function _prCargar(){
+  const proj = document.getElementById('pr-proj')?.value || 'DOMINGO ORUE';
+  _prCargando = true; _prErr = '';
+  try{
+    const r = await fetch('/api/pricing?proyecto='+encodeURIComponent(proj));
+    const j = await r.json();
+    if(j.error){ _prErr = j.error; _prRes = null; }
+    else _prRes = j;
+  }catch(e){ _prErr = 'No se pudo cargar el pricing: '+e.message; _prRes = null; }
+  _prResAt = (typeof D!=='undefined' && D.updatedAt) || 'x';
+  _prCargando = false;
+  renderPricing();
 }
 
-// Cruza cada venta con su tramo y la clasifica: ok (≥ objetivo), warn (hasta la
-// tolerancia por debajo), bad (más abajo que la tolerancia = "bajo el piso").
-function _prAnalizar(){
-  const cfg = _prLoadCfg();
-  const tol = (Number(cfg.tol)||0)/100;
-  const data = _prData();
-  const res = {};
-  PR_PROJS.forEach(p=>{
-    const ventas = data[p]||[];
-    const tramos = cfg.tramos.filter(t=>t.p===p).map(t=>({
-      p, desde:Number(t.desde)||1,
-      hasta:(t.hasta===''||t.hasta==null||isNaN(Number(t.hasta))) ? Infinity : Number(t.hasta),
-      pm2:Number(t.pm2)||0,
-    })).filter(t=>t.pm2>0).sort((a,b)=>a.desde-b.desde);
-    tramos.forEach((t,i)=>{ t.n=i+1; });
-    ventas.forEach(s=>{
-      const t = tramos.find(x=>s.seq>=x.desde && s.seq<=x.hasta) || null;
-      s.tramo = t;
-      s.obj = t ? t.pm2 : null;
-      s.piso = t ? t.pm2*(1-tol) : null;
-      s.desv = (s.pm2!=null && t) ? s.pm2/t.pm2-1 : null;
-      s.est = s.pm2==null ? 'sinarea' : !t ? 'sintramo' : (s.pm2>=t.pm2 ? 'ok' : (s.pm2>=s.piso ? 'warn' : 'bad'));
-      s.dejado = (s.pm2!=null && t && s.pm2<t.pm2) ? (t.pm2-s.pm2)*s.m2 : 0;
-    });
-    res[p] = {p, ventas, tramos};
-  });
-  return res;
-}
+const _prS = v => v==null ? '—' : 'S/ '+fN(Math.round(v));
+const _prM = v => { if(v==null) return '—'; const a=Math.abs(v); return (v<0?'−':'')+'S/ '+(a>=1e6?(a/1e6).toFixed(2)+' M':a>=1e3?Math.round(a/1e3)+' mil':fN(Math.round(a))); };
+const _prP = (v,dec=1) => v==null ? '—' : (v>0?'+':v<0?'−':'')+Math.abs(v*100).toFixed(dec)+'%';
+const _prSigno = v => v==null ? 'var(--ink-3)' : v>=0 ? 'var(--ok)' : 'var(--bad)';
+const _prCorto = p => p.replace('LOMAS DE CARABAYLLO','LOMAS').replace('HELIO - SANTA BEATRIZ','HELIO');
 
-const _prPm2 = v => v==null ? '—' : 'S/ '+fN(Math.round(v));
-const _prPct = (v,dec=1) => v==null ? '—' : (v>0?'+':'')+(v*100).toFixed(dec)+'%';
-const _prPill = est => ({
-  ok:'<span class="pill g">En rango</span>', warn:'<span class="pill w">Cerca</span>', bad:'<span class="pill b">Bajo piso</span>',
-  sintramo:'<span class="pill" style="background:var(--line-2);color:var(--ink-3)">Sin tramo</span>',
-  sinarea:'<span class="pill" style="background:var(--line-2);color:var(--ink-3)">Sin área</span>',
-}[est]||'');
-const _prColorDesv = v => v==null ? 'var(--ink-3)' : v>=0 ? '#16a34a' : '#dc2626';
-
-const PR_COLS = [
-  {label:'#',            get:r=>r._s.seq, align:'center', sortVal:r=>r._s.seq, numeric:true},
-  {label:'F. Venta',     get:r=>_flFmtFecha(r._s.iso), align:'center', sortVal:r=>r._s.iso},
-  {label:'Cliente',      get:_flNombreCompleto},
-  {label:'Proyecto',     get:r=>_prCorto(r._s.p)},
-  {label:'N° Dpto',      get:r=>r._s.nro, align:'center'},
-  {label:'Tramo',        get:r=>r._s.tramo ? 'T'+r._s.tramo.n : '—', align:'center'},
-  {label:'m²',           get:r=>r._s.m2 ? r._s.m2.toFixed(1) : '—', align:'center', sortVal:r=>r._s.m2||0, numeric:true},
-  {label:'Precio venta', get:r=>fFull(r._s.precio), align:'right', sortVal:r=>r._s.precio, numeric:true},
-  {label:'pm2 venta',    get:r=>_prPm2(r._s.pm2), align:'right', sortVal:r=>r._s.pm2||0, numeric:true},
-  {label:'pm2 objetivo', get:r=>_prPm2(r._s.obj), align:'right', sortVal:r=>r._s.obj||0, numeric:true},
-  {label:'Desv.',        get:r=>`<span style="font-weight:700;color:${_prColorDesv(r._s.desv)}">${_prPct(r._s.desv)}</span>`, align:'center', sortVal:r=>r._s.desv==null?-9:r._s.desv, numeric:true},
-  {label:'Dscto.',       get:r=>r._s.desc==null ? '—' : (r._s.desc*100).toFixed(1)+'%', align:'center', sortVal:r=>r._s.desc==null?-9:r._s.desc, numeric:true},
-  {label:'Vendedor',     get:_flAsesor},
-  {label:'Estado',       get:r=>_prPill(r._s.est), align:'center', sortVal:r=>r._s.est},
-];
-const _prFilas = ventas => ventas.map(s=>Object.assign({}, s.r, {_s:s}));
-
-function _prAbrir(titulo, ventas){
-  const pares = ventas.filter(s=>s.pm2!=null).map(s=>({precio:s.precio, m2:s.m2}));
-  const pm = _precioM2Ponderado(pares);
-  _abrirModalFunnelEtapa(titulo,
-    {label:'Ventas', val:fN(ventas.length), color:'#14AFBE'},
-    {label:'pm2 promedio', val:_prPm2(pm), color:'#F4A228'},
-    _prFilas(ventas), PR_COLS);
-}
-// Los onclick de las celdas son texto HTML: las listas de ventas se guardan en un registro.
-let _prPop = {}, _prPopN = 0;
-function _prClk(titulo, ventas){
-  if(!ventas || !ventas.length) return '';
-  const k = 'p'+(++_prPopN);
-  _prPop[k] = {titulo, ventas};
-  return ` onclick="_prAbrirK('${k}')" class="fl-cross-clk" title="Ver detalle"`;
-}
-function _prAbrirK(k){ const q=_prPop[k]; if(q) _prAbrir(q.titulo, q.ventas); }
-
-function renderPricing(soloKpis){
-  const sub = document.getElementById('pr-sub');
+function renderPricing(){
   if(!document.getElementById('panel-pricing')) return;
-  _prPop = {}; _prPopN = 0;
-  const filtro = document.getElementById('pr-proj')?.value||'';
-  const res = _prAnalizar();
-  const proyectos = filtro ? [filtro] : PR_PROJS;
-  const todas = proyectos.flatMap(p=>res[p]?res[p].ventas:[]);
-  if(sub) sub.textContent = 'Actualizado: '+D.updatedAt+' · solo departamentos, ventas activas';
+  const sub = document.getElementById('pr-sub');
+  const actual = (typeof D!=='undefined' && D.updatedAt) || 'x';
+  if(!_prCargando && (_prResAt!==actual)){ _prCargar(); }
+  const kp = document.getElementById('pr-kpis'), el = document.getElementById('pr-content');
+  if(_prErr && _prTab==='config'){ kp.innerHTML = ''; _prRenderConfig(el); return; }
+  if(_prErr){
+    kp.innerHTML = '';
+    el.innerHTML = `<div class="card" style="padding:22px;color:var(--ink-3);font-size:13px">${_escapeHtml(_prErr)}</div>`;
+    if(sub) sub.textContent = '';
+    return;
+  }
+  if(!_prRes){ kp.innerHTML = '<div class="loading">Calculando pricing...</div>'; if(_prTab==='config') _prRenderConfig(el); else el.innerHTML = ''; return; }
+  const R = _prRes.resumen;
+  if(sub) sub.textContent = `Actualizado: ${_prRes.updated_at||'—'} · ${toTitle(_prRes.proyecto.toLowerCase())} · ${R.vendidas} ventas activas · plan de tramos en Pricing › Configuración`;
 
   // ── KPIs ──
-  const conPm2 = todas.filter(s=>s.pm2!=null);
-  const pmGlobal = _precioM2Ponderado(conPm2.map(s=>({precio:s.precio, m2:s.m2})));
-  const evaluadas = todas.filter(s=>s.est==='ok'||s.est==='warn'||s.est==='bad');
-  const bajoPiso = todas.filter(s=>s.est==='bad');
-  const bajoObj = todas.filter(s=>s.dejado>0);
-  const dejado = bajoObj.reduce((a,s)=>a+s.dejado,0);
-  const descs = todas.filter(s=>s.desc!=null);
-  const descProm = descs.length ? descs.reduce((a,s)=>a+s.desc,0)/descs.length : null;
-  const sinArea = todas.length - conPm2.length;
-  document.getElementById('pr-kpis').innerHTML =
-    kpi('Ventas (departamentos)', fN(todas.length), sinArea ? fN(sinArea)+' sin área en Stock (fuera del pm2)' : 'Todas con área')
-    +kpi('pm2 vendido', _prPm2(pmGlobal), 'Ponderado por m²')
-    +kpi('Ventas bajo el piso', evaluadas.length ? `<span style="color:${bajoPiso.length?'var(--bad)':'var(--ok)'}">${fN(bajoPiso.length)}</span> <span class="unit">/ ${fN(evaluadas.length)}</span>` : '—',
-         evaluadas.length ? pct(bajoPiso.length, evaluadas.length)+' de las que tienen tramo' : 'Configura los tramos')
-    +kpi('Dejado vs. objetivo', dejado ? fFull(dejado) : '—', dejado ? fN(bajoObj.length)+' ventas por debajo del pm2 objetivo' : 'Nada por debajo del objetivo')
-    ;
+  const sob = R.sobrerrecaudacion_plan;
+  const tAct = _prRes.tramos.find(t=>t.tramo===R.tramo_actual) || {};
+  const ritmoDesv = R.ritmo_plan_actual ? R.ritmo_3m/R.ritmo_plan_actual-1 : null;
+  kp.innerHTML =
+     kpi('Sobrerrecaudación proyectada', `<span style="color:${_prSigno(sob)}">${_prM(sob)}</span>`,
+         `Subiendo según el plan · sin subir: <b style="color:${_prSigno(R.sobrerrecaudacion_lista)}">${_prM(R.sobrerrecaudacion_lista)}</b>`)
+    +kpi('Tramo actual', `T${R.tramo_actual} <span class="unit">· ${Math.max(0,R.cupo_usado-R.tramo_desde+1)} / ${R.tramo_hasta-R.tramo_desde+1}</span>`,
+         `${_escapeHtml(R.tramo_etapa)} · ${R.motivo_tramo==='obra'?'<b>por avance de obra</b>':'por cupo vendido'}`
+         +` · obra: ${R.tramo_obra?'T'+R.tramo_obra:'<b style="color:var(--warn)">sin definir</b>'} · cupo: T${R.tramo_cupo}`
+         +` · quedan ${R.tramo_quedan} para el T${R.tramo_siguiente} o hasta que avance la obra`)
+    +kpi('S/ m² vendido en el tramo', tAct.pm2_real ? fN(Math.round(tAct.pm2_real)) : '—',
+         `Plan ${fN(R.pm2_tramo_actual)} · <b style="color:${_prSigno(tAct.desv_pm2)}">${_prP(tAct.desv_pm2)}</b> · lista hoy ${_prP(R.desfase_lista)}`)
+    +kpi('Ritmo (últimos 3 meses)', `${R.ritmo_3m.toFixed(1)} <span class="unit">/ mes</span>`,
+         `Plan del tramo ${fN(R.ritmo_plan_actual)} · <b style="color:${_prSigno(ritmoDesv)}">${_prP(ritmoDesv,0)}</b> · ${R.vendidas} vs ${Math.round(R.perfil_a_hoy)} según plan`);
 
-  if(soloKpis) return;
-  const el = document.getElementById('pr-content');
-  if(_prTab==='tramos'){ _prRenderTramos(el, res); return; }
-  if(_prTab==='ventas'){ _prRenderVentas(el, todas); return; }
-  _prRenderResumen(el, res, proyectos, filtro, descProm);
+  if(_prTab==='ventas') return _prRenderTabla(el, 'ventas');
+  if(_prTab==='stock') return _prRenderTabla(el, 'stock');
+  if(_prTab==='config') return _prRenderConfig(el);
+  _prRenderResumen(el);
 }
 
 // ── Pestaña Resumen ─────────────────────────────────────────────────────────
-function _prRenderResumen(el, res, proyectos, filtro, descProm){
-  const cfg = _prLoadCfg();
-  const hayTramos = cfg.tramos.length>0;
+function _prRenderResumen(el){
+  const R = _prRes.resumen;
   const _th = 'padding:10px 12px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);border-bottom:2px solid var(--line);background:var(--panel);white-space:nowrap';
   const _td = 'padding:9px 12px;text-align:center;font-size:12px;border-bottom:1px solid var(--line-2);white-space:nowrap';
-  const hoy = new Date();
-  const hace90 = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()-90).toISOString().slice(0,10);
 
-  // Tabla 1: dónde está vendiendo cada proyecto hoy
-  const filas1 = proyectos.map(p=>{
-    const {ventas, tramos} = res[p];
-    const n = ventas.length;
-    const actual = tramos.find(t=>n+1>=t.desde && n+1<=t.hasta) || null;
-    const enTramo = actual ? ventas.filter(s=>s.tramo===actual) : [];
-    const pmT = _precioM2Ponderado(enTramo.filter(s=>s.pm2!=null).map(s=>({precio:s.precio, m2:s.m2})));
-    const desv = (pmT!=null && actual) ? pmT/actual.pm2-1 : null;
-    const quedan = (actual && isFinite(actual.hasta)) ? actual.hasta-n : null;
-    const ult90 = ventas.filter(s=>s.iso>=hace90).length;
-    const ritmo = ult90/3;
-    const meses = (quedan!=null && ritmo>0) ? quedan/ritmo : null;
-    const bad = ventas.filter(s=>s.est==='bad');
-    return {p, ventas, n, actual, pmT, desv, quedan, ritmo, meses, bad};
-  });
-  const t1 = filas1.map(f=>{
-    const nombre = _prCorto(f.p);
-    const rango = f.actual ? `${f.actual.desde}–${isFinite(f.actual.hasta)?f.actual.hasta:'∞'}` : '—';
-    let est = '—';
-    if(f.actual && f.desv!=null) est = f.desv>=0 ? _prPill('ok') : (f.pmT>=f.actual.pm2*(1-(Number(cfg.tol)||0)/100) ? _prPill('warn') : _prPill('bad'));
-    return `<tr>
-      <td style="${_td};text-align:left;font-weight:600;color:var(--ink)">${toTitle(nombre.toLowerCase())}</td>
-      <td${_prClk('Ventas · '+toTitle(nombre.toLowerCase()), f.ventas)} style="${_td};font-weight:600">${f.n}</td>
-      <td style="${_td}">${f.actual?'T'+f.actual.n+' <span style="color:var(--ink-4)">('+rango+')</span>':'—'}</td>
-      <td style="${_td}">${f.actual?_prPm2(f.actual.pm2):'—'}</td>
-      <td style="${_td};font-weight:600">${_prPm2(f.pmT)}</td>
-      <td style="${_td};font-weight:700;color:${_prColorDesv(f.desv)}">${_prPct(f.desv)}</td>
-      <td style="${_td}">${f.quedan!=null?f.quedan:'—'}</td>
-      <td style="${_td}">${f.meses!=null?f.meses.toFixed(1)+' m':'—'} <span style="color:var(--ink-4);font-size:10.5px">${f.ritmo?('· '+f.ritmo.toFixed(1)+' und/mes'):''}</span></td>
-      <td${_prClk('Ventas bajo el piso · '+toTitle(nombre.toLowerCase()), f.bad)} style="${_td};font-weight:700;color:${f.bad.length?'var(--bad)':'var(--ink-4)'}">${f.bad.length}</td>
-      <td style="${_td}">${est}</td>
-    </tr>`;
+  // Alertas
+  const COLA = {rojo:'var(--bad)', amarillo:'var(--warn)'};
+  const alertas = _prRes.alertas.length
+    ? _prRes.alertas.map(a=>`<div class="pr-alerta"><i style="background:${COLA[a.nivel]||'var(--ink-4)'}"></i><span>${_escapeHtml(a.texto)}</span></div>`).join('')
+    : `<div class="pr-alerta"><i style="background:var(--ok)"></i><span>Sin alertas: el precio y el ritmo están dentro de lo esperado.</span></div>`;
+
+  // Recaudación
+  const filaRec = (lbl, porVender, proy, dif, nota) => `<tr>
+      <td style="${_td};text-align:left;font-weight:600;color:var(--ink)">${lbl}<div style="font-weight:400;font-size:10.5px;color:var(--ink-4);white-space:normal">${nota}</div></td>
+      <td style="${_td}">${_prS(R.vendido_monto)}</td><td style="${_td}">${_prS(porVender)}</td>
+      <td style="${_td};font-weight:600">${_prS(proy)}</td><td style="${_td}">${_prS(R.requerida)}</td>
+      <td style="${_td};font-weight:700"><span style="color:${_prSigno(dif)}">${dif<0?'−':'+'}${_prS(Math.abs(dif))}</span></td></tr>`;
+  const rec = filaRec('Subiendo según el plan', R.proyectada_plan-R.vendido_monto, R.proyectada_plan, R.sobrerrecaudacion_plan,
+                      `Lo que falta, al S/ m² promedio de los turnos que quedan (${fN(Math.round(R.pm2_esperado_restante))})`)
+            + filaRec('Sin subir más (lista de hoy)', R.proyectada_lista-R.vendido_monto, R.proyectada_lista, R.sobrerrecaudacion_lista,
+                      `Lo que falta, a la lista de Evolta menos ${(R.dscto_esperado*100).toFixed(0)}%`);
+
+  // Tramos
+  const filasT = _prRes.tramos.map(t=>{
+    const act = t.tramo===R.tramo_actual;
+    const pctAv = Math.round(t.avance*100);
+    const col = t.estado==='Cerrado' ? 'var(--ok)' : act ? '#F4A228' : 'var(--line)';
+    const estado = t.estado==='Cerrado' ? '<span class="pill g">Cerrado</span>'
+      : t.estado==='Cerrado por obra' ? `<span class="pill" style="background:var(--line-2);color:var(--ink-2)" title="La obra avanzó antes de llenar el cupo: quedaron ${t.ancho-t.cupo_usado} sin vender a este precio">Cerrado por obra</span>`
+      : act ? '<span class="pill w">En curso</span>' : '<span class="pill" style="background:var(--line-2);color:var(--ink-3)">Pendiente</span>';
+    const vs = _prRes.ventas.filter(v=>v.tramo===t.tramo);
+    return `<tr class="${act?'pr-act':''}">
+      <td style="${_td};font-weight:700">T${t.tramo}</td>
+      <td style="${_td};text-align:left">${_escapeHtml(t.etapa)}</td>
+      <td style="${_td};color:var(--ink-3)">${t.desde}–${t.hasta}</td>
+      <td style="${_td};min-width:150px"><div class="pr-bar"><i style="width:${pctAv}%;background:${col}"></i></div>
+        <div ${vs.length?`onclick="_prAbrirTramo(${t.tramo})" class="fl-cross-clk" title="Ver las ventas del tramo"`:''} style="font-size:10.5px;color:var(--ink-3);margin-top:3px">${t.cupo_usado} / ${t.ancho} (${pctAv}%)</div></td>
+      <td style="${_td}">${fN(t.pm2_plan)}</td>
+      <td style="${_td};font-weight:600">${t.pm2_real?fN(Math.round(t.pm2_real)):'—'}</td>
+      <td style="${_td};font-weight:700"><span style="color:${_prSigno(t.desv_pm2)}">${_prP(t.desv_pm2)}</span></td>
+      <td style="${_td};font-weight:600"><span style="color:${t.vendidas?_prSigno(t.dif_objetivo):'var(--ink-4)'}">${t.vendidas?_prM(t.dif_objetivo):'—'}</span></td>
+      <td style="${_td}">${fN(t.ritmo_plan)}</td>
+      <td style="${_td}">${t.ritmo_real!=null?t.ritmo_real.toFixed(1):'—'}</td>
+      <td style="${_td};color:var(--ink-3);font-size:11px">${t.inicio?_prFecha(t.inicio):''}${t.fin?' → '+_prFecha(t.fin):''}</td>
+      <td style="${_td}">${estado}</td></tr>`;
   }).join('');
 
-  // Tabla 2: detalle por tramo
-  const t2 = proyectos.flatMap(p=>{
-    const {ventas, tramos} = res[p];
-    const n = ventas.length;
-    return tramos.map(t=>{
-      const vs = ventas.filter(s=>s.tramo===t);
-      const pm = _precioM2Ponderado(vs.filter(s=>s.pm2!=null).map(s=>({precio:s.precio, m2:s.m2})));
-      const desv = pm!=null ? pm/t.pm2-1 : null;
-      const bajoObj = vs.filter(s=>s.est==='warn'||s.est==='bad');
-      const bad = vs.filter(s=>s.est==='bad');
-      const estado = n>=t.hasta ? '<span class="pill g">Cerrado</span>' : (n+1>=t.desde ? '<span class="pill w">En curso</span>' : '<span class="pill" style="background:var(--line-2);color:var(--ink-3)">Pendiente</span>');
-      const tn = toTitle(_prCorto(p).toLowerCase())+' · T'+t.n;
-      return `<tr>
-        <td style="${_td};text-align:left;font-weight:600;color:var(--ink)">${toTitle(_prCorto(p).toLowerCase())}</td>
-        <td style="${_td}">T${t.n}</td>
-        <td style="${_td}">${t.desde}–${isFinite(t.hasta)?t.hasta:'∞'}</td>
-        <td style="${_td}">${_prPm2(t.pm2)}</td>
-        <td${_prClk('Ventas · '+tn, vs)} style="${_td};font-weight:600">${vs.length}</td>
-        <td style="${_td};font-weight:600">${_prPm2(pm)}</td>
-        <td style="${_td};font-weight:700;color:${_prColorDesv(desv)}">${_prPct(desv)}</td>
-        <td${_prClk('Bajo el objetivo · '+tn, bajoObj)} style="${_td}">${bajoObj.length}</td>
-        <td${_prClk('Bajo el piso · '+tn, bad)} style="${_td};font-weight:700;color:${bad.length?'var(--bad)':'var(--ink-4)'}">${bad.length}</td>
-        <td style="${_td}">${estado}</td>
-      </tr>`;
-    });
-  }).join('');
+  // Tipologías
+  const filasD = _prRes.tipologias.map(d=>`<tr>
+      <td style="${_td};font-weight:700">${d.dorm}D</td>
+      <td style="${_td}">${d.area_prom.toFixed(1)} m²</td>
+      <td style="${_td}">${d.total}</td>
+      <td style="${_td};font-weight:600">${d.vendidas}</td>
+      <td style="${_td}">${d.stock}</td>
+      <td style="${_td};min-width:110px"><div class="pr-bar"><i style="width:${Math.round(d.avance*100)}%;background:var(--brand)"></i></div><div style="font-size:10.5px;color:var(--ink-3);margin-top:3px">${Math.round(d.avance*100)}%</div></td>
+      <td style="${_td}">${_prS(d.ticket_real)}</td>
+      <td style="${_td};font-weight:600">${d.pm2_real?fN(Math.round(d.pm2_real)):'—'}</td>
+      <td style="${_td}">${fN(Math.round(d.pm2_lista_final_hoy))}</td></tr>`).join('');
 
-  const aviso = hayTramos ? '' : `<div class="card" style="margin-bottom:16px;padding:18px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-      <div style="flex:1;min-width:240px"><b>Aún no hay tramos configurados.</b>
-      <div style="font-size:12.5px;color:var(--ink-3);margin-top:3px">Define para cada proyecto los rangos de unidades vendidas y su pm2 objetivo; después se marcan las ventas que salen por debajo.</div></div>
-      <button class="chip" onclick="setPrTab('tramos',document.querySelectorAll('#pr-tab-bar .tab-btn')[2])" style="padding:8px 16px;font-weight:700">Configurar tramos →</button></div>`;
+  const card = (titulo, subt, cuerpo, extra='') => `<div class="card" style="margin-bottom:16px">
+      <div class="card-hd"><div><h3>${titulo}</h3><p>${subt}</p></div>${extra}</div>${cuerpo}</div>`;
 
-  const graf = filtro
-    ? `<div class="card" style="margin-bottom:16px">
-        <div class="card-hd"><div><h3>pm2 de cada venta vs. el tramo</h3><p>${toTitle(_prCorto(filtro).toLowerCase())} · cada punto es una venta (n° de venta en el eje X) · línea sólida = objetivo, punteada = piso</p></div>
-          <div style="display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--ink-2)">
-            <span><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#16a34a;margin-right:6px"></i>En rango</span>
-            <span><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b;margin-right:6px"></i>Cerca</span>
-            <span><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#dc2626;margin-right:6px"></i>Bajo piso</span>
-          </div></div>
-        <div style="height:320px;padding:8px 16px 16px"><canvas id="pr-chart"></canvas></div></div>`
-    : `<div class="card" style="margin-bottom:16px;padding:18px 20px;color:var(--ink-3);font-size:13px">Elige un proyecto arriba para ver el gráfico de cada venta contra su tramo.</div>`;
-
-  el.innerHTML = aviso + graf
-    +`<div class="card" style="margin-bottom:16px">
-        <div class="card-hd"><div><h3>¿Dónde está vendiendo cada proyecto?</h3><p>Tramo en el que cae la próxima venta · ritmo = ventas de los últimos 90 días ÷ 3${descProm!=null?' · descuento promedio '+(descProm*100).toFixed(1)+'%':''}</p></div></div>
-        <div style="overflow-x:auto"><table class="tbl" style="width:100%">
-          <thead><tr><th style="${_th};text-align:left">Proyecto</th><th style="${_th}">Vendidos</th><th style="${_th}">Tramo actual</th><th style="${_th}">pm2 objetivo</th><th style="${_th}">pm2 vendido</th><th style="${_th}">Desv.</th><th style="${_th}">Quedan</th><th style="${_th}">Se agota en</th><th style="${_th}">Bajo piso</th><th style="${_th}">Estado</th></tr></thead>
-          <tbody>${t1}</tbody></table></div></div>`
-    +`<div class="card" style="margin-bottom:16px">
-        <div class="card-hd"><div><h3>Detalle por tramo</h3><p>pm2 vendido ponderado por m² · clic en un número para ver las ventas</p></div></div>
-        <div style="overflow-x:auto"><table class="tbl" style="width:100%">
-          <thead><tr><th style="${_th};text-align:left">Proyecto</th><th style="${_th}">Tramo</th><th style="${_th}">Ventas n°</th><th style="${_th}">pm2 objetivo</th><th style="${_th}">Vendidas</th><th style="${_th}">pm2 vendido</th><th style="${_th}">Desv.</th><th style="${_th}">Bajo objetivo</th><th style="${_th}">Bajo piso</th><th style="${_th}">Estado</th></tr></thead>
-          <tbody>${t2||`<tr><td colspan="10" style="padding:22px;text-align:center;color:var(--ink-4);font-size:12.5px">Sin tramos configurados para este filtro</td></tr>`}</tbody></table></div></div>`;
-
-  if(filtro) _prDibujarGrafico(res[filtro]);
+  el.innerHTML =
+     card('Alertas', 'Se recalculan con cada actualización del Sheet', `<div class="pr-alertas">${alertas}</div>`)
+    +card('Recaudación de departamentos', 'Vendido a precio real + lo que falta vender · contra la recaudación requerida (Configuración)',
+        `<div style="overflow-x:auto"><table class="tbl" style="width:100%"><thead><tr>
+          <th style="${_th};text-align:left">Escenario</th><th style="${_th}">Vendido</th><th style="${_th}">Por vender</th><th style="${_th}">Proyectada</th><th style="${_th}">Requerida</th><th style="${_th}">Diferencia</th>
+        </tr></thead><tbody>${rec}</tbody></table></div>`)
+    +card('Avance por tramo', 'El tramo lo define el orden de venta · S/ m² ponderado por área · Dif. = vendido − precio objetivo de esos depas en su tramo · clic en el avance para ver las ventas',
+        `<div style="overflow-x:auto"><table class="tbl" style="width:100%"><thead><tr>
+          <th style="${_th}">Tramo</th><th style="${_th};text-align:left">Etapa</th><th style="${_th}">Ventas n°</th><th style="${_th}">Avance</th>
+          <th style="${_th}">S/ m² plan</th><th style="${_th}">S/ m² real</th><th style="${_th}">Desv.</th><th style="${_th}">Dif. S/</th>
+          <th style="${_th}">Ritmo plan</th><th style="${_th}">Ritmo real</th><th style="${_th}">Fechas</th><th style="${_th}">Estado</th>
+        </tr></thead><tbody>${filasT}</tbody></table></div>`)
+    +`<div class="pr-grid2">
+        ${card('S/ m² de cada venta contra el plan', 'Cada punto es una venta · la línea es el S/ m² del tramo que le tocaba', '<div style="height:280px;padding:8px 16px 16px"><canvas id="pr-chart"></canvas></div>')}
+        ${card('Ventas por mes contra el plan', `Plan anclado a la primera venta (${_prFecha(R.inicio_plan)}) · barras = ventas del mes, líneas = acumulado`, '<div style="height:280px;padding:8px 16px 16px"><canvas id="pr-chart2"></canvas></div>')}
+      </div>`
+    +card('Por tipología', `Ticket vendido S/ ${fN(Math.round(R.ticket_real||0))} contra S/ ${fN(Math.round(R.ticket_plan))} del plan · S/ m² lista hoy = lista de Evolta menos ${(R.dscto_esperado*100).toFixed(0)}%`,
+        `<div style="overflow-x:auto"><table class="tbl" style="width:100%"><thead><tr>
+          <th style="${_th}">Tipo</th><th style="${_th}">Área prom.</th><th style="${_th}">Total</th><th style="${_th}">Vendidas</th><th style="${_th}">Stock</th>
+          <th style="${_th}">Avance</th><th style="${_th}">Ticket vendido</th><th style="${_th}">S/ m² vendido</th><th style="${_th}">S/ m² lista hoy</th>
+        </tr></thead><tbody>${filasD}</tbody></table></div>`)
+    +`<div class="pr-nota"><b>Cómo se calcula.</b> Las ventas activas se ordenan por fecha y hora (desempate: correlativo) y la venta n° k cae en el tramo cuyo rango la contiene.
+       Cada depa tiene un precio objetivo por tramo = área × S/ m² del tramo × factor del depa (su S/ m² de lista frente al promedio del proyecto, ${fN(Math.round(R.factor_lista))}).
+       Como no se sabe qué depa saldrá primero, lo que falta vender se valora al S/ m² promedio de los turnos que quedan. Descuento esperado: ${(R.dscto_esperado*100).toFixed(0)}% ·
+       descuento real promedio ${R.dscto_prom!=null?(R.dscto_prom*100).toFixed(1)+'%':'—'} (${R.ventas_sobre_dscto} ventas por encima) ·
+       separaciones ${_prRes.params.cupo_cuenta_separaciones?'sí':'no'} ocupan cupo (${R.separaciones} hoy).<br>
+       <b>Tramo por obra.</b> El tramo sube por lo que pase primero: que se llene el cupo de ventas o que avance la obra. El avance de obra se elige en la pestaña Configuración; cada cambio queda registrado con su fecha. Hoy: ${R.tramo_obra?'tramo '+R.tramo_obra:'sin definir'}.</div>`;
+  _prGraficos();
 }
 
-function _prDibujarGrafico(info){
-  const cv = document.getElementById('pr-chart');
-  if(!cv || !info) return;
-  if(window._prChart){ try{window._prChart.destroy();}catch(e){} window._prChart=null; }
+const _prFecha = iso => { if(!iso) return ''; const [y,m,d]=iso.slice(0,10).split('-'); return `${d}/${m}/${y.slice(2)}`; };
+
+function _prGraficos(){
+  ['_prChart','_prChart2'].forEach(k=>{ if(window[k]){ try{window[k].destroy();}catch(e){} window[k]=null; } });
   const dk = document.documentElement.classList.contains('dark');
   const gridC = dk?'rgba(51,65,85,.5)':'#F3F4F6', tickC = dk?'#94a3b8':'#6B7280';
   const ff = "'Plus Jakarta Sans',sans-serif";
-  const COL = {ok:'#16a34a', warn:'#f59e0b', bad:'#dc2626', sintramo:'#94a3b8', sinarea:'#94a3b8'};
-  const pts = info.ventas.filter(s=>s.pm2!=null);
-  const maxX = Math.max(info.ventas.length, ...info.tramos.filter(t=>isFinite(t.hasta)).map(t=>t.hasta), 1);
-  const datasets = [{
-    type:'scatter', label:'Ventas', data:pts.map(s=>({x:s.seq, y:Math.round(s.pm2), s})),
-    backgroundColor:pts.map(s=>COL[s.est]), borderColor:dk?'#0f172a':'#fff', borderWidth:1.5, pointRadius:5, pointHoverRadius:8, pointHitRadius:10, order:1,
-  }];
-  info.tramos.forEach(t=>{
-    const x0 = t.desde-0.5, x1 = (isFinite(t.hasta)?t.hasta:maxX)+0.5;
-    datasets.push({type:'line', label:'Objetivo T'+t.n, data:[{x:x0,y:t.pm2},{x:x1,y:t.pm2}], borderColor:'#3b82f6', borderWidth:2.5, pointRadius:0, fill:false, order:2});
-    const piso = t.pm2*(1-(Number(_prLoadCfg().tol)||0)/100);
-    datasets.push({type:'line', label:'Piso T'+t.n, data:[{x:x0,y:piso},{x:x1,y:piso}], borderColor:'#ef4444', borderWidth:1.5, borderDash:[5,4], pointRadius:0, fill:false, order:3});
-  });
-  window._prChart = new Chart(cv.getContext('2d'), {
-    type:'scatter', data:{datasets},
-    options:{responsive:true, maintainAspectRatio:false,
-      onClick:(e,_a,ch)=>{
-        const el = ch.getElementsAtEventForMode(e,'nearest',{intersect:true},true)[0];
-        if(!el || el.datasetIndex!==0) return;
-        const s = ch.data.datasets[0].data[el.index].s;
-        const vs = s.tramo ? info.ventas.filter(x=>x.tramo===s.tramo) : [s];
-        _prAbrir('Ventas · '+toTitle(_prCorto(s.p).toLowerCase())+(s.tramo?' · T'+s.tramo.n:''), vs);
-      },
-      onHover:(e,_a,ch)=>{ const h=ch.getElementsAtEventForMode(e,'nearest',{intersect:true},false); if(e.native&&e.native.target) e.native.target.style.cursor=(h.length&&h[0].datasetIndex===0)?'pointer':'default'; },
-      plugins:{legend:{display:false}, datalabels:{display:false},
-        tooltip:{filter:c=>c.datasetIndex===0, titleFont:{family:ff,size:11}, bodyFont:{family:ff,size:11}, callbacks:{
-          title:c=>{const s=c[0].raw.s; return 'Venta #'+s.seq+' · Dpto '+s.nro;},
-          label:c=>{const s=c.raw.s; return [' pm2: S/ '+fN(Math.round(s.pm2))+(s.obj?'  (objetivo S/ '+fN(Math.round(s.obj))+', '+_prPct(s.desv)+')':''), ' '+_flNombreCompleto(s.r)+' · '+fFull(s.precio)];},
-        }}},
-      scales:{
-        x:{type:'linear', min:0, max:maxX+1, title:{display:true,text:'N° de venta en el proyecto',color:tickC,font:{family:ff,size:10}}, grid:{color:gridC}, ticks:{precision:0,font:{family:ff,size:10},color:tickC}},
-        y:{title:{display:true,text:'pm2 (S/ por m²)',color:tickC,font:{family:ff,size:10}}, grid:{color:gridC}, ticks:{callback:v=>fN(v),font:{family:ff,size:10},color:tickC}},
-      }}
-  });
+  const TEAL = '#0D7377', GOLD = '#F4A228', NAVY = dk?'#cbd5e1':'#0A1628';
+  const font = {family:ff,size:10};
+  const R = _prRes.resumen;
+
+  // 1) S/ m² por venta + escalera del plan
+  const cv = document.getElementById('pr-chart');
+  if(cv){
+    const pts = _prRes.ventas.filter(v=>v.pm2!=null);
+    const maxX = Math.min(R.unidades, Math.max(R.tramo_hasta, R.vendidas)+5);
+    const esc = [];
+    _prRes.tramos.forEach(t=>{ if(t.desde>maxX) return; esc.push({x:t.desde-0.5,y:t.pm2_plan},{x:Math.min(t.hasta,maxX)+0.5,y:t.pm2_plan}); });
+    window._prChart = new Chart(cv.getContext('2d'), {
+      type:'scatter',
+      data:{datasets:[
+        {type:'scatter', label:'Ventas', data:pts.map(v=>({x:v.orden,y:Math.round(v.pm2),v})),
+         backgroundColor:pts.map(v=>v.pm2>=v.pm2_plan?TEAL:'#dc2626'), borderColor:dk?'#0f172a':'#fff', borderWidth:1.2, pointRadius:4.5, pointHoverRadius:7, order:1},
+        {type:'line', label:'Plan', data:esc, borderColor:GOLD, borderWidth:2.5, pointRadius:0, fill:false, stepped:false, order:2},
+      ]},
+      options:{responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false}, datalabels:{display:false},
+          tooltip:{filter:c=>c.datasetIndex===0, titleFont:font, bodyFont:font, callbacks:{
+            title:c=>{const v=c[0].raw.v; return `Venta #${v.orden} · Edif. ${v.edificio} · ${v.nro} (${v.modelo})`;},
+            label:c=>{const v=c.raw.v; return [` S/ m²: ${fN(Math.round(v.pm2))} (plan T${v.tramo}: ${fN(v.pm2_plan)})`, ` Precio: ${_prS(v.precio)} · objetivo ${_prS(v.objetivo)}`, ` ${_prFecha(v.fecha)} · ${v.canal||''}`];}}}},
+        scales:{
+          x:{type:'linear', min:0, max:maxX+1, title:{display:true,text:'N° de venta',color:tickC,font}, grid:{color:gridC}, ticks:{precision:0,font,color:tickC}},
+          y:{title:{display:true,text:'S/ por m²',color:tickC,font}, grid:{color:gridC}, ticks:{callback:v=>fN(v),font,color:tickC}}}}
+    });
+  }
+  // 2) Ventas por mes vs plan
+  const cv2 = document.getElementById('pr-chart2');
+  if(cv2){
+    const ms = _prRes.meses;
+    const MES = ['ene','feb','mar','abr','may','jun','jul','ago','set','oct','nov','dic'];
+    window._prChart2 = new Chart(cv2.getContext('2d'), {
+      type:'bar',
+      data:{labels:ms.map(m=>MES[+m.mes.slice(5)-1]+'-'+m.mes.slice(2,4)+(m.parcial?'*':'')),
+        datasets:[
+          {type:'bar', label:'Ventas del mes', data:ms.map(m=>m.real), backgroundColor:TEAL, borderRadius:4, yAxisID:'y', order:3},
+          {type:'bar', label:'Plan del mes', data:ms.map(m=>+m.plan.toFixed(1)), backgroundColor:dk?'rgba(148,163,184,.35)':'#E5E7EB', borderRadius:4, yAxisID:'y', order:4},
+          {type:'line', label:'Acumulado real', data:ms.map(m=>m.real_acum), borderColor:NAVY, backgroundColor:NAVY, borderWidth:2, pointRadius:2.5, yAxisID:'y2', order:1},
+          {type:'line', label:'Acumulado plan', data:ms.map(m=>+m.plan_acum.toFixed(1)), borderColor:GOLD, backgroundColor:GOLD, borderDash:[5,4], borderWidth:2, pointRadius:0, yAxisID:'y2', order:2},
+        ]},
+      options:{responsive:true, maintainAspectRatio:false,
+        plugins:{datalabels:{display:false}, legend:{position:'bottom', labels:{boxWidth:10, font, color:tickC}},
+          tooltip:{titleFont:font, bodyFont:font}},
+        scales:{x:{grid:{display:false}, ticks:{font,color:tickC}},
+          y:{position:'left', title:{display:true,text:'Ventas del mes',color:tickC,font}, grid:{color:gridC}, ticks:{precision:0,font,color:tickC}},
+          y2:{position:'right', title:{display:true,text:'Acumulado',color:tickC,font}, grid:{display:false}, ticks:{precision:0,font,color:tickC}}}}
+    });
+  }
 }
 
-// ── Pestaña Ventas ──────────────────────────────────────────────────────────
-function _prRenderVentas(el, todas){
-  const chip = (v,lbl)=>`<button onclick="_prFiltroEst='${v}';renderPricing()" style="font-family:'Plus Jakarta Sans',sans-serif;padding:4px 14px;border-radius:99px;font-size:10.5px;font-weight:700;cursor:pointer;border:1.5px solid ${_prFiltroEst===v?'#3b82f6':'var(--line)'};background:${_prFiltroEst===v?'var(--brand-soft)':'transparent'};color:${_prFiltroEst===v?'var(--brand)':'var(--ink-3)'}">${lbl}</button>`;
+// ── Pestaña Configuración (reemplaza a la pestaña PRECIOS del Sheet) ─────────
+// Se edita un borrador (_prDraft) y se guarda con POST /api/pricing/config.
+let _prCfgSrv = null, _prDraft = null, _prCfgMsg = '', _prCfgNota = '';
+function _prClaveGet(){ try{ return sessionStorage.getItem('prClave')||''; }catch(e){ return ''; } }
+function _prClaveSet(v){ try{ sessionStorage.setItem('prClave', v||''); }catch(e){} }
+
+async function _prCargarCfg(){
+  const proj = document.getElementById('pr-proj')?.value || 'DOMINGO ORUE';
+  try{
+    const j = await fetch('/api/pricing/config?proyecto='+encodeURIComponent(proj)).then(r=>r.json());
+    if(j.error){ _prCfgMsg = j.error; return; }
+    _prCfgSrv = j;
+    const c = j.config;
+    _prDraft = {
+      tramos: c.tramos.map(t=>({etapa:t.etapa, unidades:t.unidades, velocidad:t.velocidad, meses:t.meses, pm2:t.pm2})),
+      requerida:c.requerida, ticket_plan:c.ticket_plan, area_plan:c.area_plan||0,
+      dscto:+(c.dscto_esperado*100).toFixed(2), redondeo_lista:c.redondeo_lista||100,
+      cupo_cuenta_separaciones:!!c.cupo_cuenta_separaciones,
+      a_cupo:+(c.alerta_cupo_pct*100).toFixed(1), a_pm2:+(c.alerta_pm2_bajo_plan*100).toFixed(1),
+      a_ritmo:+(c.alerta_ritmo_pct*100).toFixed(1), a_ticket:+(c.alerta_ticket_pct*100).toFixed(1),
+      tramo_obra: (c.obra||[]).length ? c.obra[c.obra.length-1].tramo : '',
+    };
+  }catch(e){ _prCfgMsg = 'No se pudo cargar la configuración: '+e.message; }
+}
+
+async function _prRenderConfig(el){
+  if(!_prDraft){ el.innerHTML = '<div class="loading">Cargando configuración...</div>'; await _prCargarCfg(); if(_prTab!=='config') return; }
+  if(!_prDraft){ el.innerHTML = `<div class="card" style="padding:22px;color:var(--ink-3)">${_escapeHtml(_prCfgMsg)}</div>`; return; }
+  const d = _prDraft, c = _prCfgSrv.config;
+  const inp = (val, on, extra='') => `<input class="pr-inp" value="${_escapeHtml(val)}" oninput="${on}" ${extra}>`;
+  const num = (k, extra='') => inp(d[k], `_prDraft.${k}=this.value;_prCfgResumen()`, `type="number" ${extra}`);
+  const filas = d.tramos.map((t,i)=>`<tr>
+      <td style="text-align:center;font-weight:700">T${i+1}</td>
+      <td>${inp(t.etapa, `_prDraft.tramos[${i}].etapa=this.value;_prCfgResumen()`, 'maxlength="40"')}</td>
+      <td>${inp(t.unidades, `_prDraft.tramos[${i}].unidades=this.value;_prCfgResumen()`, 'type="number" min="1" step="1"')}</td>
+      <td style="text-align:center;color:var(--ink-3)" id="pr-rango-${i}"></td>
+      <td>${inp(t.pm2, `_prDraft.tramos[${i}].pm2=this.value;_prCfgResumen()`, 'type="number" min="0" step="10"')}</td>
+      <td>${inp(t.velocidad, `_prDraft.tramos[${i}].velocidad=this.value;_prCfgResumen()`, 'type="number" min="0" step="0.5"')}</td>
+      <td>${inp(t.meses, `_prDraft.tramos[${i}].meses=this.value;_prCfgResumen()`, 'type="number" min="0" step="1"')}</td>
+      <td style="text-align:center"><button class="pr-x" title="Quitar tramo" onclick="_prDraft.tramos.splice(${i},1);_prRenderConfig(document.getElementById('pr-content'))">✕</button></td>
+    </tr>`).join('');
+  const obraOpts = d.tramos.map((t,i)=>`<option value="${i+1}" ${String(d.tramo_obra)===String(i+1)?'selected':''}>T${i+1} · ${_escapeHtml(t.etapa)}</option>`).join('');
+  const hist = (c.obra||[]).slice().reverse().map(o=>`<li>Desde ${_prFecha(o.desde)}: <b>tramo ${o.tramo}</b>${c.tramos[o.tramo-1]?' · '+_escapeHtml(c.tramos[o.tramo-1].etapa):''}</li>`).join('') || '<li>Sin registros</li>';
+  const cambios = (c.cambios||[]).slice(-8).reverse().map(x=>`<li><span style="color:var(--ink-4)">${_escapeHtml(x.fecha)}</span> · ${_escapeHtml(x.detalle)}</li>`).join('') || '<li>Sin cambios todavía</li>';
+  const campo = (lbl, html, ayuda='') => `<label class="pr-campo"><span>${lbl}</span>${html}${ayuda?`<small>${ayuda}</small>`:''}</label>`;
+
+  el.innerHTML = `
+    ${_prCfgSrv.persistente ? '' : `<div class="card pr-aviso">Este servidor guarda la configuración en un archivo local. En Railway hay que conectar un volumen y definir <code>PRICING_CONFIG_PATH</code>; si no, cada despliegue vuelve a los valores de partida.</div>`}
+    <div class="pr-grid2">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-hd"><div><h3>Avance de obra</h3><p>El tramo sube por lo que pase primero: que avance la obra o que se llene el cupo de ventas</p></div></div>
+        <div style="padding:14px 18px 18px">
+          ${campo('¿En qué fase está la obra hoy?', `<select class="pr-inp" onchange="_prDraft.tramo_obra=this.value"><option value="">Sin definir (solo por cupo)</option>${obraOpts}</select>`,
+                  'Al guardar un cambio queda registrado con la fecha de hoy.')}
+          <div style="font-size:11px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 6px">Historial</div>
+          <ul class="pr-lista">${hist}</ul>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-hd"><div><h3>Metas y parámetros</h3><p>Lo que antes estaba arriba en la pestaña PRECIOS</p></div></div>
+        <div class="pr-campos">
+          ${campo('Recaudación requerida (S/)', num('requerida','min="0" step="1000"'), 'Solo departamentos')}
+          ${campo('Ticket promedio del plan (S/)', num('ticket_plan','min="0" step="100"'))}
+          ${campo('Área vendible total (m²)', num('area_plan','min="0" step="1"'))}
+          ${campo('Descuento esperado sobre lista (%)', num('dscto','min="0" max="50" step="0.5"'), 'Cuánto está inflada la lista de Evolta')}
+          ${campo('Redondeo de la lista sugerida (S/)', num('redondeo_lista','min="1" step="1"'))}
+          ${campo('¿Las separaciones ocupan cupo?', `<select class="pr-inp" onchange="_prDraft.cupo_cuenta_separaciones=this.value==='1'"><option value="0" ${d.cupo_cuenta_separaciones?'':'selected'}>No, solo ventas con minuta</option><option value="1" ${d.cupo_cuenta_separaciones?'selected':''}>Sí</option></select>`)}
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hd"><div><h3>Plan de tramos</h3><p id="pr-cfg-resumen"></p></div>
+        <button class="chip" style="padding:6px 14px;font-weight:700" onclick="_prDraft.tramos.push({etapa:'Tramo '+(_prDraft.tramos.length+1),unidades:10,velocidad:0,meses:0,pm2:(_prDraft.tramos.at(-1)||{}).pm2||0});_prRenderConfig(document.getElementById('pr-content'))">+ Agregar tramo</button></div>
+      <div style="overflow-x:auto;padding:0 18px 16px"><table class="tbl pr-cfg-tbl" style="width:100%;min-width:720px">
+        <thead><tr><th>Tramo</th><th style="text-align:left">Etapa</th><th>Unidades</th><th>Ventas n°</th><th>S/ por m²</th><th>Ritmo / mes</th><th>Meses</th><th></th></tr></thead>
+        <tbody>${filas}</tbody></table></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hd"><div><h3>Umbrales de alerta</h3><p>Cuándo se encienden las alertas del Resumen</p></div></div>
+      <div class="pr-campos">
+        ${campo('Avisar cuando el tramo llegue al (% del cupo)', num('a_cupo','min="0" max="100" step="1"'))}
+        ${campo('Rojo si el S/ m² cae más de (% bajo el plan)', num('a_pm2','min="0" max="100" step="0.5"'))}
+        ${campo('Rojo si el ritmo está bajo el (% del plan, 2 meses)', num('a_ritmo','min="0" max="100" step="5"'))}
+        ${campo('Amarillo si el ticket está más de (% bajo el plan)', num('a_ticket','min="0" max="100" step="1"'))}
+      </div>
+    </div>
+    <div class="card pr-guardar">
+      ${_prCfgSrv.requiere_clave ? `<label class="pr-campo" style="margin:0;max-width:220px"><span>Clave para guardar</span><input class="pr-inp" type="password" autocomplete="off" value="${_escapeHtml(_prClaveGet())}" oninput="_prClaveSet(this.value)"></label>` : ''}
+      <button class="chip" style="padding:9px 20px;font-weight:700;background:#0D7377;color:#fff;border-color:#0D7377" onclick="_prGuardarCfg()">Guardar cambios</button>
+      <button class="chip" style="padding:9px 16px;font-weight:600" onclick="_prDraft=null;_prCfgMsg='';_prCfgNota='';_prRenderConfig(document.getElementById('pr-content'))">Descartar</button>
+      <span id="pr-cfg-msg" style="font-size:12.5px;color:${_prCfgNota?'var(--ok)':'var(--ink-3)'}">${_prCfgNota ? _escapeHtml(_prCfgNota) : c.actualizado?'Última modificación: '+_escapeHtml(c.actualizado):'Valores de partida (copiados de la pestaña PRECIOS)'}</span>
+    </div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-hd"><div><h3>Últimos cambios</h3><p>Qué se modificó y cuándo</p></div></div>
+      <ul class="pr-lista" style="padding:4px 18px 16px 34px">${cambios}</ul>
+    </div>`;
+  _prCfgResumen();
+}
+
+// Rangos acumulados y totales del plan (sin repintar los inputs, para no perder el foco)
+function _prCfgResumen(){
+  const d = _prDraft; if(!d) return;
+  let acum = 0, sumPm2 = 0;
+  d.tramos.forEach((t,i)=>{
+    const u = Math.max(0, Math.round(+t.unidades||0));
+    const cel = document.getElementById('pr-rango-'+i);
+    if(cel) cel.textContent = u ? `${acum+1}–${acum+u}` : '—';
+    acum += u; sumPm2 += u*(+t.pm2||0);
+  });
+  const prom = acum ? sumPm2/acum : 0;
+  const area = +d.area_plan||0, req = +d.requerida||0;
+  const alcanza = area && prom ? prom*area : 0;
+  const el = document.getElementById('pr-cfg-resumen');
+  if(el) el.innerHTML = `${fN(acum)} unidades · S/ m² promedio del plan ${fN(Math.round(prom))}`
+    + (alcanza && req ? ` · con ${fN(area)} m² el plan junta ${_prM(alcanza)} contra ${_prM(req)} requeridos`
+       + (alcanza < req*0.999 ? ` <b style="color:var(--bad)">(faltan ${_prM(req-alcanza)})</b>` : ' <b style="color:var(--ok)">(alcanza)</b>') : '');
+}
+
+async function _prGuardarCfg(){
+  const d = _prDraft, msg = document.getElementById('pr-cfg-msg');
+  const body = {
+    tramos: d.tramos.map(t=>({etapa:t.etapa, unidades:+t.unidades, velocidad:+t.velocidad||0, meses:+t.meses||0, pm2:+t.pm2})),
+    requerida:+d.requerida, ticket_plan:+d.ticket_plan, area_plan:+d.area_plan||0,
+    dscto_esperado:(+d.dscto)/100, redondeo_lista:+d.redondeo_lista||1,
+    cupo_cuenta_separaciones:!!d.cupo_cuenta_separaciones,
+    alerta_cupo_pct:(+d.a_cupo)/100, alerta_pm2_bajo_plan:(+d.a_pm2)/100,
+    alerta_ritmo_pct:(+d.a_ritmo)/100, alerta_ticket_pct:(+d.a_ticket)/100,
+    tramo_obra: d.tramo_obra===''?null:+d.tramo_obra,
+  };
+  if(msg){ msg.style.color='var(--ink-3)'; msg.textContent='Guardando...'; }
+  try{
+    const proj = document.getElementById('pr-proj')?.value || 'DOMINGO ORUE';
+    const r = await fetch('/api/pricing/config?proyecto='+encodeURIComponent(proj), {method:'POST',
+      headers:{'Content-Type':'application/json','X-Pricing-Key':_prClaveGet()}, body:JSON.stringify(body)});
+    const j = await r.json();
+    if(!r.ok || j.error){ if(msg){ msg.style.color='var(--bad)'; msg.textContent = j.error || ('Error '+r.status); } return; }
+    _prDraft = null; _prResAt = null; _prRes = null;
+    _prCfgNota = 'Guardado. El Resumen ya usa la nueva configuración.';
+    await _prCargarCfg();
+    _prCargar();   // recalcula y repinta (las tarjetas y esta pestaña)
+  }catch(e){ if(msg){ msg.style.color='var(--bad)'; msg.textContent='No se pudo guardar: '+e.message; } }
+}
+
+// ── Popup de las ventas de un tramo ──
+const PR_COLS_POP = [
+  {label:'#', get:v=>v.orden, numeric:true},
+  {label:'F. Venta', get:v=>_prFecha(v.fecha)},
+  {label:'Edif.', get:v=>v.edificio},
+  {label:'N° Dpto', get:v=>v.nro},
+  {label:'Modelo', get:v=>v.modelo},
+  {label:'m²', get:v=>v.area!=null?v.area.toFixed(1):'—', numeric:true},
+  {label:'Precio', get:v=>_prS(v.precio), numeric:true},
+  {label:'Objetivo', get:v=>_prS(v.objetivo), numeric:true},
+  {label:'Dif.', get:v=>v.dif_objetivo==null?'—':`<span style="font-weight:700;color:${_prSigno(v.dif_objetivo)}">${_prS(v.dif_objetivo)}</span>`, numeric:true},
+  {label:'S/ m²', get:v=>v.pm2?fN(Math.round(v.pm2)):'—', numeric:true},
+  {label:'Dscto.', get:v=>v.dscto==null?'—':(v.dscto*100).toFixed(1)+'%', numeric:true},
+  {label:'Canal', get:v=>v.canal||''},
+];
+function _prAbrirTramo(n){
+  // ComoSeEntero: el modal arma el desglose por canal leyendo ese campo
+  const vs = _prRes.ventas.filter(v=>v.tramo===n).map(v=>Object.assign({ComoSeEntero:v.canal}, v));
+  const t = _prRes.tramos.find(x=>x.tramo===n);
+  _abrirModalFunnelEtapa(`Tramo ${n} · ${t.etapa} · ventas ${t.desde}–${t.hasta}`,
+    {label:'Ventas', val:fN(vs.length), color:'#0D7377'},
+    {label:'Dif. vs objetivo', val:_prM(t.dif_objetivo), color:'#F4A228'},
+    vs, PR_COLS_POP);
+}
+
+// ── Pestañas Ventas y Por vender (tablas con orden, búsqueda y Excel) ──
+function _prCols(tipo){
+  if(tipo==='ventas') return [
+    {label:'#', get:v=>v.orden, sv:v=>v.orden},
+    {label:'F. Venta', get:v=>_prFecha(v.fecha), sv:v=>v.fecha},
+    {label:'Tramo', get:v=>'T'+v.tramo, sv:v=>v.tramo},
+    {label:'Edif.', get:v=>v.edificio, sv:v=>v.edificio},
+    {label:'N° Dpto', get:v=>v.nro, sv:v=>+v.nro||0},
+    {label:'Modelo', get:v=>v.modelo, sv:v=>v.modelo},
+    {label:'Dorm.', get:v=>v.dorm??'—', sv:v=>v.dorm||0},
+    {label:'m²', get:v=>v.area!=null?v.area.toFixed(1):'—', sv:v=>v.area||0},
+    {label:'Precio venta', get:v=>_prS(v.precio), sv:v=>v.precio},
+    {label:'Precio objetivo', get:v=>_prS(v.objetivo), sv:v=>v.objetivo||0},
+    {label:'Dif.', get:v=>v.dif_objetivo==null?'—':`<span style="font-weight:700;color:${_prSigno(v.dif_objetivo)}">${_prS(v.dif_objetivo)}</span>`, sv:v=>v.dif_objetivo??-1e12},
+    {label:'S/ m² real', get:v=>v.pm2?fN(Math.round(v.pm2)):'—', sv:v=>v.pm2||0},
+    {label:'S/ m² plan', get:v=>fN(v.pm2_plan), sv:v=>v.pm2_plan},
+    {label:'Lista del día', get:v=>_prS(v.lista_dia), sv:v=>v.lista_dia},
+    {label:'Dscto.', get:v=>v.dscto==null?'—':`<span style="color:${v.dscto>_prRes.resumen.dscto_esperado+0.0005?'var(--bad)':'inherit'}">${(v.dscto*100).toFixed(1)}%</span>`, sv:v=>v.dscto??-1},
+    {label:'Canal', get:v=>_escapeHtml(v.canal||''), sv:v=>v.canal||''},
+    {label:'Correlativo', get:v=>_escapeHtml(v.correlativo), sv:v=>v.correlativo},
+  ];
+  const R = _prRes.resumen, T = _prRes.tramos.map(t=>t.tramo);
+  const sugA = u => _prOpt.rec ? u.lista_sug_act_rec : u.lista_sug_act;
+  const sugS = u => _prOpt.rec ? u.lista_sug_sig_rec : u.lista_sug_sig;
+  const cambio = (nuevo, u) => {
+    if(!u.cambia_lista) return '<span style="color:var(--ink-4)">pactado</span>';
+    const c = u.lista_hoy ? nuevo/u.lista_hoy-1 : null;
+    if(c==null) return '—';
+    const col = Math.abs(c)<0.0025 ? 'var(--ink-3)' : c>0 ? 'var(--bad)' : 'var(--ok)';
+    // rojo = la lista de hoy está por debajo (hay que SUBIR); verde = está por encima
+    return `<span style="font-weight:700;color:${col}">${_prP(c)}</span>`;
+  };
+  const cols = [
+    {label:'Edif.', get:u=>u.edificio, sv:u=>u.edificio},
+    {label:'N° Dpto', get:u=>u.nro, sv:u=>+u.nro||0},
+    {label:'Piso', get:u=>u.piso, sv:u=>+u.piso||0},
+    {label:'Modelo', get:u=>u.modelo, sv:u=>u.modelo},
+    {label:'Dorm.', get:u=>u.dorm, sv:u=>u.dorm},
+    {label:'Estado', get:u=>toTitle(u.estado.toLowerCase()), sv:u=>u.estado},
+    {label:'m²', get:u=>u.area.toFixed(1), sv:u=>u.area},
+    {label:'Lista Evolta hoy', get:u=>_prS(u.lista_hoy), sv:u=>u.lista_hoy},
+    {label:`Lista sugerida T${R.tramo_actual}`, get:u=>`<b>${_prS(sugA(u))}</b>`, sv:u=>sugA(u)},
+    {label:`Cambio T${R.tramo_actual}`, get:u=>cambio(sugA(u),u), sv:u=>u.lista_hoy?sugA(u)/u.lista_hoy:0},
+  ];
+  if(R.tramo_siguiente!==R.tramo_actual) cols.push(
+    {label:`Lista sugerida T${R.tramo_siguiente}`, get:u=>_prS(sugS(u)), sv:u=>sugS(u)},
+    {label:`Cambio T${R.tramo_siguiente}`, get:u=>cambio(sugS(u),u), sv:u=>u.lista_hoy?sugS(u)/u.lista_hoy:0});
+  if(_prOpt.tramos) cols.push(
+    ...T.map(n=>({label:'Final tramo '+n, get:u=>_prS(u.precio_tramo[n]), sv:u=>u.precio_tramo[n]})),
+    {label:'Final esperado', get:u=>_prS(u.esperado), sv:u=>u.esperado});
+  return cols;
+}
+// Opciones de la pestaña Precios por depa
+let _prOpt = {rec:false, solo:true, tramos:false};
+function _prSetOpt(k){ _prOpt[k] = !_prOpt[k]; _prRenderTabla(document.getElementById('pr-content'), 'stock'); }
+function _prBarraPrecios(){
+  const R = _prRes.resumen, pv = _prRes.por_vender.filter(u=>u.cambia_lista);
+  const sug = u => _prOpt.rec ? u.lista_sug_act_rec : u.lista_sug_act;
+  const subir = pv.filter(u=>u.lista_hoy < sug(u)*(1-0.0025));
+  const sw = (k, lbl, tip) => `<button type="button" class="pr-sw" aria-pressed="${_prOpt[k]}" onclick="_prSetOpt('${k}')" title="${tip}"><i></i>${lbl}</button>`;
+  const d = (R.dscto_esperado*100).toFixed(0);
+  return `<div class="pr-precios-hd">
+      <div><b>Tramo actual T${R.tramo_actual}</b> (${R.motivo_tramo==='obra'?'por avance de obra':'por cupo vendido'}) · S/ ${fN(R.pm2_tramo_actual)}/m² · el T${R.tramo_siguiente} (S/ ${fN(R.pm2_tramo_siguiente)}/m²) llega cuando avance la obra o en ${R.tramo_quedan} ventas</div>
+      <div>${subir.length
+        ? `<span style="color:var(--bad);font-weight:700">${subir.length} depas</span> tienen la lista de Evolta por debajo de la sugerida del T${R.tramo_actual}`
+        : `<span style="color:var(--ok);font-weight:700">La lista de Evolta ya está al nivel del T${R.tramo_actual}</span>`}${R.recuperacion_pct>0.0005?` · para llegar a la recaudación requerida falta sumar <b>+${(R.recuperacion_pct*100).toFixed(1)}%</b>`:''}</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 18px 0">
+      ${sw('solo','Solo disponibles y bloqueados','Oculta separaciones y pagando sin minuta: su precio ya está pactado')}
+      ${R.recuperacion_pct>0.0005?sw('rec',`Incluir recuperación (+${(R.recuperacion_pct*100).toFixed(1)}%)`,'Suma a la lista sugerida el % que falta para llegar a la recaudación requerida'):''}
+      ${sw('tramos','Ver precio final de cada tramo','Muestra el precio final (sin inflar) del depa en cada tramo y el esperado')}
+    </div>
+    <div class="pr-nota" style="margin:10px 18px 0">Lista sugerida = precio objetivo del depa en el tramo (área × S/ m² del tramo × factor del depa) ÷ (1 − ${d}%), redondeada a S/ ${fN(_prRes.params.redondeo_lista)}: es el precio a cargar en Evolta para que, con el ${d}% de descuento normal, la venta salga al precio del tramo.
+      Cambio en <span style="color:var(--bad);font-weight:700">rojo</span> = hay que subir la lista; en <span style="color:var(--ok);font-weight:700">verde</span> = la lista ya está por encima.</div>`;
+}
+function _prRenderTabla(el, tipo){
+  const esV = tipo==='ventas';
   el.innerHTML = `<div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>Ventas de departamentos</h3><p>Cada venta contra el pm2 objetivo de su tramo · clic en una cabecera para ordenar</p></div>
-      <button onclick="_exportarTablaExcel('#pr-tabla','pricing_ventas')" style="background:var(--bg);border:1px solid var(--line);color:var(--ink-2);font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer">⬇ Excel</button></div>
+    <div class="card-hd"><div><h3>${esV?'Ventas activas en orden':'Precios por depa'}</h3>
+      <p>${esV?'Cada venta contra el precio objetivo de su tramo (área × S/ m² del tramo × factor del depa) · el descuento en rojo pasa del esperado'
+              :'La lista que debería tener cada depa en Evolta en el tramo actual y en el siguiente, frente a la lista de hoy'}</p></div>
+      <button onclick="_exportarTablaExcel('#pr-tabla','${esV?'pricing_ventas_orue':'precios_por_depa_orue'}')" style="background:var(--bg);border:1px solid var(--line);color:var(--ink-2);font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer">⬇ Excel</button></div>
+    ${esV?'':_prBarraPrecios()}
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 18px 0">
-      ${chip('todas','Todas')}${chip('bad','Bajo piso')}${chip('warn','Cerca')}${chip('ok','En rango')}
-      <span id="pr-cnt" style="font-size:11.5px;color:var(--ink-3);margin-left:6px"></span>
-      <input type="text" class="sp-search" id="pr-busq" style="margin-left:auto" placeholder="Buscar cliente, dpto, vendedor..." value="${_escapeHtml(_prBusq)}" oninput="_prBuscar(this.value)">
+      <span id="pr-cnt" style="font-size:11.5px;color:var(--ink-3)"></span>
+      <input type="text" class="sp-search" style="margin-left:auto" placeholder="Buscar depa, modelo, canal..." value="${_escapeHtml(_prBusq[tipo])}" oninput="_prBusq['${tipo}']=normStr(this.value||'').trim();_prPintarTabla('${tipo}')">
     </div>
     <div class="cob-mes-tablewrap" style="margin:12px 18px 18px;max-height:640px">
       <table class="tbl" id="pr-tabla" style="width:100%"><thead style="position:sticky;top:0;background:var(--panel);z-index:2"><tr id="pr-thead"></tr></thead><tbody id="pr-tbody"></tbody></table>
     </div></div>`;
-  _prVentasBase = todas;
-  _prPintarVentas();
+  _prPintarTabla(tipo);
 }
-let _prVentasBase = [];
-function _prBuscar(v){ _prBusq = normStr(v||'').trim(); _prPintarVentas(); }
-function _prSort(i){
-  if(_prSortIdx===i) _prSortDir = _prSortDir==='asc'?'desc':'asc';
-  else { _prSortIdx=i; _prSortDir = PR_COLS[i].numeric?'desc':'asc'; }
-  _prPintarVentas();
+function _prOrdenar(tipo, i){
+  const s = _prSort[tipo];
+  if(s.i===i) s.dir = s.dir==='asc'?'desc':'asc'; else { s.i=i; s.dir='desc'; }
+  _prPintarTabla(tipo);
 }
-function _prPintarVentas(){
-  const tb = document.getElementById('pr-tbody'); if(!tb) return;
-  let vs = _prVentasBase.filter(s=>_prFiltroEst==='todas' || s.est===_prFiltroEst);
-  let filas = _prFilas(vs);
-  if(_prBusq) filas = filas.filter(r=>normStr(PR_COLS.map(c=>String(c.get(r)).replace(/<[^>]*>/g,' ')).join(' ')).includes(_prBusq));
-  if(_prSortIdx===null) filas.sort((a,b)=>b._s.iso.localeCompare(a._s.iso));
-  else {
-    const c = PR_COLS[_prSortIdx], f = c.sortVal||c.get;
-    filas.sort((a,b)=>{ const x=f(a), y=f(b); const cmp=(typeof x==='number'&&typeof y==='number')?x-y:String(x).localeCompare(String(y),undefined,{numeric:true,sensitivity:'base'}); return _prSortDir==='asc'?cmp:-cmp; });
-  }
-  document.getElementById('pr-thead').innerHTML = PR_COLS.map((c,i)=>`<th style="text-align:${c.align||'left'};cursor:pointer;user-select:none;white-space:nowrap" onclick="_prSort(${i})">${c.label}${_prSortIdx===i?(_prSortDir==='asc'?' ↑':' ↓'):''}</th>`).join('');
-  tb.innerHTML = filas.map(r=>`<tr>${PR_COLS.map(c=>`<td style="text-align:${c.align||'left'};white-space:nowrap">${c.get(r)}</td>`).join('')}</tr>`).join('')
-    || `<tr><td colspan="${PR_COLS.length}" style="text-align:center;color:var(--ink-4);padding:20px">Sin ventas</td></tr>`;
-  const cnt = document.getElementById('pr-cnt'); if(cnt) cnt.textContent = fN(filas.length)+' de '+fN(_prVentasBase.length);
-}
-
-// ── Pestaña Tramos (editor) ─────────────────────────────────────────────────
-function _prRenderTramos(el, res){
-  const cfg = _prLoadCfg();
-  const inp = 'width:100%;padding:6px 8px;border:1.5px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font-size:12.5px;font-family:inherit;text-align:center';
-  const bloques = PR_PROJS.map(p=>{
-    const idxs = cfg.tramos.map((t,i)=>t.p===p?i:-1).filter(i=>i>=0).sort((a,b)=>(Number(cfg.tramos[a].desde)||0)-(Number(cfg.tramos[b].desde)||0));
-    const n = (res[p]?.ventas||[]).length;
-    const pm = _precioM2Ponderado((res[p]?.ventas||[]).filter(s=>s.pm2!=null).map(s=>({precio:s.precio, m2:s.m2})));
-    const filas = idxs.map((i,k)=>{
-      const t = cfg.tramos[i];
-      return `<tr>
-        <td style="padding:6px 10px;text-align:center;font-weight:700;color:var(--ink-3)">T${k+1}</td>
-        <td style="padding:6px 10px"><input type="number" min="1" style="${inp}" value="${_escapeHtml(t.desde)}" oninput="_prEditTramo(${i},'desde',this.value)"></td>
-        <td style="padding:6px 10px"><input type="number" min="1" style="${inp}" placeholder="∞" value="${_escapeHtml(t.hasta)}" oninput="_prEditTramo(${i},'hasta',this.value)"></td>
-        <td style="padding:6px 10px"><input type="number" min="0" step="10" style="${inp}" value="${_escapeHtml(t.pm2)}" oninput="_prEditTramo(${i},'pm2',this.value)"></td>
-        <td style="padding:6px 10px;text-align:center"><button onclick="_prDelTramo(${i})" title="Quitar tramo" style="background:transparent;border:none;color:var(--ink-4);font-size:15px;cursor:pointer">✕</button></td>
-      </tr>`;
-    }).join('');
-    return `<div class="card" style="margin-bottom:14px">
-      <div class="card-hd"><div><h3>${toTitle(_prCorto(p).toLowerCase())}</h3><p>${fN(n)} departamentos vendidos · pm2 vendido ${_prPm2(pm)}</p></div>
-        <button class="chip" onclick="_prAddTramo('${p}')" style="padding:6px 14px;font-weight:700">+ Agregar tramo</button></div>
-      ${idxs.length?`<div style="overflow-x:auto"><table class="tbl" style="width:100%;max-width:640px"><thead><tr><th style="text-align:center">Tramo</th><th style="text-align:center">Desde venta n°</th><th style="text-align:center">Hasta venta n°</th><th style="text-align:center">pm2 objetivo (S/)</th><th></th></tr></thead><tbody>${filas}</tbody></table></div>`
-        :`<div style="padding:16px 20px;color:var(--ink-4);font-size:12.5px">Sin tramos. Agrega el primero.</div>`}
-    </div>`;
-  }).join('');
-  el.innerHTML = `<div class="card" style="margin-bottom:14px;padding:16px 20px;display:flex;gap:18px;flex-wrap:wrap;align-items:center">
-      <div><div style="font-weight:700;font-size:13px">Tolerancia bajo el objetivo</div>
-        <div style="font-size:12px;color:var(--ink-3);max-width:420px;margin-top:2px">Una venta hasta este % por debajo del pm2 objetivo sale <b>Cerca</b> (amarillo); más abajo sale <b>Bajo piso</b> (rojo).</div></div>
-      <div style="display:flex;align-items:center;gap:6px"><input type="number" min="0" max="50" step="0.5" style="${inp};width:80px" value="${_escapeHtml(cfg.tol)}" oninput="_prEditTol(this.value)"><span style="font-weight:700">%</span></div>
-      <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="chip" onclick="_prExportar()" style="padding:6px 14px;font-weight:600">⎘ Copiar tramos</button>
-        <button class="chip" onclick="_prImportar()" style="padding:6px 14px;font-weight:600">⇪ Pegar tramos</button></div>
-    </div>
-    <div style="font-size:12px;color:var(--ink-3);margin:0 2px 12px">El n° de venta cuenta los departamentos vendidos de cada proyecto en orden de fecha (1, 2, 3…). Deja "Hasta" vacío para el último tramo (sin tope). Se guarda solo, en este navegador; usa "Copiar tramos" y "Pegar tramos" para llevarlos a otra PC.</div>
-    ${bloques}`;
-}
-function _prEditTol(v){ _prLoadCfg().tol = Number(v)||0; _prSaveCfg(); _prRefrescarKpis(); }
-function _prEditTramo(i, campo, v){ _prLoadCfg().tramos[i][campo] = v; _prSaveCfg(); _prRefrescarKpis(); }
-function _prAddTramo(p){
-  const cfg = _prLoadCfg();
-  const prev = cfg.tramos.filter(t=>t.p===p).sort((a,b)=>(Number(a.desde)||0)-(Number(b.desde)||0));
-  const ult = prev[prev.length-1];
-  const desde = ult ? ((Number(ult.hasta)||Number(ult.desde)||0)+1) : 1;
-  cfg.tramos.push({p, desde, hasta:'', pm2:ult?ult.pm2:''});
-  _prSaveCfg(); renderPricing();
-}
-function _prDelTramo(i){ _prLoadCfg().tramos.splice(i,1); _prSaveCfg(); renderPricing(); }
-// Los KPIs de arriba dependen de los tramos: al editar se recalculan sin repintar el editor (no pierde el foco).
-function _prRefrescarKpis(){ renderPricing(true); }
-function _prExportar(){
-  const txt = JSON.stringify(_prLoadCfg());
-  (navigator.clipboard?.writeText(txt) || Promise.reject()).then(()=>alert('Tramos copiados. Pégalos en la otra PC con "Pegar tramos".')).catch(()=>prompt('Copia este texto:', txt));
-}
-function _prImportar(){
-  const t = prompt('Pega aquí los tramos copiados:');
-  if(!t) return;
-  try{
-    const j = JSON.parse(t);
-    if(!j || !Array.isArray(j.tramos)) throw new Error('formato');
-    _prCfg = {tol:Number(j.tol)||3, tramos:j.tramos.map(x=>({p:String(x.p), desde:x.desde, hasta:x.hasta, pm2:x.pm2}))};
-    _prSaveCfg(); renderPricing();
-  }catch(e){ alert('No se pudo leer: el texto no tiene el formato esperado.'); }
+function _prPintarTabla(tipo){
+  const tb = document.getElementById('pr-tbody'); if(!tb || !_prRes) return;
+  const cols = _prCols(tipo), base = tipo==='ventas' ? _prRes.ventas : _prRes.por_vender;
+  let filas = (tipo==='stock' && _prOpt.solo) ? base.filter(u=>u.cambia_lista) : base.slice();
+  const q = _prBusq[tipo];
+  if(q) filas = filas.filter(r=>normStr(cols.map(c=>String(c.get(r)).replace(/<[^>]*>/g,' ')).join(' ')).includes(q));
+  const s = _prSort[tipo];
+  if(s.i!==null){
+    const f = cols[s.i].sv;
+    filas.sort((a,b)=>{ const x=f(a), y=f(b); const c=(typeof x==='number'&&typeof y==='number')?x-y:String(x).localeCompare(String(y),undefined,{numeric:true}); return s.dir==='asc'?c:-c; });
+  } else if(tipo==='ventas') filas.sort((a,b)=>b.orden-a.orden);
+  document.getElementById('pr-thead').innerHTML = cols.map((c,i)=>`<th style="text-align:center;cursor:pointer;user-select:none;white-space:nowrap" onclick="_prOrdenar('${tipo}',${i})">${c.label}${s.i===i?(s.dir==='asc'?' ↑':' ↓'):''}</th>`).join('');
+  tb.innerHTML = filas.map(r=>`<tr>${cols.map(c=>`<td style="text-align:center;white-space:nowrap">${c.get(r)}</td>`).join('')}</tr>`).join('')
+    || `<tr><td colspan="${cols.length}" style="text-align:center;color:var(--ink-4);padding:20px">Sin resultados</td></tr>`;
+  const cnt = document.getElementById('pr-cnt'); if(cnt) cnt.textContent = fN(filas.length)+' de '+fN(base.length);
 }
 
 
@@ -8425,7 +8537,7 @@ function toggleDark(){
   Chart.defaults.borderColor=on?'#334155':'#e5e7eb';
   Chart.defaults.plugins.tooltip.backgroundColor=on?'#1e293b':'#ffffff';
   // Re-render active panel charts
-  ['_prChart','_dirDonut','_dirVisChart','_flEvoChart','_dirTrendChart','_dirMontoChart','_dirProjBar','_admFcChartMes','_admLiberadoChart'].forEach(k=>{if(window[k])try{window[k].destroy();window[k]=null;}catch(e){}});
+  ['_prChart','_prChart2','_dirDonut','_dirVisChart','_flEvoChart','_dirTrendChart','_dirMontoChart','_dirProjBar','_admFcChartMes','_admLiberadoChart'].forEach(k=>{if(window[k])try{window[k].destroy();window[k]=null;}catch(e){}});
   try{renderDirector();}catch(e){}
   try{renderPricing();}catch(e){}
   try{if(typeof renderFunnelMkt!=='undefined')renderFunnelMkt();}catch(e){}

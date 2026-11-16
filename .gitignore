@@ -1,3 +1,6 @@
 .env
 __pycache__/
 *.pyc
+# Configuración de pricing editada desde el dashboard (en Railway va en un volumen)
+data/
+validacion_pricing_orue.xlsx

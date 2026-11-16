@@ -1058,6 +1058,45 @@ def api_meta_cobranza():
         return jsonify({"data": _meta_cobranza_cache["data"], "error": str(e)})
 
 
+# Pricing: el plan de tramos, metas y tramo por obra se manejan desde el
+# dashboard (pricing_config.py, archivo JSON). Ventas y stock siguen saliendo
+# del Sheet. Para guardar cambios se pide la clave PRICING_ADMIN_KEY si está
+# definida en el entorno.
+PRICING_ADMIN_KEY = os.getenv("PRICING_ADMIN_KEY", "")
+
+
+@app.route("/api/pricing")
+def api_pricing():
+    import pricing_config
+    from pricing import calcular_pricing
+    proyecto = (request.args.get("proyecto") or "DOMINGO ORUE").upper()
+    cfg = pricing_config.cargar(proyecto)
+    if not cfg:
+        return jsonify({"error": f"{proyecto} todavía no tiene plan de tramos"}), 400
+    res = calcular_pricing(proyecto, _cache["ventas"], _cache["stock"], pricing_config.a_plan(cfg),
+                           hoy=datetime.now(LIMA).date(), params=pricing_config.a_params(cfg))
+    res["updated_at"] = _cache["updated_at"]
+    return jsonify(res)
+
+
+@app.route("/api/pricing/config", methods=["GET", "POST"])
+def api_pricing_config():
+    import pricing_config
+    proyecto = (request.args.get("proyecto") or "DOMINGO ORUE").upper()
+    if request.method == "GET":
+        cfg = pricing_config.cargar(proyecto)
+        if not cfg:
+            return jsonify({"error": f"{proyecto} todavía no tiene plan de tramos"}), 404
+        return jsonify({"config": cfg, "requiere_clave": bool(PRICING_ADMIN_KEY),
+                        "persistente": bool(os.getenv("PRICING_CONFIG_PATH"))})
+    if PRICING_ADMIN_KEY and request.headers.get("X-Pricing-Key", "") != PRICING_ADMIN_KEY:
+        return jsonify({"error": "Clave incorrecta"}), 401
+    cfg, err = pricing_config.guardar(proyecto, request.get_json(silent=True) or {})
+    if err:
+        return jsonify({"error": err}), 400
+    return jsonify({"ok": True, "config": cfg})
+
+
 @app.route("/api/refresh", methods=["POST"])
 def api_refresh():
     _meta_ads_cache.clear()
