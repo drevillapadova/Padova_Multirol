@@ -940,6 +940,9 @@ select.mk-btn{appearance:auto}
 #panel-director .tbl th{font-size:10.5px;letter-spacing:.06em}
 #panel-director td,#panel-director .mk-amt,#panel-director .t-v{font-family:'Plus Jakarta Sans',sans-serif;font-variant-numeric:tabular-nums}
 #panel-director .fl-cross-clk{cursor:pointer}
+#dir-detalle-tabla thead th,#dir-detalle-tabla tbody td,#dir-detalle-tabla tfoot td{padding:9px 6px;font-size:12px}
+#dir-detalle-tabla thead th{font-size:10px;letter-spacing:.02em;overflow:hidden}
+#dir-detalle-tabla{border-collapse:collapse}
 #panel-director .fl-cross-clk:hover .mk-amt{color:var(--brand)}
 
 /* ═══ ADM. DE VENTAS (mismo lenguaje que Marketing) ═══ */
@@ -2229,6 +2232,11 @@ let _dirTabColsAct = null; // columnas visibles (Torre solo si hay Sunny/Orue)
 // Detalle de ventas y Detalle de separaciones: misma tabla, mismas columnas.
 // Las separaciones (filas de Stock) se normalizan a la forma de una venta en _dirSepComoVenta.
 let _dirTabModo = 'ventas'; // 'ventas' | 'sep'
+// Ancho (px) de cada columna: el mismo en ventas y separaciones para que se vean iguales
+const _DIR_TAB_PROY_PCT = 10; // % del ancho para Proyecto: el mismo en ventas y separaciones
+// Peso de cada columna (≈ px que necesita su contenido); se reparten el 90% restante
+const _DIR_TAB_PESO = {'Cliente':145,'DNI':92,'Inmueble':66,'Torre':50,'Canal':98,'Contacto':82,'Precio':92,'Moneda':64,'m²':50,'Crédito':90,'Entidad':94,'Estado':92,'F. Venta':86,'F. Separación':92};
+const _DIR_TAB_TEXTO = ['Proyecto','Cliente','Canal','Contacto','Crédito','Entidad','Estado']; // pueden bajar de línea
 const _dirTabFechaIso = r => _dirTabModo==='sep' ? _flIsoFecha(r.FechaSepDefinitiva) : _flIsoFecha(r.FechaVenta||r.FechaEntrega_Minuta);
 const _dirTabColsBase = [
   {label:'Proyecto',   align:'left',   get:r=>_flProjShort(r.Proyecto)||'—'},
@@ -2284,8 +2292,9 @@ function _renderDirTablaDetalle(vGlob, modo){
     <div style="padding:4px 20px 14px">
       <input type="text" class="mk-search" id="dir-tab-search" placeholder="Buscar en la tabla: cliente, DNI, proyecto, inmueble, canal, entidad${_dirTabModo==='sep'?', estado':''}..." value="${_escapeHtml(_dirTabBusq)}" oninput="_dirTabBuscar(this.value)">
     </div>
-    <div style="overflow:auto;max-height:70vh;border-top:1px solid var(--line-2)">
-      <table class="tbl" id="dir-detalle-tabla" style="width:100%">
+    <div style="overflow-y:auto;overflow-x:hidden;max-height:70vh;border-top:1px solid var(--line-2)">
+      <table class="tbl" id="dir-detalle-tabla" style="width:100%;table-layout:fixed">
+        <colgroup id="dir-tab-colgroup"></colgroup>
         <thead style="position:sticky;top:0;background:var(--panel);z-index:2"><tr id="dir-tab-thead"></tr></thead>
         <tbody id="dir-tab-tbody"></tbody>
         <tfoot id="dir-tab-tfoot" style="position:sticky;bottom:0;background:var(--panel);z-index:2"></tfoot>
@@ -2318,9 +2327,17 @@ function _dirTabPintar(){
   document.getElementById('dir-tab-thead').innerHTML = (_dirTabColsAct||_dirTabCols).map((c,i)=>{
     const ico=_dirTabSort&&_dirTabSort.idx===i?(_dirTabSort.dir==='asc'?' ↑':' ↓'):'';
     const act=!!_dirTabFilt[i];
-    return `<th style="text-align:${c.align};cursor:pointer;user-select:none;white-space:nowrap" onclick="_dirTabOrdenar(${i})" title="Ordenar">${c.label}${ico}<span onclick="event.stopPropagation();_flFiltAbrir(${i},this,_dirTabCtx)" title="Filtrar" style="margin-left:5px;font-size:10px;padding:1px 3px;border-radius:4px;${act?'color:#fff;background:var(--brand)':'color:var(--ink-4)'}">${act?'▼':'▾'}</span></th>`;
+    return `<th style="text-align:${c.align};cursor:pointer;user-select:none;white-space:normal;line-height:1.3;vertical-align:bottom" onclick="_dirTabOrdenar(${i})" title="Ordenar">${c.label}${ico}<span onclick="event.stopPropagation();_flFiltAbrir(${i},this,_dirTabCtx)" title="Filtrar" style="margin-left:5px;font-size:10px;padding:1px 3px;border-radius:4px;${act?'color:#fff;background:var(--brand)':'color:var(--ink-4)'}">${act?'▼':'▾'}</span></th>`;
   }).join('');
-  tb.innerHTML = rows.map(r=>`<tr>${(_dirTabColsAct||_dirTabCols).map(c=>`<td style="text-align:${c.align}${c.label==='Proyecto'||c.label==='Cliente'?'':';white-space:nowrap'}">${_escapeHtml(String(c.get(r)))}</td>`).join('')}</tr>`).join('')
+  // Todo en una sola mirada (sin scroll horizontal): cada columna con un % pensado para su contenido;
+  // Proyecto con el mismo % en ventas y separaciones. Los textos largos bajan de línea.
+  const _cg=document.getElementById('dir-tab-colgroup'), _colsV=(_dirTabColsAct||_dirTabCols);
+  if(_cg){
+    const otros=_colsV.filter(c=>c.label!=='Proyecto'), sumW=otros.reduce((a,c)=>a+(_DIR_TAB_PESO[c.label]||80),0)||1;
+    _cg.innerHTML=_colsV.map(c=>`<col style="width:${c.label==='Proyecto'?_DIR_TAB_PROY_PCT:((100-_DIR_TAB_PROY_PCT)*(_DIR_TAB_PESO[c.label]||80)/sumW).toFixed(2)}%">`).join('');
+  }
+  tb.innerHTML = rows.map(r=>`<tr>${_colsV.map(c=>{ const v=_escapeHtml(String(c.get(r))); const txt=_DIR_TAB_TEXTO.includes(c.label);
+    return `<td style="text-align:${c.align};${txt?'overflow-wrap:break-word':'white-space:nowrap;overflow:hidden;text-overflow:ellipsis'}"${txt?'':` title="${v}"`}>${v}</td>`; }).join('')}</tr>`).join('')
     || `<tr><td colspan="${(_dirTabColsAct||_dirTabCols).length}" style="text-align:center;color:var(--ink-4);padding:20px">Sin registros</td></tr>`;
   // Fila de total según lo filtrado. El precio se suma por moneda, con el mismo monto que
   // muestra la columna Precio (así el total cuadra con lo que se ve). Si lo filtrado mezcla
@@ -2343,7 +2360,7 @@ function _dirTabPintar(){
       else if(c.label==='Moneda') t=hayUSD?'equiv. S/ '+fm(totSoles):'';
       else if(c.label==='m²') t=promM2?'prom. '+promM2.toFixed(1):'—';
       const ex=c.label==='Moneda'?';font-weight:400;font-size:10.5px;color:var(--ink-4)':';font-weight:700';
-      return `<td style="text-align:${c.align};white-space:nowrap;border-top:2px solid var(--line)${ex}">${_escapeHtml(t)}</td>`;
+      return `<td style="text-align:${c.align};overflow-wrap:break-word;line-height:1.35;border-top:2px solid var(--line)${ex}">${_escapeHtml(t)}</td>`;
     });
     tf.innerHTML=`<tr>${celdas.join('')}</tr>`;
   }
