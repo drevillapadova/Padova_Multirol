@@ -2170,9 +2170,11 @@ function _dirAbrirTyp(k){
   const q=_dirPop[k]; if(!q) return;
   const nro=x=>String(x||'').trim().replace(/\.0+$/,'').toUpperCase();
   const mod=x=>String(x||'').trim().toUpperCase()||'SIN MODELO';
-  const key=r=>String(r.Proyecto||'').trim().toUpperCase()+'|'+mod(r.Modelo);
+  // Torre (EDI 1/2 en Sunny, T3/T4 en D. Orue): el mismo modelo en otra torre va en otra fila
+  const torre=r=>{ const t=_torreDe(r); return t==='—'?'':t; };
+  const key=r=>String(r.Proyecto||'').trim().toUpperCase()+'|'+torre(r)+'|'+mod(r.Modelo);
   const g={};
-  const grupo=r=>{ const kk=key(r); return g[kk]||(g[kk]={Proyecto:String(r.Proyecto||'').trim(), Modelo:mod(r.Modelo), vend:0, monto:0, nMonto:0, sep:new Set(), disp:new Set(), area:[], pm2:[]}); };
+  const grupo=r=>{ const kk=key(r); return g[kk]||(g[kk]={Proyecto:String(r.Proyecto||'').trim(), Torre:torre(r), Modelo:mod(r.Modelo), vend:0, monto:0, nMonto:0, sep:new Set(), disp:new Set(), area:[], pm2:[]}); };
   q.vendidas.forEach(r=>{ const x=grupo(r); x.vend++; const p=Number(r.PrecioVentaSoles||r.PrecioVenta||0); if(p>0){ x.monto+=p; x.nMonto++; } });
   q.stockRows.forEach(r=>{
     const x=grupo(r), est=String(r.Estado||'').toLowerCase(), u=nro(r.NroInmuebleActual||r.NroInmueble)+'|'+String(r.Edificio||'');
@@ -2182,12 +2184,13 @@ function _dirAbrirTyp(k){
     if(Number(r.PrecioM2)>0) x.pm2.push(Number(r.PrecioM2));
   });
   const prom=a=>a.length?a.reduce((s,v)=>s+v,0)/a.length:0;
-  const filas=Object.values(g).map(x=>({Proyecto:x.Proyecto, Modelo:x.Modelo, _vend:x.vend, _sep:x.sep.size, _disp:x.disp.size,
+  const filas=Object.values(g).map(x=>({Proyecto:x.Proyecto, Torre:x.Torre, Modelo:x.Modelo, _vend:x.vend, _sep:x.sep.size, _disp:x.disp.size,
     _area:prom(x.area), _ticket:x.nMonto?x.monto/x.nMonto:0, _pm2:prom(x.pm2)})).filter(x=>x._vend||x._sep||x._disp);
   const varios=new Set(filas.map(f=>f.Proyecto)).size>1;
   const n0=v=>v?fN(Math.round(v)):'—';
   const cols=[
     ...(varios?[{label:'Proyecto', get:r=>_flProjShort(r.Proyecto)}]:[]),
+    {label:'Torre',       get:r=>r.Torre||'—', align:'center', soloTorre:true},
     {label:'Modelo',      get:r=>r.Modelo, align:'center'},
     {label:'Vendidas',    get:r=>fN(r._vend), align:'center', sortVal:r=>r._vend, numeric:true},
     {label:'Separadas',   get:r=>fN(r._sep), align:'center', sortVal:r=>r._sep, numeric:true},
