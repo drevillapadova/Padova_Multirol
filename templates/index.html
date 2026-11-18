@@ -997,6 +997,100 @@ html.dark .sp-e-DEV{--e-bg:#253347;--e-bd:#475569;--e-fg:#94a3b8}
 
 /* ═══ ADM. DE VENTAS (mismo lenguaje que Marketing) ═══ */
 .mk-panel{font-family:'Plus Jakarta Sans',sans-serif;font-variant-numeric:tabular-nums}
+/* ═══ ESTUDIO DE MERCADO (mismo lenguaje que Marketing) ═══ */
+#panel-mercado .mk-filtros{gap:10px 12px;margin:14px 0 14px}
+#panel-mercado .mk-filtros .chip-sel{border:1px solid var(--line);min-height:32px}
+.mk-fi{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.mk-fv{font-size:10px;color:var(--ink-4)}
+#panel-mercado .mk-seg button{min-height:26px;padding:0 10px;font-size:12px}
+.mchip i{font-style:normal;font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.65}
+.mk-per{font-size:12px;font-weight:600;color:var(--ink-3);margin:-4px 0 12px}
+.mk-empty{padding:28px 20px;text-align:center;color:var(--ink-4);font-size:13px}
+.mk-tag{display:inline-flex;align-items:center;height:17px;padding:0 7px;border-radius:999px;font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;background:var(--mk-gold);color:#fff;margin-left:6px;vertical-align:2px}
+.mk-lg{display:inline-flex;align-items:center;gap:6px}
+.mk-lg i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.mk-legend{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:10px 20px 14px;font-size:11.5px;color:var(--ink-3)}
+/* ranking */
+.mk-rk-list{padding:0 10px 12px}
+.mk-rk{display:grid;grid-template-columns:22px minmax(0,1.5fr) minmax(50px,1fr) 66px 86px;gap:12px;align-items:center;width:100%;padding:8px 10px;border:none;background:none;border-radius:10px;cursor:pointer;text-align:left;font-family:inherit;color:var(--ink);font-size:12.5px}
+.mk-rk:hover{background:var(--brand-soft)}
+.mk-rk.pdv{background:var(--mk-gold-soft)}
+.mk-rk.on{box-shadow:inset 3px 0 0 var(--brand);background:var(--brand-soft)}
+.mk-rk .i{font-size:11.5px;font-weight:800;color:var(--ink-4);text-align:center}
+.mk-rk .n,.mk-ml-it .n{display:block;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mk-ml-it .n{white-space:normal;line-height:1.25}
+.mk-rk .h,.mk-ml-it .h{display:block;font-size:11px;color:var(--ink-4);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mk-rk .v,.mk-ml-it .v{text-align:right;font-weight:800;font-size:14px;white-space:nowrap}
+.mk-rk .v small,.mk-ml-it .v small{display:block;font-size:10.5px;font-weight:600;color:var(--ink-4)}
+.mk-rk .mk-trk{height:8px}
+.mk-trk>i{display:block;height:100%;background:var(--brand);border-radius:999px}
+/* Padova frente al mercado */
+.mk-pdv{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--mk-inset)}
+.mk-pdv-hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}
+.mk-pdv-hd b{font-size:13px;color:var(--ink)}
+.mk-pdv-hd span{font-size:11px;color:var(--ink-4);text-align:right}
+.mk-pdv-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mk-pdv-g small{display:block;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-4)}
+.mk-pdv-g b{display:block;font-size:15px;font-weight:800;color:var(--ink);white-space:nowrap}
+.mk-pdv-g .mk-d{font-size:11px}
+.mk-pdv-hd span b{color:var(--ink);font-size:12px}
+#panel-mercado .mk-side{flex:1 1 380px;max-width:460px}
+#panel-mercado .mk-tile .t-v{font-size:18px;white-space:nowrap}
+#panel-mercado .mk-side .mk-tbl th{letter-spacing:.03em;padding:8px 4px}
+#panel-mercado .mk-side .mk-tbl td{padding:8px 4px}
+#panel-mercado .mk-kpi .k-s .mk-d{font-size:12px}
+/* tablas */
+.mk-tbl tr.mk-clk{cursor:pointer}
+.mk-tbl tr.mk-clk:hover td{background:var(--brand-soft)}
+.mk-tbl tr.mk-clk.on td{background:var(--brand-soft)}
+.mk-tbl td small{display:block;font-size:10.5px;font-weight:500;color:var(--ink-4);opacity:1}
+.mk-dist td,.mk-dist th{padding:8px 8px}
+.mk-vt,.mk-cmp{table-layout:fixed}
+.mk-vt th,.mk-cmp th{white-space:normal;line-height:1.25;padding:8px 5px;font-size:10px;letter-spacing:.05em;position:sticky;top:0;background:var(--panel);z-index:1}
+.mk-vt td{padding:6px 5px;font-size:12px;overflow:hidden;text-overflow:ellipsis}
+.mk-vt td:first-child,.mk-cmp td:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mk-vt td:first-child small,.mk-cmp td:first-child small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mk-vt td.rep{color:transparent;font-size:1px}
+.mk-vt td.rep *{color:transparent}
+.mk-vt tr.g1 td{border-top:1px solid var(--line)}
+.mk-vt td.hm{border-radius:5px;font-weight:700;padding:6px 2px;border-bottom-color:transparent;box-shadow:inset 0 0 0 1px var(--panel)}
+.mk-vt tr.pdv td:not(.hm),.mk-cmp tr.pdv td:not(.cm){background:var(--mk-gold-soft)}
+.mk-vt tfoot td,.mk-cmp tfoot td{position:sticky;bottom:0;font-weight:800}
+.mk-cmp td{padding:8px 5px;font-size:12px;vertical-align:middle}
+.mk-cmp th.bk{color:var(--brand)}
+.mk-cmp .mk-et{font-size:11.5px;font-weight:600;white-space:nowrap}
+.mk-cmp td .p{display:block;font-size:13px;font-weight:800;color:var(--ink)}
+.mk-cmp td .s{display:block;font-size:10.5px;color:var(--ink-4);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mk-cmp td .p i{display:inline-block;width:7px;height:7px;border-radius:999px;margin-right:5px;vertical-align:1px}
+.mk-cmp tr.pdv td.cm{background:var(--mk-gold-soft)}
+.mk-cmp td.cm.lo .p{color:var(--mk-ok)}
+.mk-cmp td.cm.hi .p{color:var(--mk-bad)}
+.mk-cmp td.cm-0{color:var(--line)}
+/* mapa + lista */
+.mk-mapa-row{align-items:stretch}
+.mk-mapa-row .mk-main{flex:999 1 560px;display:flex;flex-direction:column}
+.mk-map{height:clamp(420px,calc(100vh - 390px),640px);width:100%}
+#panel-mercado .mk-ml-card{flex:1 1 400px;max-width:440px;gap:0;overflow:hidden;position:relative}
+.mk-ml{position:absolute;left:0;right:0;bottom:0;top:var(--mk-ml-top,128px);overflow-y:auto;border-top:1px solid var(--line-2)}
+.mk-ml-it{display:grid;grid-template-columns:10px minmax(0,1fr) 54px 78px;gap:10px;align-items:center;width:100%;padding:9px 16px;border:none;border-bottom:1px solid var(--line-2);background:none;cursor:pointer;text-align:left;font-family:inherit;color:var(--ink);font-size:12.5px}
+.mk-ml-it:hover{background:var(--brand-soft)}
+.mk-ml-it.pdv{background:var(--mk-gold-soft)}
+.mk-ml-it.on{background:var(--brand-soft);box-shadow:inset 3px 0 0 var(--brand)}
+.mk-ml-it .v{font-size:13px}
+.mk-pop{font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;line-height:1.35;color:#0f172a}
+.mk-pop .t{font-weight:800;font-size:13px}
+.mk-pop .h{color:#64748b;margin-bottom:8px}
+.mk-pop .g{display:grid;grid-template-columns:repeat(3,auto);gap:10px;margin-bottom:8px}
+.mk-pop .g small{display:block;font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#94a3b8}
+.mk-pop .g b{font-size:13px;font-weight:800}
+.mk-pop .l{color:#475569;margin-top:2px}
+.mk-pop .l span{font-weight:700}
+@media (max-width:900px){
+  .mk-rk{grid-template-columns:20px minmax(0,1fr) 60px 80px}
+  .mk-rk .mk-trk{display:none}
+  .mk-ml-card{max-width:none}
+  .mk-vt,.mk-cmp{table-layout:auto;min-width:760px}
+}
 .mk-grp-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:0 0 18px}
 .mk-grp-row:empty{display:none}
 .mk-grp{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 2px rgba(10,22,40,.05);padding:16px 18px 10px;display:flex;flex-direction:column;min-width:0}
@@ -1510,11 +1604,11 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
 </div>
 
 <!-- ═══════════ ESTUDIO DE MERCADO ═══════════ -->
-<div class="panel" id="panel-mercado">
+<div class="panel mk-panel" id="panel-mercado">
   <div class="topbar">
     <div>
       <div class="crumbs">Dashboard <span>›</span><b>Estudio de Mercado</b></div>
-      <h1 class="page-title">Estudio de Mercado · Competencia</h1>
+      <h1 class="page-title">Estudio de Mercado</h1>
       <div class="page-sub" id="mkt-mercado-sub">Cargando...</div>
     </div>
     <div class="toolbar">
@@ -1522,206 +1616,91 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
       <button class="dark-toggle-btn" onclick="toggleDark()" title="Modo oscuro" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all .2s">◑</button>
     </div>
   </div>
+  <div class="mk-filtros" id="mk-filtros">
+    <div style="position:relative">
+      <button type="button" class="chip-sel msel-btn" onclick="mselToggle('distrito')"><span class="mk-fi">⌖</span><span id="msel-distrito-label">Todos los distritos</span> <span class="mk-fv">▾</span></button>
+      <div class="msel-panel" id="msel-distrito-panel" style="display:none;min-width:230px"><div id="msel-distrito-list"></div></div>
+    </div>
+    <div style="position:relative">
+      <button type="button" class="chip-sel msel-btn" onclick="mselToggle('inmobiliaria')"><span class="mk-fi">⌂</span><span id="msel-inmobiliaria-label">Todas las inmobiliarias</span> <span class="mk-fv">▾</span></button>
+      <div class="msel-panel" id="msel-inmobiliaria-panel" style="display:none;min-width:270px"><div id="msel-inmobiliaria-list"></div></div>
+    </div>
+    <div style="position:relative">
+      <button type="button" class="chip-sel msel-btn" onclick="mselToggle('etapa')"><span class="mk-fi">▦</span><span id="msel-etapa-label">Todas las etapas</span> <span class="mk-fv">▾</span></button>
+      <div class="msel-panel" id="msel-etapa-panel" style="display:none;min-width:210px"><div id="msel-etapa-list"></div></div>
+    </div>
+    <div style="position:relative">
+      <button type="button" class="chip-sel msel-btn" onclick="mselToggle('proyecto')"><span class="mk-fi">◈</span><span id="msel-proyecto-label">Todos los proyectos</span> <span class="mk-fv">▾</span></button>
+      <div class="msel-panel" id="msel-proyecto-panel" style="display:none;min-width:300px"><div id="msel-proyecto-list"></div></div>
+    </div>
+    <div style="position:relative">
+      <button type="button" class="chip-sel msel-btn" onclick="mselToggle('dorm')"><span class="mk-fi">◆</span><span id="msel-dorm-label">Todas las tipologías</span> <span class="mk-fv">▾</span></button>
+      <div class="msel-panel" id="msel-dorm-panel" style="display:none;min-width:170px"><div id="msel-dorm-list"></div></div>
+    </div>
+    <div style="flex-basis:100%;height:0"></div>
+    <span class="mk-lbl">Período</span>
+    <div class="mk-seg" id="mk-periodo"></div>
+    <span class="mk-per" id="mk-per-txt" style="margin:0"></span>
+    <div class="ddb-sep"></div>
+    <input type="text" id="mkt-mercado-buscar" class="mk-search mkt-buscar" style="flex:1 1 200px;max-width:300px;padding-top:7px;padding-bottom:7px" placeholder="Buscar proyecto o inmobiliaria" oninput="_mercadoBuscar(this.value)">
+    <button type="button" class="mk-btn" style="min-height:32px;margin-left:auto" onclick="_mkLimpiar()" title="Quitar todos los filtros">✕ Limpiar</button>
+    <button type="button" class="mk-btn pri" style="min-height:32px" onclick="competenciaDomingoOrue()" title="Elige la competencia predeterminada de Domingo Orue">◎ Comp. D. Orue</button>
+    <div class="mercado-chips" id="mk-chips" style="flex-basis:100%;margin:0"></div>
+  </div>
   <div class="tab-bar" id="mercado-tab-bar">
-    <button class="tab-btn active" onclick="setMercadoTab('competencia',this)">Mapa de Competencia</button>
-    <button class="tab-btn" onclick="setMercadoTab('ventas',this)">Ventas Competencia</button>
-    <button class="tab-btn" onclick="setMercadoTab('precios',this)">Precios Competencia</button>
+    <button class="tab-btn active" data-tab="resumen" onclick="setMercadoTab('resumen',this)">Resumen</button>
+    <button class="tab-btn" data-tab="mapa" onclick="setMercadoTab('mapa',this)">Mapa</button>
+    <button class="tab-btn" data-tab="ventas" onclick="setMercadoTab('ventas',this)">Ventas</button>
+    <button class="tab-btn" data-tab="precios" onclick="setMercadoTab('precios',this)">Comparador de precios</button>
   </div>
   <div id="mercado-content">
-    <div id="mercado-sub-competencia" class="mercado-subsection">
-      <div style="padding:16px 20px 0">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;margin-bottom:14px">
-          <div style="position:relative">
-            <button type="button" class="chip-sel msel-btn" onclick="mselToggle('distrito')">
-              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
-              <span id="msel-distrito-label">Todos los distritos</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
-            </button>
-            <div class="msel-panel" id="msel-distrito-panel" style="display:none;min-width:220px">
-              <div id="msel-distrito-list"></div>
-            </div>
+    <div id="mercado-sub-resumen" class="mercado-subsection"><div class="loading">Cargando...</div></div>
+
+    <div id="mercado-sub-mapa" class="mercado-subsection" style="display:none">
+      <div class="mk-row2 mk-mapa-row">
+        <section class="mk-card mk-main" style="overflow:hidden">
+          <div class="mk-card-hd">
+            <div><h3>Mapa de competencia</h3><p>Clic en un punto para elegirlo · Ctrl + scroll para hacer zoom</p></div>
+            <button type="button" id="btn-dibujar-zona" class="mk-btn" style="min-height:32px" onclick="toggleDibujarZona()">✎ <span id="dibujar-zona-label">Dibujar zona</span></button>
           </div>
-          <div style="position:relative">
-            <button type="button" class="chip-sel msel-btn" onclick="mselToggle('inmobiliaria')">
-              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">⌂</span>
-              <span id="msel-inmobiliaria-label">Todas las inmobiliarias</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
-            </button>
-            <div class="msel-panel" id="msel-inmobiliaria-panel" style="display:none;min-width:260px">
-              <input type="text" class="msel-filter" id="msel-inmobiliaria-filter" placeholder="Filtrar lista..." oninput="mselFilterList('inmobiliaria')"/>
-              <div id="msel-inmobiliaria-list"></div>
-            </div>
+          <div style="position:relative;isolation:isolate;border-top:1px solid var(--line-2)">
+            <div id="mkt-mercado-map" class="mk-map"></div>
           </div>
-          <div style="position:relative">
-            <button type="button" class="chip-sel msel-btn" onclick="mselToggle('proyecto')">
-              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◈</span>
-              <span id="msel-proyecto-label">Todos los proyectos</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
-            </button>
-            <div class="msel-panel" id="msel-proyecto-panel" style="display:none;min-width:280px">
-              <input type="text" class="msel-filter" id="msel-proyecto-filter" placeholder="Filtrar lista..." oninput="mselFilterList('proyecto')"/>
-              <div id="msel-proyecto-list"></div>
-            </div>
+          <div id="mkt-mercado-legend" class="mk-legend"></div>
+        </section>
+        <section class="mk-card mk-side mk-ml-card">
+          <div class="mk-card-hd" style="padding-bottom:10px">
+            <div><h3 id="mk-ml-tit">Proyectos</h3><p id="mk-ml-sub"></p></div>
           </div>
-          <input type="text" id="mkt-mercado-buscar" class="sp-search mkt-buscar" style="margin-left:0;width:240px" placeholder="Buscar proyecto o inmobiliaria..." oninput="_mercadoBuscar(this.value)">
-          <button type="button" id="btn-dibujar-zona" class="chip-sel" onclick="toggleDibujarZona()" style="cursor:pointer;border:none">
-            <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">✎</span>
-            <span id="dibujar-zona-label">Dibujar zona</span>
-          </button>
-          <button class="btn-clear-fecha" title="Limpiar filtros" onclick="limpiarFiltrosMercado()" style="align-self:center">✕</button>
-          <button type="button" class="chip-sel" style="cursor:pointer;align-self:center;margin-left:auto" onclick="competenciaDomingoOrue()" title="Selecciona la competencia predeterminada de Domingo Orue">Comp. Orue</button>
-        </div>
-      </div>
-      <div style="padding:0 20px">
-        <div class="card" style="padding:0;overflow:hidden;position:relative;isolation:isolate">
-          <div id="mkt-mercado-map" style="height:clamp(360px,calc(100vh - 340px),570px);width:100%"></div>
-          <div style="position:absolute;bottom:10px;left:10px;background:rgba(15,23,42,.72);color:#fff;font-size:11px;padding:4px 10px;border-radius:6px;pointer-events:none;z-index:1000;font-family:'Plus Jakarta Sans',sans-serif">Ctrl + scroll para hacer zoom</div>
-        </div>
-        <div id="mkt-mercado-hint" style="display:none;padding:6px 4px 0;font-size:11.5px;color:var(--ink-3)"></div>
-        <div id="mkt-mercado-legend" style="display:flex;flex-wrap:wrap;gap:14px;padding:12px 4px;font-size:11px;color:var(--ink-3)"></div>
+          <div style="padding:0 16px 10px"><div class="mk-seg" id="mk-ml-orden"></div></div>
+          <div id="mk-ml-list" class="mk-ml"></div>
+        </section>
       </div>
     </div>
 
     <div id="mercado-sub-ventas" class="mercado-subsection" style="display:none">
-      <div style="padding:16px 20px 0">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;margin-bottom:14px">
-          <div style="position:relative">
-            <button type="button" class="chip-sel msel-btn" onclick="mselToggle('ventas-distrito')">
-              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
-              <span id="msel-ventas-distrito-label">Todos los distritos</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
-            </button>
-            <div class="msel-panel" id="msel-ventas-distrito-panel" style="display:none;min-width:220px">
-              <div id="msel-ventas-distrito-list"></div>
-            </div>
-          </div>
-          <div style="position:relative">
-            <button type="button" class="chip-sel msel-btn" onclick="mselToggle('ventas-inmobiliaria')">
-              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">⌂</span>
-              <span id="msel-ventas-inmobiliaria-label">Todas las inmobiliarias</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
-            </button>
-            <div class="msel-panel" id="msel-ventas-inmobiliaria-panel" style="display:none;min-width:260px">
-              <input type="text" class="msel-filter" id="msel-ventas-inmobiliaria-filter" placeholder="Filtrar lista..." oninput="mselFilterList('ventas-inmobiliaria')"/>
-              <div id="msel-ventas-inmobiliaria-list"></div>
-            </div>
-          </div>
-          <div style="position:relative">
-            <button type="button" class="chip-sel msel-btn" onclick="mselToggle('ventas-proyecto')">
-              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◈</span>
-              <span id="msel-ventas-proyecto-label">Todos los proyectos</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
-            </button>
-            <div class="msel-panel" id="msel-ventas-proyecto-panel" style="display:none;min-width:280px">
-              <input type="text" class="msel-filter" id="msel-ventas-proyecto-filter" placeholder="Filtrar lista..." oninput="mselFilterList('ventas-proyecto')"/>
-              <div id="msel-ventas-proyecto-list"></div>
-            </div>
-          </div>
-          <button class="btn-clear-fecha" title="Limpiar filtros" onclick="limpiarFiltrosVentas()" style="align-self:center">✕</button>
-          <button type="button" class="chip-sel" style="cursor:pointer;align-self:center;margin-left:auto" onclick="competenciaDomingoOrue()" title="Selecciona la competencia predeterminada de Domingo Orue">Comp. Orue</button>
+      <section class="mk-card" style="margin-bottom:16px">
+        <div class="mk-card-hd"><div><h3>Evolución mensual de ventas</h3><p id="mkt-ventas-sub">Cargando...</p></div></div>
+        <div style="height:300px;padding:4px 18px 16px"><canvas id="mkt-ventas-chart"></canvas></div>
+      </section>
+      <section class="mk-card" style="margin-bottom:16px">
+        <div class="mk-card-hd">
+          <div><h3>Ventas por proyecto y tipología</h3><p id="mk-tipo-sub"></p></div>
+          <button type="button" class="mk-btn" onclick="_exportarTablaExcel('#mk-ventas-tabla','ventas_competencia','Ventas por proyecto y tipología',_mkPeriodoTxt())">↓ Excel</button>
         </div>
-      </div>
-      <div style="padding:0 20px">
-        <div class="card" style="margin-bottom:16px">
-          <div class="card-hd"><div><h3>Evolución mensual de ventas</h3><p id="mkt-ventas-sub">Cargando...</p></div></div>
-          <div style="height:320px;padding:8px 16px 16px"><canvas id="mkt-ventas-chart"></canvas></div>
-        </div>
-        <div class="card" style="margin-bottom:16px">
-          <div class="card-hd"><div><h3>Ventas por proyecto y tipología</h3><p>Precios, ticket y evolución mensual de ventas por tipología</p></div></div>
-          <div style="display:flex;align-items:center;gap:10px;padding:0 18px 14px;flex-wrap:wrap;max-width:100%;box-sizing:border-box">
-            <span style="font-size:11px;color:var(--ink-3);font-weight:700;letter-spacing:.04em;text-transform:uppercase">Tipología (dormitorios):</span>
-            <div style="position:relative">
-              <button type="button" class="chip-sel msel-btn" onclick="mselToggle('tipologia-dorm')">
-                <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◆</span>
-                <span id="msel-tipologia-dorm-label">Todas</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
-              </button>
-              <div class="msel-panel" id="msel-tipologia-dorm-panel" style="display:none;min-width:160px">
-                <div id="msel-tipologia-dorm-list"></div>
-              </div>
-            </div>
-            <div style="position:relative">
-              <button type="button" class="chip-sel msel-btn" onclick="mselToggle('tipologia-periodo')">
-                <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◷</span>
-                <span id="tipologia-periodo-label">Últimos 3 meses</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
-              </button>
-              <div class="msel-panel" id="msel-tipologia-periodo-panel" style="display:none;min-width:150px">
-                <div class="msel-item" onclick="_setTipologiaPeriodo(3)">Últimos 3 meses</div>
-                <div class="msel-item" onclick="_setTipologiaPeriodo(6)">Últimos 6 meses</div>
-              </div>
-            </div>
-            <button class="btn-clear-fecha" title="Limpiar filtro" onclick="limpiarFiltroTipologia()">✕</button>
-            <button type="button" class="chip-sel" style="cursor:pointer;border:none;margin-left:auto" onclick="_exportarTablaExcel('#mkt-tipologia-wrap table', 'ventas_competencia')">
-              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">⬇</span>
-              <span>Descargar Excel</span>
-            </button>
-          </div>
-          <div id="mkt-tipologia-wrap" style="overflow-x:auto;max-width:100%;padding:0 18px 18px;box-sizing:border-box"></div>
-        </div>
-      </div>
+        <div id="mkt-tipologia-wrap" class="mk-tbl-wrap" style="padding:0 12px 14px"></div>
+      </section>
     </div>
 
     <div id="mercado-sub-precios" class="mercado-subsection" style="display:none">
-      <div style="padding:16px 20px 0">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;margin-bottom:14px">
-          <div style="position:relative">
-            <button type="button" class="chip-sel msel-btn" onclick="mselToggle('precios-distrito')">
-              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
-              <span id="msel-precios-distrito-label">Todos los distritos</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
-            </button>
-            <div class="msel-panel" id="msel-precios-distrito-panel" style="display:none;min-width:220px">
-              <div id="msel-precios-distrito-list"></div>
-            </div>
-          </div>
-          <div style="position:relative">
-            <button type="button" class="chip-sel msel-btn" onclick="mselToggle('precios-inmobiliaria')">
-              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">⌂</span>
-              <span id="msel-precios-inmobiliaria-label">Todas las inmobiliarias</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
-            </button>
-            <div class="msel-panel" id="msel-precios-inmobiliaria-panel" style="display:none;min-width:260px">
-              <input type="text" class="msel-filter" id="msel-precios-inmobiliaria-filter" placeholder="Filtrar lista..." oninput="mselFilterList('precios-inmobiliaria')"/>
-              <div id="msel-precios-inmobiliaria-list"></div>
-            </div>
-          </div>
-          <div style="position:relative">
-            <button type="button" class="chip-sel msel-btn" onclick="mselToggle('precios-etapa')">
-              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">▦</span>
-              <span id="msel-precios-etapa-label">Todas las etapas</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
-            </button>
-            <div class="msel-panel" id="msel-precios-etapa-panel" style="display:none;min-width:200px">
-              <div id="msel-precios-etapa-list"></div>
-            </div>
-          </div>
-          <div style="position:relative">
-            <button type="button" class="chip-sel msel-btn" onclick="mselToggle('precios-proyecto')">
-              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◈</span>
-              <span id="msel-precios-proyecto-label">Elige proyectos a comparar</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
-            </button>
-            <div class="msel-panel" id="msel-precios-proyecto-panel" style="display:none;min-width:280px">
-              <input type="text" class="msel-filter" id="msel-precios-proyecto-filter" placeholder="Filtrar lista..." oninput="mselFilterList('precios-proyecto')"/>
-              <div id="msel-precios-proyecto-list"></div>
-            </div>
-          </div>
-          <div style="position:relative">
-            <button type="button" class="chip-sel msel-btn" onclick="mselToggle('precios-periodo')">
-              <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◷</span>
-              <span id="precios-periodo-label">Últimos 6 meses</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
-            </button>
-            <div class="msel-panel" id="msel-precios-periodo-panel" style="display:none;min-width:160px">
-              <div class="msel-item" onclick="_setPreciosPeriodo(3)">Últimos 3 meses</div>
-              <div class="msel-item" onclick="_setPreciosPeriodo(6)">Últimos 6 meses</div>
-              <div class="msel-item" onclick="_setPreciosPeriodo(12)">Últimos 12 meses</div>
-              <div class="msel-item" onclick="_setPreciosPeriodo(24)">Últimos 24 meses</div>
-              <div class="msel-item" onclick="_setPreciosPeriodo('todo')">Todo el histórico</div>
-            </div>
-          </div>
-          <button class="btn-clear-fecha" title="Limpiar filtros" onclick="limpiarFiltrosPrecios()" style="align-self:center">✕</button>
-          <button type="button" class="chip-sel" style="cursor:pointer;align-self:center;margin-left:auto" onclick="competenciaDomingoOrue()" title="Selecciona la competencia predeterminada de Domingo Orue">Comp. Orue</button>
-          <button type="button" class="chip-sel" style="cursor:pointer;border:none" onclick="_exportarPreciosExcel()">
-            <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">⬇</span>
-            <span>Descargar Excel</span>
-          </button>
-        </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <div class="mk-per" id="mk-cmp-sub" style="margin:0"></div>
+        <button type="button" class="mk-btn" style="margin-left:auto;min-height:32px" onclick="_exportarPreciosExcel()">↓ Descargar Excel</button>
       </div>
-      <div style="padding:0 20px 20px">
-        <div class="card" style="padding:0">
-          <div id="mkt-precios-wrap" style="overflow:auto;max-width:100%;max-height:72vh"></div>
-        </div>
-        <div id="mkt-precios-legend" style="display:flex;flex-wrap:wrap;gap:14px;padding:10px 4px;font-size:11px;color:var(--ink-3)"></div>
+      <div class="card" style="padding:0">
+        <div id="mkt-precios-wrap" style="overflow:auto;max-width:100%;max-height:72vh"></div>
       </div>
+      <div id="mkt-precios-legend" style="display:flex;flex-wrap:wrap;gap:14px;padding:10px 4px;font-size:11px;color:var(--ink-3)"></div>
     </div>
   </div>
 </div>
@@ -2094,9 +2073,9 @@ async function loadAll(forzarRefresh){
     D.flujoCaja       = fcR.data||[];
     D.updatedAt  = fR.updated_at||vR.updated_at||'—';
     // también stock completo
-    fetch(API+'/api/stock').then(r=>r.json()).then(s=>{D.stock=s.data||[];renderAll();}).catch(()=>renderAll());
-    fetch(API+'/api/mercado').then(r=>r.json()).then(m=>{D.mercado=m.data||[];if(typeof renderMercadoMapa!=='undefined')renderMercadoMapa();if(typeof renderMercadoPrecios!=='undefined')renderMercadoPrecios();if(typeof renderMercadoTipologia!=='undefined')renderMercadoTipologia();}).catch(()=>{});
-    fetch(API+'/api/mercado_ventas').then(r=>r.json()).then(m=>{D.mercadoVentas=m.data||[];if(typeof renderMercadoVentas!=='undefined')renderMercadoVentas();if(typeof renderMercadoPrecios!=='undefined')renderMercadoPrecios();if(typeof renderMercadoTipologia!=='undefined')renderMercadoTipologia();}).catch(()=>{});
+    fetch(API+'/api/stock').then(r=>r.json()).then(s=>{D.stock=s.data||[];renderAll();if(typeof _mkRender!=='undefined'&&(D.mercado||[]).length)_mkRender();}).catch(()=>renderAll());
+    fetch(API+'/api/mercado').then(r=>r.json()).then(m=>{D.mercado=m.data||[];if(typeof _mkRender!=='undefined')_mkRender();}).catch(()=>{});
+    fetch(API+'/api/mercado_ventas').then(r=>r.json()).then(m=>{D.mercadoVentas=m.data||[];if(typeof _mkRender!=='undefined')_mkRender();}).catch(()=>{});
     fetch(API+'/api/meta_cobranza').then(r=>r.json()).then(m=>{D.metaCobranza=m.data||[];if(typeof renderAdmVentas!=='undefined')renderAdmVentas();}).catch(()=>{});
     fetch(API+'/api/escritura_publica').then(r=>r.json()).then(m=>{D.escrituraPublica=m.data||[];if(typeof renderAdmVentas!=='undefined')renderAdmVentas();}).catch(()=>{});
     _schedNextRefresh();
@@ -9391,10 +9370,7 @@ function nav(id, el){
     // Cada vez que se entra a Estudio de Mercado se resetean los filtros
     // (distrito/inmobiliaria/proyecto/búsqueda/periodo) de las 3 pestañas,
     // para no arrastrar lo que quedó seleccionado la última vez.
-    limpiarFiltrosMercado();
-    limpiarFiltrosVentas();
-    limpiarFiltrosPrecios();
-    limpiarFiltroTipologia();
+    _mkLimpiar();
     setTimeout(()=>{ if(_mercadoMap) _mercadoMap.invalidateSize(); }, 50);
   }
 }
@@ -9815,7 +9791,7 @@ async function _exportarPreciosExcel(){
   const ws = wb.addWorksheet('Precios Competencia', { views:[{ showGridLines:false }] });
 
   // Título y subtítulo
-  const etiquetaPeriodo = _preciosPeriodoMeses ? `últimos ${_preciosPeriodoMeses} meses` : 'todo el histórico';
+  const etiquetaPeriodo = _mkEtiquetaPeriodo();
   ws.mergeCells(1,1,1,nCols);
   const t = ws.getCell(1,1);
   t.value = 'Precios Competencia';
@@ -9952,7 +9928,7 @@ function _zonaOnMouseUp(){
 }
 
 function _zonaAplicar(puntos){
-  const dentro = (D.mercado||[]).filter(r=>_puntoEnPoligono(r.lat, r.lng, puntos)).map(r=>r.proyecto);
+  const dentro = (D.mercado||[]).filter(r=>_puntoEnPoligono(r.lat, r.lng, puntos)).map(_mkK);
   if(!dentro.length){
     _zonaSetLabel('Sin proyectos en esa zona');
     setTimeout(()=>_zonaSetLabel('Dibujar zona'), 2200);
@@ -9981,42 +9957,269 @@ function limpiarZonaDibujada(){
   _renderMercadoCompartidas();
 }
 
-// { stateKey: Set } — distrito/inmobiliaria/proyecto son compartidos por las 3 secciones
-// de Estudio de Mercado (varios dropdowns en pantalla pueden apuntar al mismo Set);
-// precios-etapa, tipologia-dorm, etc. siguen siendo propios de su sección.
+// ══════════════════════════════════════════════════════════════════════════
+// ESTUDIO DE MERCADO — una sola barra de filtros para las 4 pestañas
+// (Resumen, Mapa, Ventas, Comparador de precios).
+// Un proyecto se identifica por NOMBRE + INMOBILIARIA: hay nombres repetidos en
+// distintas inmobiliarias ("PARK LIVING", "GALA", "PRIME"...) que antes se mezclaban.
+// ══════════════════════════════════════════════════════════════════════════
 const _mselState = {};
 function _mselGet(key){ if(!_mselState[key]) _mselState[key] = new Set(); return _mselState[key]; }
+let _mkTab = 'resumen';
+let _mkPeriodo = 6;            // últimos N meses con datos; null = todo el histórico
+let _mkMapaOrden = 'ventas';   // orden de la lista del mapa
+const MK_PERIODOS = [[3,'3 meses'],[6,'6 meses'],[12,'12 meses'],[null,'Todo']];
+const MK_DORM_COLORS = {'Estudio':'#93c5fd','1D':'#60a5fa','2D':'#2563eb','3D':'#1e3a8a','4D':'#f4a228'};
+const _mkDormColor = d => MK_DORM_COLORS[d] || '#94a3b8';
+
+const _mkK   = r => (r.proyecto||'')+'||'+(r.inmobiliaria||'');
+const _mkNom = k => String(k).split('||')[0];
+const _mkInm = k => String(k).split('||')[1]||'';
+const _MK_MIN = new Set(['de','del','la','las','los','y','e','en','el','a']);
+const _mkT   = s => String(s||'').trim().toLowerCase().replace(/(^|[\s\-\/(.])([a-záéíóúñü]+)/g,(m,a,w)=>a+(a===' '&&_MK_MIN.has(w)?w:w[0].toUpperCase()+w.slice(1)));
+const _mkEtapaCorta = e => ({'En Planos':'En planos','En Construcción':'En obra','Entrega Inmediata':'Entrega inm.'})[e]||e||'—';
+const _mkEsPadova = r => /^(PADOVA|MIRANO)$/.test(String(r&&r.inmobiliaria||'').trim().toUpperCase());
+const _mkSol = n => n ? 'S/ '+fN(Math.round(n)) : '—';
+const _mkSolK = n => n ? 'S/ '+(n>=1e8 ? fN(Math.round(n/1e6))+' M' : n>=1e6 ? (n/1e6).toFixed(n>=1e7?1:2)+' M' : fN(Math.round(n/1000))+' mil') : '—';
+const _mkK0 = n => n ? (n>=1e6 ? (Math.round(n/1e4)/100).toFixed(2)+' M' : fN(Math.round(n/1000))+' mil') : '—'; // ticket sin "S/" (celdas angostas)
+const _mkVel = n => !n ? '0' : n>=10 ? fN(Math.round(n)) : n.toFixed(1);
+const _mkTag = r => _mkEsPadova(r) ? `<span class="mk-tag">${_mkT(r.inmobiliaria)}</span>` : '';
+
+let _mkIdxSrc = null, _mkIdx = new Map(), _mkNomDup = new Set();
+function _mkIndex(){
+  const data = D.mercado||[];
+  if(_mkIdxSrc===data) return;
+  _mkIdxSrc = data; _mkIdx = new Map(data.map(r=>[_mkK(r), r]));
+  const c = {}; data.forEach(r=>{ c[r.proyecto] = (c[r.proyecto]||0)+1; });
+  _mkNomDup = new Set(Object.keys(c).filter(n=>c[n]>1));
+}
+const _mkProy = k => { _mkIndex(); return _mkIdx.get(k); };
+// Nombre para mostrar. Si el nombre se repite en otra inmobiliaria, se le agrega cuál es.
+function _mkLbl(k){ _mkIndex(); const n = _mkNom(k); return _mkNomDup.has(n) ? _mkT(n)+' ('+_mkT(_mkInm(k))+')' : _mkT(n); }
+
+// ── Meses del período: el estudio se publica con rezago, así que la ventana termina en
+// el último mes que YA tiene ventas (nunca el mes en curso, que va a la mitad).
+const MK_MM = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
+const _mkMesLbl = ym => { const [y,m] = ym.split('-'); return MK_MM[+m]+' '+y.slice(2); };
+const _mkYm = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+let _mkMesesSrc = null, _mkMesesTodos = [];
+function _mkMesesData(){
+  const v = D.mercadoVentas||[];
+  if(_mkMesesSrc!==v){
+    _mkMesesSrc = v;
+    const s = new Set(); v.forEach(x=>{ if(x._mkReal) return; const ym=(x.fecha_venta||'').slice(0,7); if(ym) s.add(ym); });
+    const actual = _mkYm(new Date());
+    _mkMesesTodos = [...s].filter(ym=>ym<actual).sort();
+  }
+  return _mkMesesTodos;
+}
+function _mkMesesHasta(fin, n){
+  const [y,m] = fin.split('-').map(Number), out = [];
+  for(let i=n-1;i>=0;i--) out.push(_mkYm(new Date(y, m-1-i, 1)));
+  return out;
+}
+function _mkMeses(n){
+  const todos = _mkMesesData(); if(!todos.length) return [];
+  const fin = todos[todos.length-1];
+  if(n===null){ const out=[]; let [y,m]=todos[0].split('-').map(Number); for(;;){ const ym=_mkYm(new Date(y,m-1,1)); out.push(ym); if(ym>=fin) break; m++; } return out; }
+  return _mkMesesHasta(fin, n);
+}
+function _mkPeriodoTxt(){
+  const ms = _mkMeses(_mkPeriodo); if(!ms.length) return '';
+  return _mkMesLbl(ms[0])+' – '+_mkMesLbl(ms[ms.length-1])+' · '+ms.length+' meses';
+}
+
+// ── Filtro único: devuelve los proyectos (fichas) y sus ventas del período ──
+function _mkFiltrar(){
+  const fD=_mselGet('distrito'), fI=_mselGet('inmobiliaria'), fE=_mselGet('etapa'), fP=_mselGet('proyecto'), fT=_mselGet('dorm');
+  let proys = (D.mercado||[]).filter(r=>(!fD.size||fD.has(r.distrito)) && (!fI.size||fI.has(r.inmobiliaria)) && (!fE.size||fE.has(r.fase_proyecto)));
+  if(fP.size) proys = proys.filter(r=>fP.has(_mkK(r)));
+  const keys = new Set(proys.map(_mkK));
+  const meses = _mkMeses(_mkPeriodo);
+  const desde = meses[0]||'9999', hasta = meses[meses.length-1]||'0000';
+  const ventasAll = (D.mercadoVentas||[]).filter(v=>keys.has(_mkK(v)) && (!fT.size || fT.has(_dormLabel(v.dormitorios))));
+  const ventas = ventasAll.filter(v=>{ const ym=(v.fecha_venta||'').slice(0,7); return ym>=desde && ym<=hasta; });
+  return {proys, keys, meses, ventasAll, ventas};
+}
+function _mkAgg(ventas){
+  const n = ventas.length; if(!n) return {n:0, ticket:0, pm2:0, area:0};
+  let p=0, m=0, a=0; ventas.forEach(v=>{ p+=+v.precio_venta||0; m+=+v.precio_m2_venta||0; a+=+v.area_total||0; });
+  return {n, ticket:p/n, pm2:m/n, area:a/n};
+}
+function _mkPorProy(ventas, nMeses){
+  const g = new Map();
+  ventas.forEach(v=>{ const k=_mkK(v); let x=g.get(k); if(!x){ x={n:0,p:0,m:0,a:0}; g.set(k,x); } x.n++; x.p+=+v.precio_venta||0; x.m+=+v.precio_m2_venta||0; x.a+=+v.area_total||0; });
+  g.forEach(x=>{ x.mes=x.n/Math.max(1,nMeses); x.ticket=x.p/x.n; x.pm2=x.m/x.n; x.area=x.a/x.n; });
+  return g;
+}
+
+// ── Proyectos propios (Padova y Mirano): NO se usan los datos del estudio de mercado,
+// se arman con nuestra base real. Ventas = minutas de Ventas (fecha de venta) +
+// separaciones vigentes de Stock (fecha de separación). Fichas (total de deptos,
+// vendidos, metrajes, precios) = Stock. Solo departamentos. m² = área techada + 50% libre.
+const MK_PROPIOS = {
+  'DOMINGO ORUE 915||PADOVA':'DOMINGO ORUE',
+  'HELIO SANTA BEATRIZ||PADOVA':'HELIO - SANTA BEATRIZ',
+  'Lomas de Carabayllo Etapa 4||PADOVA':'LOMAS DE CARABAYLLO 4',
+  'Lomas de Carabayllo Etapa 5||PADOVA':'LOMAS DE CARABAYLLO 5',
+  'Litoral 900||MIRANO':'LITORAL 900',
+  'Sunny Park - La Molina||MIRANO':'SUNNY',
+};
+const _mkNormK = k => normStr(k).replace(/\s+/g,' ').trim();
+let _mkRealSig = null, _mkRawVentas = null;
+function _mkAplicarReal(){
+  const mv = D.mercadoVentas||[], m = D.mercado||[];
+  if(!mv._mkReal) _mkRawVentas = mv;
+  const raw = _mkRawVentas||[];
+  if(!raw.length || !m.length || !(D.ventas||[]).length || !(D.stock||[]).length) return;
+  const sig = [raw, m, D.ventas, D.stock];
+  if(_mkRealSig && sig.every((x,i)=>x===_mkRealSig[i])) return;
+  _mkRealSig = sig;
+  const mapa = new Map(Object.entries(MK_PROPIOS).map(([k,v])=>[_mkNormK(k), v]));
+  const fichas = new Map(); // proyecto interno -> ficha del estudio
+  m.forEach(r=>{ const pi = mapa.get(_mkNormK(_mkK(r))); if(pi) fichas.set(pi, r); });
+  if(!fichas.size) return;
+  const P = x=>String(x||'').trim().toUpperCase();
+  const nro = x=>String(x||'').trim().replace(/\.0+$/,'').toUpperCase();
+  const esDep = r=>normStr(r.TipoInmueble).includes('depa');
+  const devuelta = s=>normStr(s.Estado).includes('devuel');
+  // Stock: una fila vigente por unidad (las DEVUELTA son historial) + índices para cruzar Ventas
+  const unidades = new Map(), porDni = new Map(), porNro = new Map();
+  (D.stock||[]).forEach(s=>{
+    if(!esDep(s)) return;
+    const p = P(s.Proyecto); if(!fichas.has(p)) return;
+    const n = nro(s.NroInmuebleActual||s.NroInmueble), u = p+'|'+String(s.Edificio||'').trim()+'|'+n;
+    const prev = unidades.get(u);
+    if(!prev || (devuelta(prev) && !devuelta(s))) unidades.set(u, s);
+    const dni = String(s.NroDocumento||'').trim();
+    if(dni) porDni.set(p+'|'+n+'|'+dni, s);
+    if(!porNro.has(p+'|'+n) || !devuelta(s)) porNro.set(p+'|'+n, s);
+  });
+  const fila = (ficha, u, precio, lista, fecha)=>{
+    const area = _m2Efectivo(u)||0;
+    return { _mkReal:true, proyecto:ficha.proyecto, inmobiliaria:ficha.inmobiliaria, distrito:ficha.distrito,
+      fecha_venta:fecha, dormitorios:+u.NroDormitorios||0, area_total:area, precio_venta:precio,
+      precio_m2_venta: area ? precio/area : 0, precio_m2_oferta: area && lista ? lista/area : 0 };
+  };
+  const nuevas = [];
+  (D.ventas||[]).forEach(v=>{
+    if(!esDep(v)) return;
+    const p = P(v.Proyecto), ficha = fichas.get(p); if(!ficha) return;
+    const n = nro(v.NroInmueble);
+    const u = porDni.get(p+'|'+n+'|'+String(v.NroDocumentoTitular||'').trim()) || porNro.get(p+'|'+n);
+    const fecha = String(_flIsoFecha(v.FechaVenta||v.FechaEntrega_Minuta)||'').slice(0,10);
+    const precio = +v.PrecioVentaSoles || +v.PrecioVenta || 0;
+    if(!u || !fecha || !precio) return;
+    const tc = +v.PrecioVenta ? precio/(+v.PrecioVenta) : 1; // precio lista a soles si la venta fue en dólares
+    nuevas.push(fila(ficha, u, precio, (+v.PrecioLista||0)*tc, fecha));
+  });
+  unidades.forEach((s,u)=>{
+    if(!normStr(s.Estado).includes('separac')) return;
+    const ficha = fichas.get(u.split('|')[0]);
+    const fecha = String(_flIsoFecha(s.FechaSepDefinitiva)||'').slice(0,10);
+    const precio = +s.PrecioVentaSoles || +s.PrecioVenta || 0;
+    if(!ficha || !fecha || !precio) return;
+    const tc = +s.PrecioVenta ? precio/(+s.PrecioVenta) : 1;
+    nuevas.push(fila(ficha, s, precio, (+s.PrecioLista||0)*tc, fecha));
+  });
+  // Fichas con los números reales
+  fichas.forEach((ficha, p)=>{
+    if(!ficha._mkOrig) ficha._mkOrig = Object.assign({}, ficha);
+    const us = [...unidades.entries()].filter(([u,s])=>u.startsWith(p+'|') && !devuelta(s)).map(e=>e[1]);
+    if(!us.length) return;
+    const areas = us.map(_m2Efectivo).filter(a=>a>0);
+    const mias = nuevas.filter(x=>x.proyecto===ficha.proyecto && x.inmobiliaria===ficha.inmobiliaria);
+    const prom = (arr,f)=>arr.length ? arr.reduce((s,x)=>s+f(x),0)/arr.length : 0;
+    Object.assign(ficha, {
+      _mkReal: true,
+      unidades_totales: us.length,
+      unidades_vendidas: us.filter(s=>!/disponib|bloque/.test(normStr(s.Estado))).length,
+      area_min: areas.length ? Math.min(...areas) : ficha._mkOrig.area_min,
+      area_max: areas.length ? Math.max(...areas) : ficha._mkOrig.area_max,
+      precio_promedio: prom(mias, x=>x.precio_venta) || ficha._mkOrig.precio_promedio,
+      precio_m2_promedio: prom(mias, x=>x.precio_m2_venta) || ficha._mkOrig.precio_m2_promedio,
+    });
+  });
+  const propias = new Set([...fichas.values()].map(_mkK));
+  const out = raw.filter(v=>!propias.has(_mkK(v))).concat(nuevas);
+  out._mkReal = true;
+  D.mercadoVentas = out;
+}
+
+// ── Barra de filtros ──
+const MK_FILTROS = ['distrito','inmobiliaria','etapa','proyecto','dorm'];
+let _mkFiltrosSucios = true;
+function _mkRenderFiltros(){
+  _mkFiltrosSucios = true;
+  if(MK_FILTROS.includes(_mselOpenKey)) _mkRenderFiltrosListas(); // hay uno abierto: se actualiza ya
+  _mselLabelsRapido();
+  const seg = document.getElementById('mk-periodo');
+  const pt = document.getElementById('mk-per-txt'); if(pt) pt.textContent = _mkPeriodoTxt();
+  if(seg) seg.innerHTML = MK_PERIODOS.map(([n,l])=>`<button type="button" class="${_mkPeriodo===n?'on':''}" onclick="_mkSetPeriodo(${n===null?'null':n})">${l}</button>`).join('');
+}
+function _mkRenderFiltrosListas(){
+  _mkFiltrosSucios = false;
+  const data = D.mercado||[];
+  const fD=_mselGet('distrito'), fI=_mselGet('inmobiliaria'), fE=_mselGet('etapa');
+  const ok = (r, sinD, sinI, sinE)=> (sinD||!fD.size||fD.has(r.distrito)) && (sinI||!fI.size||fI.has(r.inmobiliaria)) && (sinE||!fE.size||fE.has(r.fase_proyecto));
+  const uniq = arr => [...new Set(arr.filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'es'));
+  _mselBuildList('distrito', uniq(data.filter(r=>ok(r,1,0,0)).map(r=>r.distrito)), fD);
+  _mselBuildList('inmobiliaria', uniq(data.filter(r=>ok(r,0,1,0)).map(r=>r.inmobiliaria)), fI, null, _mkT);
+  const ORD_E = {'En Planos':0,'En Construcción':1,'Entrega Inmediata':2};
+  _mselBuildList('etapa', uniq(data.filter(r=>ok(r,0,0,1)).map(r=>r.fase_proyecto)).sort((a,b)=>(ORD_E[a]??9)-(ORD_E[b]??9)), fE);
+  const proys = data.filter(r=>ok(r)).map(_mkK);
+  _mselBuildList('proyecto', [...new Set(proys)].sort((a,b)=>_mkLbl(a).localeCompare(_mkLbl(b),'es')), _mselGet('proyecto'), null, _mkLbl);
+  const dorms = [...new Set((D.mercadoVentas||[]).map(v=>_dormLabel(v.dormitorios)))].sort((a,b)=>_dormOrden(a)-_dormOrden(b));
+  _mselBuildList('dorm', dorms, _mselGet('dorm'), null, d=>d==='Estudio'?'Estudio (0 dorm.)':d.replace('D',' dormitorio'+(d==='1D'?'':'s')));
+}
+function _mkSetPeriodo(n){ _mkPeriodo = n; _mkRender(); }
+function _mkSub(){
+  const el = document.getElementById('mkt-mercado-sub'); if(!el) return;
+  const p = D.mercado||[], v = D.mercadoVentas||[];
+  const ms = _mkMesesData();
+  el.textContent = p.length ? `Actualizado: ${D.updatedAt} · ${fN(p.length)} proyectos · ${fN(v.length)} ventas registradas${ms.length?' · datos hasta '+_mkMesLbl(ms[ms.length-1]):''}` : 'Cargando...';
+}
+
+// Pinta lo común y SOLO la pestaña visible (las demás se pintan al entrar).
+function _mkRender(){
+  _mselPendKey = null;
+  _mkAplicarReal();
+  _mkSub();
+  if(!(D.mercado&&D.mercado.length)) return;
+  _mkRenderFiltros();
+  _mselRenderChips();
+  const hayVentas = D.mercadoVentas && D.mercadoVentas.length;
+  if(_mkTab==='mapa') renderMercadoMapa();
+  else if(!hayVentas){ const s=document.getElementById('mercado-sub-'+_mkTab); if(s && _mkTab==='resumen') s.innerHTML='<div class="loading">Cargando ventas...</div>'; }
+  else if(_mkTab==='resumen') _mkRenderResumen();
+  else if(_mkTab==='ventas'){ renderMercadoVentas(); renderMercadoTipologia(); }
+  else if(_mkTab==='precios') renderMercadoPrecios();
+}
+function _renderMercadoCompartidas(){ _mkRender(); }
 
 function setMercadoTab(tab, el){
-  document.querySelectorAll('#mercado-tab-bar .tab-btn').forEach(b=>b.classList.remove('active'));
-  el.classList.add('active');
+  _mkTab = tab;
+  document.querySelectorAll('#mercado-tab-bar .tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
   document.querySelectorAll('.mercado-subsection').forEach(s=>s.style.display='none');
   const sec = document.getElementById('mercado-sub-'+tab);
   if(sec) sec.style.display='';
-  if(tab==='competencia') setTimeout(()=>{ if(_mercadoMap) _mercadoMap.invalidateSize(); }, 50);
-  if(tab==='ventas' && D.mercadoVentas && D.mercadoVentas.length){
-    renderMercadoVentas();
-    if(D.mercado && D.mercado.length) renderMercadoTipologia();
-  }
-  if(tab==='precios' && D.mercado && D.mercado.length && D.mercadoVentas && D.mercadoVentas.length) renderMercadoPrecios();
+  _mkRender();
+  if(tab==='mapa') setTimeout(()=>{ if(_mercadoMap){ _mercadoMap.invalidateSize(); _mercadoAcomodarCuadrosPronto(); } }, 60);
 }
 
-// ── Multi-select checkbox dropdown genérico (distrito / proyecto, x2 secciones) ──
+// ── Multi-select (dropdowns con casillas) ──
 let _mselOpenKey = null; // qué dropdown msel está abierto — se usa para reabrirlo
 // tras un renderFunnelMkt() completo (los checklists de Etapa/Canales en Evolución
-// viven dentro del innerHTML que ese render reemplaza entero, así que sin esto el
-// panel se veía "cerrarse solo" después de cada tilde).
+// viven dentro del innerHTML que ese render reemplaza entero).
 function mselToggle(key){
-  // Al abrir/cerrar cualquier dropdown se aplica lo que se haya marcado en el anterior.
   _mselOpenKey = null; _mselRenderPend();
   const panel = document.getElementById('msel-'+key+'-panel');
   const isOpen = panel.style.display==='block';
+  if(!isOpen && MK_FILTROS.includes(key) && _mkFiltrosSucios && (D.mercado||[]).length) _mkRenderFiltrosListas();
   document.querySelectorAll('.msel-panel').forEach(p=>p.style.display='none');
   panel.style.display = isOpen ? 'none' : 'block';
   _mselOpenKey = isOpen ? null : key;
   if(!isOpen){
-    // Al abrir el dropdown siempre arranca limpio: buscador vacío y scroll arriba
-    // (lo tildado/seleccionado NO se toca, solo el estado visual de la lista).
     const filtro = document.getElementById('msel-'+key+'-filter');
     if(filtro){ filtro.value=''; mselFilterList(key); }
     panel.scrollTop = 0;
@@ -10034,75 +10237,39 @@ document.addEventListener('click', e=>{
     _mselRenderPend();
   }
 });
-
-// Vuelve a pintar las 3 secciones de Estudio de Mercado que dependen de
-// distrito/inmobiliaria/proyecto (compartidos), cada una solo si ya tiene datos cargados.
-function _renderMercadoCompartidas(){
-  _mselPendKey = null;
-  _mselRenderChips();
-  renderMercadoMapa();
-  if(D.mercadoVentas && D.mercadoVentas.length){ renderMercadoVentas(); renderMercadoTipologia(); }
-  if(D.mercado && D.mercado.length && D.mercadoVentas && D.mercadoVentas.length) renderMercadoPrecios();
-}
-
 function mselToggleValue(key, val, checked){ mselSetValues(key, [val], checked); }
-
-// Marca/desmarca varios valores a la vez. Si hay un dropdown abierto el repintado
-// pesado (mapa, gráficos, tablas) se deja para cuando se cierre o se pulse "Aplicar",
-// así se pueden marcar varias casillas seguidas sin esperar entre cada una.
+// Marca/desmarca varios valores. Con un dropdown abierto el repintado se deja para
+// cuando se cierre (o "Aplicar"), así se marcan varias casillas seguidas sin esperar.
 function mselSetValues(key, vals, checked, opts){
   if(!(opts&&opts.keepClic)) _mapaSelPorClic = false;
   const set = _mselGet(key);
   vals.forEach(v=>{ if(checked) set.add(v); else set.delete(v); });
-
-  if(key==='distrito' || key==='inmobiliaria'){
-    // Distrito e Inmobiliaria son compartidos entre Mapa/Ventas/Precios: recortar
-    // Proyecto (también compartido) a lo que siga siendo válido en cascada.
-    const data = D.mercado||[];
-    const validos = new Set(data.filter(r=>
-      (!_mselGet('distrito').size || _mselGet('distrito').has(r.distrito)) &&
-      (!_mselGet('inmobiliaria').size || _mselGet('inmobiliaria').has(r.inmobiliaria))
-    ).map(r=>r.proyecto));
-    [..._mselGet('proyecto')].forEach(p=>{ if(!validos.has(p)) _mselGet('proyecto').delete(p); });
-  } else if(key==='precios-etapa'){
-    // Etapa es propia de Precios, pero cruza con Distrito/Inmobiliaria (compartidos)
-    // y con Proyecto (compartido): se podan entre sí igual que antes.
-    const data = D.mercado||[];
-    const fD = _mselGet('distrito'), fI = _mselGet('inmobiliaria'), fE = _mselGet('precios-etapa');
-    const validDistritos = new Set(data.filter(r=>(!fI.size||fI.has(r.inmobiliaria))&&(!fE.size||fE.has(r.fase_proyecto))).map(r=>r.distrito));
-    [...fD].forEach(d=>{ if(!validDistritos.has(d)) fD.delete(d); });
-    const validInmob = new Set(data.filter(r=>(!fD.size||fD.has(r.distrito))&&(!fE.size||fE.has(r.fase_proyecto))).map(r=>r.inmobiliaria));
-    [...fI].forEach(i=>{ if(!validInmob.has(i)) fI.delete(i); });
-    const validos = new Set(data.filter(r=>
-      (!fD.size || fD.has(r.distrito)) &&
-      (!fI.size || fI.has(r.inmobiliaria)) &&
-      (!fE.size || fE.has(r.fase_proyecto))
-    ).map(r=>r.proyecto));
+  if(key==='distrito' || key==='inmobiliaria' || key==='etapa'){
+    // Proyecto se recorta a lo que siga siendo válido con distrito + inmobiliaria + etapa.
+    const fD=_mselGet('distrito'), fI=_mselGet('inmobiliaria'), fE=_mselGet('etapa');
+    const validos = new Set((D.mercado||[]).filter(r=>(!fD.size||fD.has(r.distrito)) && (!fI.size||fI.has(r.inmobiliaria)) && (!fE.size||fE.has(r.fase_proyecto))).map(_mkK));
     [..._mselGet('proyecto')].forEach(p=>{ if(!validos.has(p)) _mselGet('proyecto').delete(p); });
   }
   _mselCambio(key);
 }
-
 let _mselPendKey = null; // filtro cambiado cuyo repintado quedó pendiente
 function _mselCambio(key){
   _mselPendKey = key;
   _mselLabelsRapido();
   _mselRenderChips();
-  if(!_mselOpenKey) _mselRenderPend(); // sin dropdown abierto (ej. ✕ de un chip): repinta ya
-  else if(key!=='tipologia-dorm') renderMercadoMapa(); // con el panel abierto solo el mapa (contorno del distrito, puntos y zoom) responde al instante
+  if(!_mselOpenKey) _mselRenderPend();
+  else if(_mkTab==='mapa' && key!=='dorm') renderMercadoMapa(); // en el mapa los puntos responden al instante
 }
 function _mselRenderPend(){
   if(!_mselPendKey) return;
-  const k = _mselPendKey; _mselPendKey = null;
-  if(k==='tipologia-dorm') renderMercadoTipologia(); else _renderMercadoCompartidas();
+  _mselPendKey = null;
+  _mkRender();
 }
-// "Aplicar": cierra los dropdowns y repinta lo pendiente.
 function mselAplicar(){
   document.querySelectorAll('.msel-panel').forEach(p=>p.style.display='none');
   _mselOpenKey = null;
   _mselRenderPend();
 }
-// "Marcar visibles" (respeta lo escrito en el buscador de la lista) / "Limpiar" (todo el filtro).
 function mselBulk(domKey, marcar){
   const list = document.getElementById('msel-'+domKey+'-list'); if(!list) return;
   const stateKey = list.dataset.state || domKey;
@@ -10116,22 +10283,16 @@ function mselBulk(domKey, marcar){
     items.forEach(it=>{ it.querySelector('input').checked = false; });
   }
 }
-// Etiquetas de los botones al instante (sin esperar al repintado completo).
-const _MSEL_DOMS = [['distrito','distrito'],['ventas-distrito','distrito'],['precios-distrito','distrito'],
-  ['inmobiliaria','inmobiliaria'],['ventas-inmobiliaria','inmobiliaria'],['precios-inmobiliaria','inmobiliaria'],
-  ['proyecto','proyecto'],['ventas-proyecto','proyecto'],['precios-proyecto','proyecto'],
-  ['tipologia-dorm','tipologia-dorm'],['precios-etapa','precios-etapa']];
+const _MSEL_DOMS = [['distrito','distrito'],['inmobiliaria','inmobiliaria'],['etapa','etapa'],['proyecto','proyecto'],['dorm','dorm']];
 function _mselLabelsRapido(){
-  _MSEL_DOMS.forEach(([dom,st])=>{
-    const lbl = document.getElementById('msel-'+dom+'-label');
-    if(lbl && lbl.dataset.def) _mselUpdateLabel(dom, _mselGet(st), lbl.dataset.def);
-  });
+  _mselUpdateLabel('distrito', _mselGet('distrito'), 'Todos los distritos');
+  _mselUpdateLabel('inmobiliaria', _mselGet('inmobiliaria'), 'Todas las inmobiliarias', _mkT);
+  _mselUpdateLabel('etapa', _mselGet('etapa'), 'Todas las etapas');
+  _mselUpdateLabel('proyecto', _mselGet('proyecto'), 'Todos los proyectos', _mkLbl);
+  _mselUpdateLabel('dorm', _mselGet('dorm'), 'Todas las tipologías');
 }
-// Chips con lo elegido en Distrito / Inmobiliaria / Proyecto (compartidos por las 3 secciones).
-// ── Búsqueda por texto compartida (Mapa / Ventas / Precios) ─────────────────
-// Escribir "helio" o "padova" selecciona en el filtro de Proyecto todos los proyectos
-// cuyo nombre o inmobiliaria coincidan (respetando Distrito/Inmobiliaria ya elegidos),
-// así se ven como chips, afectan a las 3 secciones y la ✕ los limpia como a los demás.
+
+// ── Búsqueda por texto: elige en Proyecto los que coinciden por nombre o inmobiliaria ──
 let _busqActiva = false;
 let _busqTimer = null;
 function _mercadoBuscar(texto){
@@ -10145,43 +10306,32 @@ function _mercadoBuscarAplicar(texto){
   const marcar = ok=>document.querySelectorAll('.mkt-buscar').forEach(i=>{ i.style.color = ok?'':'#dc2626'; });
   if(!q){
     marcar(true);
-    if(_busqActiva){ proy.clear(); _busqActiva = false; _mapaSelPorClic = false; _mselRenderPend(); _renderMercadoCompartidas(); }
+    if(_busqActiva){ proy.clear(); _busqActiva = false; _mapaSelPorClic = false; _mkRender(); }
     return;
   }
-  const fD = _mselGet('distrito'), fI = _mselGet('inmobiliaria');
+  const fD=_mselGet('distrito'), fI=_mselGet('inmobiliaria'), fE=_mselGet('etapa');
   const coincide = (D.mercado||[]).filter(r=>
-    (!fD.size || fD.has(r.distrito)) && (!fI.size || fI.has(r.inmobiliaria)) &&
+    (!fD.size || fD.has(r.distrito)) && (!fI.size || fI.has(r.inmobiliaria)) && (!fE.size || fE.has(r.fase_proyecto)) &&
     (normStr(r.proyecto||'').includes(q) || normStr(r.inmobiliaria||'').includes(q))
-  ).map(r=>r.proyecto);
-  if(!coincide.length){ marcar(false); return; } // sin resultados: texto en rojo, no se toca el filtro
+  ).map(_mkK);
+  if(!coincide.length){ marcar(false); return; }
   marcar(true);
-  proy.clear(); coincide.forEach(n=>proy.add(n));
+  proy.clear(); coincide.forEach(k=>proy.add(k));
   _busqActiva = true; _mapaSelPorClic = false;
-  _renderMercadoCompartidas();
+  _mkRender();
 }
-// Mismo cuadro de búsqueda en Ventas y Precios (sincronizado con el del Mapa).
-function _mercadoInitBuscadores(){
-  ['ventas-proyecto','precios-proyecto'].forEach(dom=>{
-    const panel = document.getElementById('msel-'+dom+'-panel'); if(!panel) return;
-    const wrap = panel.parentElement;
-    if(!wrap || (wrap.nextElementSibling && wrap.nextElementSibling.classList.contains('mkt-buscar-wrap'))) return;
-    const l = document.createElement('input');
-    l.type = 'text'; l.className = 'sp-search mkt-buscar mkt-buscar-wrap'; l.style.cssText = 'margin-left:0;width:240px';
-    l.placeholder = 'Buscar proyecto o inmobiliaria...';
-    l.oninput = ()=>_mercadoBuscar(l.value);
-    wrap.insertAdjacentElement('afterend', l);
-  });
-}
-if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', _mercadoInitBuscadores); else _mercadoInitBuscadores();
 
-let _mselChipsTodos = false; // chips: mostrar todos en vez de los primeros 10
+// ── Chips con todo lo elegido (✕ para quitar) ──
+let _mselChipsTodos = false;
 function _mselRenderChips(){
   const MAX = 10;
+  const FMT = {distrito:v=>v, inmobiliaria:_mkT, etapa:v=>v, proyecto:_mkLbl, dorm:v=>v};
+  const TIT = {distrito:'Distrito', inmobiliaria:'Inmobiliaria', etapa:'Etapa', proyecto:'Proyecto', dorm:'Tipología'};
   let html = '';
-  ['distrito','inmobiliaria','proyecto'].forEach(k=>{
+  Object.keys(FMT).forEach(k=>{
     const vals = [..._mselGet(k)];
     vals.slice(0,_mselChipsTodos?vals.length:MAX).forEach(v=>{
-      html += `<span class="mchip" data-k="${k}" data-v="${_escapeHtml(v)}" title="${k[0].toUpperCase()+k.slice(1)}">${_escapeHtml(v)}<b onclick="_mselQuitarChip(this)">✕</b></span>`;
+      html += `<span class="mchip" data-k="${k}" data-v="${_escapeHtml(v)}" title="${TIT[k]}"><i>${TIT[k]}</i>${_escapeHtml(FMT[k](v))}<b onclick="_mselQuitarChip(this)">✕</b></span>`;
     });
     if(vals.length>MAX && !_mselChipsTodos) html += `<span class="mchip more" style="cursor:pointer" title="Ver todos" onclick="_mselChipsTodos=true;_mselRenderChips()">+${vals.length-MAX} más ▾</span>`;
     if(vals.length>MAX && _mselChipsTodos) html += `<span class="mchip more" style="cursor:pointer" onclick="_mselChipsTodos=false;_mselRenderChips()">ver menos ▴</span>`;
@@ -10190,26 +10340,12 @@ function _mselRenderChips(){
 }
 function _mselQuitarChip(b){
   const d = b.parentElement.dataset;
-  if(_mapaSelPorClic && d.k==='proyecto') _zonaMantenerVista = true; // selección hecha en el mapa: no reencuadrar
+  if(_mapaSelPorClic && d.k==='proyecto') _zonaMantenerVista = true;
   if(d.k==='proyecto' && _mapaUltimoClic===d.v) _mapaUltimoClic = null;
   mselSetValues(d.k, [d.v], false, {keepClic:true});
 }
-function _mselInitChips(){
-  ['distrito','ventas-distrito','precios-distrito'].forEach(dom=>{
-    const panel = document.getElementById('msel-'+dom+'-panel'); if(!panel) return;
-    const fila = panel.parentElement && panel.parentElement.parentElement;
-    if(!fila || (fila.nextElementSibling && fila.nextElementSibling.classList.contains('mercado-chips'))) return;
-    const c = document.createElement('div'); c.className = 'mercado-chips';
-    fila.insertAdjacentElement('afterend', c);
-  });
-  _mselRenderChips();
-}
-if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', _mselInitChips); else _mselInitChips();
 
-// ── Checklists de Etapa y Canales (pestaña Evolución de Leads) ──────────────
-// Mismo widget visual que el multi-select de Estudio de Mercado (msel-btn/panel/item),
-// pero con estado propio: acá "Todos" es una fila más dentro de la lista, no solo
-// el texto por defecto del botón.
+// ── Checklists de Etapa y Canales (pestaña Evolución de Leads de Marketing) ──
 function _evoToggleAllStages(checked){
   _flEvoStages = checked ? new Set(EVO_STAGE_VALUES) : new Set();
   renderFunnelMkt();
@@ -10222,9 +10358,7 @@ function _evoToggleStage(val, checked){
 }
 function _evoToggleAllCanales(checked){
   _flEvoCanalTodos = checked;
-  _flEvoCanalSel = new Set(); // al destildar "Todos" arranca vacío para elegir a mano
-                              // (igual que Etapa) — al activarlo tampoco hace falta
-                              // lista explícita, ya lo cubre _flEvoCanalTodos=true.
+  _flEvoCanalSel = new Set();
   renderFunnelMkt();
   _mselRestoreOpen();
 }
@@ -10237,24 +10371,20 @@ function _evoToggleCanal(val, checked){
 }
 
 function mselFilterList(key){
-  const q = (document.getElementById('msel-'+key+'-filter')?.value||'').toUpperCase();
+  const q = normStr(document.getElementById('msel-'+key+'-filter')?.value||'');
   document.querySelectorAll('#msel-'+key+'-list .msel-item').forEach(item=>{
-    item.style.display = (item.dataset.val||'').toUpperCase().includes(q) ? '' : 'none';
+    item.style.display = normStr((item.dataset.val||'')+' '+item.textContent).includes(q) ? '' : 'none';
   });
 }
-
-function _mselBuildList(domKey, options, selectedSet, stateKey){
-  // domKey: id del dropdown en pantalla (uno por sección). stateKey: Set que en
-  // realidad se actualiza al tildar (compartido entre secciones para distrito/
-  // inmobiliaria/proyecto). Si no se pasa stateKey, es el mismo domKey (caso de
-  // los filtros que siguen siendo propios de una sola sección).
+// domKey: id del dropdown. stateKey: Set que se actualiza (por defecto el mismo domKey).
+// fmt: cómo se muestra cada opción (el valor guardado no cambia).
+function _mselBuildList(domKey, options, selectedSet, stateKey, fmt){
   stateKey = stateKey || domKey;
   const list = document.getElementById('msel-'+domKey+'-list');
   if(!list) return;
   const panel = list.parentElement;
   const scroll = panel.scrollTop;
   list.dataset.state = stateKey;
-  // Barra de acciones (marcar visibles / limpiar / aplicar) y buscador: se crean una sola vez.
   if(!panel.querySelector('.msel-tools')){
     const tools = document.createElement('div'); tools.className = 'msel-tools';
     tools.innerHTML = `<button type="button" onclick="mselBulk('${domKey}',true)">Marcar visibles</button><button type="button" onclick="mselBulk('${domKey}',false)">Limpiar</button><button type="button" class="ap" onclick="mselAplicar()">Aplicar</button>`;
@@ -10276,617 +10406,357 @@ function _mselBuildList(domKey, options, selectedSet, stateKey){
   }
   list._orden = options;
   list.innerHTML = options.map(opt=>{
-    const esc = String(opt).replace(/"/g,'&quot;');
+    const esc = String(opt).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    const txt = _escapeHtml(fmt ? fmt(opt) : opt);
     return `<label class="msel-item" data-val="${esc}">
       <input type="checkbox" ${selectedSet.has(opt)?'checked':''} onchange="mselToggleValue('${stateKey}', this.closest('.msel-item').dataset.val, this.checked)">
-      <span>${esc}</span>
+      <span>${txt}</span>
     </label>`;
   }).join('') || '<div style="padding:8px;color:var(--ink-4);font-size:12px">Sin resultados</div>';
-  mselFilterList(domKey);      // reaplica lo escrito en el buscador
-  panel.scrollTop = scroll;    // y no pierde la posición del scroll
+  mselFilterList(domKey);
+  panel.scrollTop = scroll;
 }
-
-function _mselUpdateLabel(key, selectedSet, defaultTxt){
+function _mselUpdateLabel(key, selectedSet, defaultTxt, fmt){
   const lbl = document.getElementById('msel-'+key+'-label');
   if(!lbl) return;
   const n = selectedSet.size;
   lbl.dataset.def = defaultTxt;
-  lbl.textContent = n ? `${n} seleccionado${n>1?'s':''}` : defaultTxt;
+  const uno = n===1 ? [...selectedSet][0] : null;
+  lbl.textContent = n===1 ? (fmt ? fmt(uno) : uno) : n ? `${n} seleccionados` : defaultTxt;
 }
 
-// Distrito/Inmobiliaria/Proyecto son compartidos entre las 3 secciones de Estudio
-// de Mercado: "Limpiar" en cualquiera de ellas limpia el mismo estado en las 3.
-function _limpiarFiltrosCompartidos(){
-  _mapaSelPorClic = false;
-  _busqActiva = false;
+// ── Limpiar todo (también al entrar al módulo) ──
+function _mkLimpiar(){
+  _mkPopKeys.clear();
+  _mapaSelPorClic = false; _busqActiva = false; _mapaUltimoClic = null;
   document.querySelectorAll('.mkt-buscar').forEach(i=>{ i.value=''; i.style.color=''; });
-  _mselGet('distrito').clear();
-  _mselGet('inmobiliaria').clear();
-  _mselGet('proyecto').clear();
-  ['msel-inmobiliaria-filter','msel-proyecto-filter',
-   'msel-ventas-inmobiliaria-filter','msel-ventas-proyecto-filter',
-   'msel-precios-inmobiliaria-filter','msel-precios-proyecto-filter'].forEach(id=>{
-    const el = document.getElementById(id); if(el) el.value='';
-  });
-}
-
-function limpiarFiltrosMercado(){
-  _limpiarFiltrosCompartidos();
+  ['distrito','inmobiliaria','etapa','proyecto','dorm'].forEach(k=>_mselGet(k).clear());
+  document.querySelectorAll('#mk-filtros .msel-filter').forEach(i=>{ i.value=''; });
+  _mkPeriodo = 6;
   _zonaDibujada = null;
   if(_zonaLayer && _mercadoMap){ _mercadoMap.removeLayer(_zonaLayer); _zonaLayer = null; }
   if(_zonaDrawing) _zonaCancelarDibujo();
   _zonaSetLabel('Dibujar zona');
-  _renderMercadoCompartidas();
+  _mkRender();
 }
 
-function limpiarFiltrosVentas(){
-  _limpiarFiltrosCompartidos();
-  _renderMercadoCompartidas();
-}
-
-function limpiarFiltrosPrecios(){
-  _limpiarFiltrosCompartidos();
-  _mselGet('precios-etapa').clear();
-  _preciosPeriodoMeses = 6;
-  const lbl = document.getElementById('precios-periodo-label'); if(lbl) lbl.textContent = 'Últimos 6 meses';
-  _renderMercadoCompartidas();
-}
-
-// Competencia predeterminada de Domingo Orue: un clic deja elegidos estos proyectos en el
-// filtro de Proyecto (compartido por Mapa, Ventas y Precios) y quita los demás filtros
-// (distrito, inmobiliaria, etapa, búsqueda, zona dibujada) para que se vean todos.
+// Competencia predeterminada de Domingo Orue: un clic deja elegidos estos proyectos
+// (y Domingo Orue mismo) y quita los demás filtros para que se vean todos.
 const COMPETENCIA_DORUE = ['Capulí','OPEN MARSANO','Torre Marsano 28','Element','DOMINGO ORUE 915','DORUE ETAPA 2','Las Begonias','TORRE GERMANIA'];
 function competenciaDomingoOrue(){
   const data = D.mercado||[];
   if(!data.length){ alert('Los datos de mercado aún están cargando.'); return; }
-  _limpiarFiltrosCompartidos();
-  _mselGet('precios-etapa').clear();
-  _zonaDibujada = null;
-  if(_zonaLayer && _mercadoMap){ _mercadoMap.removeLayer(_zonaLayer); _zonaLayer = null; }
-  if(_zonaDrawing) _zonaCancelarDibujo();
-  _zonaSetLabel('Dibujar zona');
-  const porNombre = new Map(data.map(r=>[normStr(r.proyecto||'').trim(), r.proyecto]));
+  const tab = _mkTab;
+  _mkLimpiar();
+  const porNombre = new Map();
+  data.forEach(r=>{ const n=normStr(r.proyecto||'').trim(); if(!porNombre.has(n)) porNombre.set(n, []); porNombre.get(n).push(_mkK(r)); });
   const faltan = [];
   COMPETENCIA_DORUE.forEach(n=>{
-    const real = porNombre.get(normStr(n).trim());
-    if(real) _mselGet('proyecto').add(real); else faltan.push(n);
+    const ks = porNombre.get(normStr(n).trim());
+    if(ks) ks.forEach(k=>_mselGet('proyecto').add(k)); else faltan.push(n);
   });
-  _mselLabelsRapido();
-  _renderMercadoCompartidas();
+  _mkTab = tab;
+  _mkRender();
   if(faltan.length) console.warn('Competencia Domingo Orue: no se encontraron en el estudio de mercado →', faltan);
 }
-
-function renderMercadoMapa(){
-  const wrap = document.getElementById('mkt-mercado-map');
-  if(!wrap) return;
-  const data = D.mercado||[];
-
-  document.getElementById('mkt-mercado-sub').textContent =
-    data.length ? `Actualizado: ${D.updatedAt} · ${data.length} proyectos (competencia)` : 'Cargando...';
-  if(!data.length) return;
-
-  // Distritos e inmobiliarias: siempre todas las opciones. Proyectos: en cascada,
-  // solo los que quedan tras aplicar distrito + inmobiliaria elegidos.
-  const distritos = [...new Set(data.map(r=>r.distrito).filter(Boolean))].sort();
-  _mselBuildList('distrito', distritos, _mselGet('distrito'));
-
-  const inmobiliarias = [...new Set(data.map(r=>r.inmobiliaria).filter(Boolean))].sort();
-  _mselBuildList('inmobiliaria', inmobiliarias, _mselGet('inmobiliaria'));
-
-  const dataPorFiltroSuperior = data.filter(r=>
-    (!_mselGet('distrito').size || _mselGet('distrito').has(r.distrito)) &&
-    (!_mselGet('inmobiliaria').size || _mselGet('inmobiliaria').has(r.inmobiliaria))
-  );
-  const proyectos = [...new Set(dataPorFiltroSuperior.map(r=>r.proyecto).filter(Boolean))].sort();
-  _mselBuildList('proyecto', proyectos, _mselGet('proyecto'));
-
-  _mselUpdateLabel('distrito', _mselGet('distrito'), 'Todos los distritos');
-  _mselUpdateLabel('inmobiliaria', _mselGet('inmobiliaria'), 'Todas las inmobiliarias');
-  _mselUpdateLabel('proyecto', _mselGet('proyecto'), 'Todos los proyectos');
-
-  const busqueda = ''; // la búsqueda por texto se traduce al filtro compartido de Proyecto (_mercadoBuscar)
-
-  let filtrado = data;
-  if(_mselGet('distrito').size) filtrado = filtrado.filter(r=>_mselGet('distrito').has(r.distrito));
-  if(_mselGet('inmobiliaria').size) filtrado = filtrado.filter(r=>_mselGet('inmobiliaria').has(r.inmobiliaria));
-  // Selección por clic en el mapa: no se recortan los puntos, así se puede seguir
-  // haciendo clic en los demás (los no elegidos se ven atenuados).
-  const modoClic = _mapaSelPorClic && _mselGet('proyecto').size>0;
-  if(_mselGet('proyecto').size && !modoClic) filtrado = filtrado.filter(r=>_mselGet('proyecto').has(r.proyecto));
-  if(busqueda) filtrado = filtrado.filter(r=>
-    (r.proyecto||'').toUpperCase().includes(busqueda) ||
-    (r.inmobiliaria||'').toUpperCase().includes(busqueda)
-  );
-
-  if(!_mercadoMap){
-    // scrollWheelZoom queda siempre apagado: el scroll normal de la página nunca
-    // se lo "roba" el mapa. Para zoom con la rueda hay que mantener Ctrl (o Cmd)
-    // presionado, igual que Google Maps embebido.
-    _mercadoMap = L.map('mkt-mercado-map', { scrollWheelZoom:false, zoomControl:false }).setView([-12.05, -77.04], 11);
-    L.control.zoom({ position: 'topright' }).addTo(_mercadoMap);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap',
-      maxZoom: 19,
-    }).addTo(_mercadoMap);
-    document.getElementById('mkt-mercado-map').addEventListener('wheel', function(e){
-      if(!(e.ctrlKey || e.metaKey)) return; // sin Ctrl/Cmd: deja que la página haga scroll normal
-      e.preventDefault();
-      const pt = _mercadoMap.mouseEventToContainerPoint(e);
-      const latlng = _mercadoMap.containerPointToLatLng(pt);
-      _mercadoMap.setZoomAround(latlng, _mercadoMap.getZoom() + (e.deltaY < 0 ? 1 : -1));
-    }, { passive:false });
-    // Reacomodar los cuadros abiertos para que no se superpongan
-    _mercadoMap.on('zoomend popupopen popupclose resize', _mercadoAcomodarCuadrosPronto);
-  }
-  if(_mercadoLayer) _mercadoMap.removeLayer(_mercadoLayer);
-  if(_mercadoSelLayer) _mercadoMap.removeLayer(_mercadoSelLayer);
-  _mercadoMap.closePopup();
-  // Puntos normales: agrupados en clusters. Puntos elegidos (los que muestran su cuadro):
-  // en una capa aparte SIN agrupar, así siempre están visibles y su cuadro se puede abrir
-  // sin depender de expandir (spiderfy) el cluster.
-  _mercadoLayer = L.markerClusterGroup({
-    maxClusterRadius: z => z>=15 ? 35 : 55,
-    disableClusteringAtZoom: 17,
-    spiderfyOnMaxZoom: true,
-    showCoverageOnHover: false,
-  }).addTo(_mercadoMap);
-  _mercadoSelLayer = L.layerGroup().addTo(_mercadoMap);
-
-  const fSol = n => 'S/ '+Number(n||0).toLocaleString('es-PE',{minimumFractionDigits:0,maximumFractionDigits:0});
-  const fOracion = s => {
-    s = String(s||'').trim().toLowerCase();
-    return s ? s.replace(/(^\s*\w|[.!?]\s+\w)/g, c => c.toUpperCase()) : '—';
-  };
-  const fMetraje = r => {
-    if(!r.area_min && !r.area_max) return '—';
-    const min = Math.round(r.area_min), max = Math.round(r.area_max);
-    return min===max ? `${min} m²` : `${min} - ${max} m²`;
-  };
-  // L.markerClusterGroup solo agrupa L.marker (con ícono), no circleMarker — por eso
-  // el punto de color se hace con un ícono propio (div) en vez de un circleMarker.
-  const _iconoPunto = (color, estado) => {
-    // Sin selección: puntos algo más grandes y con borde blanco grueso + sombra para
-    // que resalten sobre el mapa. Con selección: los elegidos más grandes con anillo
-    // oscuro; los demás se quedan igual (el mapa es gris, atenuarlos los hacía invisibles).
-    const tam = estado==='on' ? 22 : 14;
-    const fondo = color;
-    const borde = estado==='on' ? '3px solid #0f172a' : '2.5px solid #fff';
-    const sombra = estado==='on' ? '0 0 0 3px #fff,0 2px 8px rgba(0,0,0,.6)' : '0 0 0 1px rgba(15,23,42,.7),0 2px 5px rgba(0,0,0,.45)';
-    return L.divIcon({
-      className: 'mkt-punto-dot',
-      html: `<span style="display:block;width:${tam}px;height:${tam}px;box-sizing:border-box;border-radius:50%;background:${fondo};border:${borde};box-shadow:${sombra}"></span>`,
-      iconSize: [tam,tam], iconAnchor: [tam/2,tam/2], popupAnchor: [0,-tam/2],
-    });
-  };
-
-  // Cuántos proyectos "elegidos" hay y si se muestran sus cuadros.
-  const AUTO_ABRIR_LIMITE = 4;
-  const selProy = _mselGet('proyecto');
-  const nSel = modoClic ? selProy.size : (selProy.size ? filtrado.length : 0);
-  const abrirTodos = nSel>0 && nSel <= AUTO_ABRIR_LIMITE;
-  const puntos = [];
-  const aAbrir = [];
-
-  filtrado.forEach(r=>{
-    const color = SECTOR_COLORS[(r.sector||'').toUpperCase()] || SECTOR_COLOR_DEFAULT;
-    const esSel = modoClic && selProy.has(r.proyecto);
-    // "Destacado" = elegido por el usuario (clic, dropdown, búsqueda o zona) con su cuadro a la vista
-    const destacado = modoClic ? esSel : (abrirTodos && selProy.has(r.proyecto));
-    const pos = _mercadoPos(r);
-    const marker = L.marker(pos, {
-      icon: _iconoPunto(color, !modoClic ? '' : (esSel?'on':'off')),
-      zIndexOffset: destacado ? 1000 : 0,
-    });
-    marker._sel = esSel;
-    marker._destacado = destacado;
-    marker.bindPopup(`
-      <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:10.5px;line-height:1.35;min-width:150px">
-        <div style="font-weight:700;font-size:11.5px;margin-bottom:1px">${r.proyecto}</div>
-        <div style="color:#64748b;margin-bottom:5px">${r.inmobiliaria}</div>
-        <div><b>Distrito:</b> ${r.distrito||'—'}</div>
-        <div><b>Dirección:</b> ${fOracion(r.direccion)}</div>
-        <div style="margin-top:4px"><b>Unidades vendidas:</b> ${r.unidades_vendidas}</div>
-        <div><b>Precio por m² (prom.):</b> ${fSol(r.precio_m2_promedio)}</div>
-        <div><b>Metraje (rango):</b> ${fMetraje(r)}</div>
-        <div><b>Ticket:</b> ${fSol(r.precio_promedio)}</div>
-      </div>
-    `, { autoClose:false, closeOnClick:false, minWidth:120, maxWidth:220, autoPan: r.proyecto===_mapaUltimoClic });
-    // La X del cuadro de un punto elegido = quitarlo de la selección (igual que volver a
-    // hacerle clic). En un punto no elegido la X solo cierra el cuadro.
-    marker.on('popupopen', e=>{
-      const btn = e.popup.getElement() && e.popup.getElement().querySelector('.leaflet-popup-close-button');
-      if(btn && !btn._mktX){
-        btn._mktX = true;
-        L.DomEvent.on(btn, 'click', ()=>{ if(marker._destacado) _mapaQuitarProyecto(r.proyecto); });
-      }
-    });
-    // Clic en el punto = sumar/quitar ese proyecto del filtro compartido, así las
-    // tablas de Ventas y Precios Competencia se actualizan a la selección.
-    marker.on('click', ()=>{
-      const sel = _mselGet('proyecto');
-      // Si la selección viene del dropdown, la búsqueda o una zona, el clic solo abre/cierra
-      // el cuadro del punto: no toca la selección ni muestra los demás puntos del mapa.
-      if(!_mapaSelPorClic && sel.size>0) return;
-      _busqActiva = false;
-      if(sel.has(r.proyecto)){ sel.delete(r.proyecto); _mapaUltimoClic = null; }
-      else { sel.add(r.proyecto); _mapaUltimoClic = r.proyecto; }
-      _mapaSelPorClic = sel.size>0;
-      _zonaMantenerVista = true; // no mover el mapa al seleccionar
-      setTimeout(_renderMercadoCompartidas, 0);
-    });
-    marker.addTo(destacado ? _mercadoSelLayer : _mercadoLayer);
-    if(destacado && (abrirTodos || r.proyecto===_mapaUltimoClic)) aAbrir.push(marker);
-    puntos.push(pos);
-  });
-  // Los cuadros se abren solos si son pocos proyectos elegidos (hasta 4); si son más,
-  // solo el último que se marcó con clic, y el resto se ve en las tablas de comparación.
-  aAbrir.forEach(m=>m.openPopup());
-  _mercadoAcomodarCuadrosPronto();
-  const hint = document.getElementById('mkt-mercado-hint');
-  if(hint){
-    if(nSel > AUTO_ABRIR_LIMITE){
-      hint.style.display = '';
-      hint.innerHTML = `Son ${nSel} proyectos — para verlos todos ordenados, mejor revisa las tablas de <b>Ventas Competencia</b> o <b>Precios Competencia</b>. ` +
-        (modoClic ? 'Haz clic en un punto marcado (o en la X de su cuadro) para quitarlo.' : 'Haz clic en un punto del mapa para ver su cuadro.');
-    } else hint.style.display = 'none';
-  }
-
-  // Si hay algún filtro activo, llevar el mapa a la selección; si no, vista general de Lima
-  const hayFiltro = _mselGet('distrito').size || _mselGet('inmobiliaria').size || _mselGet('proyecto').size || busqueda || _zonaDibujada;
-  // Solo se reencuadra si cambió lo que define la vista (distrito, inmobiliaria, proyectos
-  // elegidos en el dropdown/búsqueda, zona). Un repintado por otra causa — p. ej. el que
-  // queda pendiente al cerrar un dropdown con un clic en el mapa — no debe mover el mapa.
-  // Con selección por clic se ven todos los puntos igual que sin selección: no cuenta.
-  const _ord = set=>[...set].sort();
-  const vistaKey = JSON.stringify([_ord(_mselGet('distrito')), _ord(_mselGet('inmobiliaria')),
-    modoClic ? [] : _ord(_mselGet('proyecto')), _zonaDibujada ? _zonaDibujada.length : 0]);
-  const vistaCambio = vistaKey !== _mercadoVistaKey;
-  _mercadoVistaKey = vistaKey;
-  if(_zonaMantenerVista || !vistaCambio){
-    _zonaMantenerVista = false; // se consume una sola vez, el próximo cambio de filtro sí reencuadra normal
-  } else if(hayFiltro && puntos.length){
-    _mercadoMap.fitBounds(puntos, { maxZoom: 15, paddingTopLeft:[30, abrirTodos?200:30], paddingBottomRight:[30,30] }); // espacio arriba para los cuadros
-  } else if(!hayFiltro){
-    _mercadoMap.setView([-12.05,-77.04], 11);
-  }
-  _actualizarContornoDistrito();
-
-  const legend = document.getElementById('mkt-mercado-legend');
-  if(legend && !legend.dataset.built){
-    legend.dataset.built = '1';
-    legend.innerHTML = Object.entries(SECTOR_COLORS).map(([s,c])=>
-      `<span style="display:inline-flex;align-items:center;gap:5px">
-        <span style="width:9px;height:9px;border-radius:50%;background:${c};display:inline-block"></span>${s}
-      </span>`
-    ).join('') + `<span style="color:var(--ink-4)">· color = sector</span>`;
-  }
+// Desde Resumen: ver un proyecto en el mapa (queda elegido y con su cuadro abierto)
+function _mkIrAMapa(k){
+  _mkPopAdd(k);
+  const sel = _mselGet('proyecto');
+  if(!sel.has(k)){ sel.add(k); }
+  _mapaSelPorClic = true; _mapaUltimoClic = k; _busqActiva = false;
+  setMercadoTab('mapa');
+  const r = _mkProy(k);
+  if(r && _mercadoMap) setTimeout(()=>_mercadoMap.setView(_mercadoPos(r), Math.max(_mercadoMap.getZoom(), 15)), 80);
+}
+let _mkRkModo = 'proy'; // ranking del Resumen: 'proy' | 'inmob'
+function _mkSetRk(m){ _mkRkModo = m; _mkRenderResumen(); }
+function _mkFiltrarInmob(i){ const s=_mselGet('inmobiliaria'); mselSetValues('inmobiliaria', [i], !s.has(i)); }
+function _mkFiltrarDistrito(d){
+  const s = _mselGet('distrito');
+  mselSetValues('distrito', [d], !s.has(d));
 }
 
+// ══ PESTAÑA RESUMEN ══
+function _mkRenderResumen(){
+  const el = document.getElementById('mercado-sub-resumen'); if(!el) return;
+  const f = _mkFiltrar();
+  const nM = f.meses.length||1;
+  const ag = _mkAgg(f.ventas);
+  const st = _mkPorProy(f.ventas, nM);
+  // Mismo largo de período, justo antes, para la tendencia
+  let prevAg = null;
+  if(_mkPeriodo && f.meses.length){
+    const [y,m] = f.meses[0].split('-').map(Number);
+    const prevMeses = new Set(_mkMesesHasta(_mkYm(new Date(y, m-2, 1)), nM));
+    const hayDatos = _mkMesesData().some(ym=>prevMeses.has(ym));
+    if(hayDatos) prevAg = _mkAgg(f.ventasAll.filter(v=>prevMeses.has((v.fecha_venta||'').slice(0,7))));
+  }
+  const delta = (a,b,inv)=>{
+    if(!prevAg || !b) return '';
+    const d = (a-b)/b; if(Math.abs(d)<0.005) return '<span class="mk-d eq">= igual</span> ';
+    return `<span class="mk-d ${inv?'eq':(d>0?'up':'down')}">${d>0?'▲':'▼'} ${Math.abs(d*100).toFixed(0)}%</span> `;
+  };
+  const vMes = ag.n/nM;
+  let tot=0, vend=0; const etp = {};
+  f.proys.forEach(r=>{ tot+=+r.unidades_totales||0; vend+=+r.unidades_vendidas||0; etp[r.fase_proyecto]=(etp[r.fase_proyecto]||0)+1; });
+  const stock = Math.max(0, tot-vend);
+  const mStock = vMes ? stock/vMes : 0;
+  const conVentas = f.proys.filter(r=>st.has(_mkK(r))).length;
+  const vsTxt = prevAg ? `vs. los ${nM} meses anteriores` : '';
+  const dormTxt = _mselGet('dorm').size ? ' · tipologías elegidas' : '';
+
+  const kpis = `<div class="mk-kpis">
+    <div class="mk-kpi hero"><div class="k-l">Ventas por mes</div><div class="k-v">${_mkVel(vMes)}</div><div class="k-s" title="Tendencia ${vsTxt}">${delta(vMes, prevAg&&prevAg.n/nM)}${fN(ag.n)} unid. en ${nM} meses${dormTxt}</div></div>
+    <div class="mk-kpi"><div class="k-l">Precio por m²</div><div class="k-v">${_mkSol(ag.pm2)}</div><div class="k-s">${delta(ag.pm2, prevAg&&prevAg.pm2, true)}promedio de venta</div></div>
+    <div class="mk-kpi"><div class="k-l">Ticket promedio</div><div class="k-v">${_mkSol(ag.ticket)}</div><div class="k-s">${delta(ag.ticket, prevAg&&prevAg.ticket, true)}área promedio ${ag.area?ag.area.toFixed(0)+' m²':'—'}</div></div>
+    <div class="mk-kpi"><div class="k-l">Proyectos</div><div class="k-v">${fN(f.proys.length)}</div><div class="k-s">${fN(etp['En Planos']||0)} en planos · ${fN(etp['En Construcción']||0)} en obra · ${fN(etp['Entrega Inmediata']||0)} entrega inm.</div></div>
+    <div class="mk-kpi"><div class="k-l">Stock por vender</div><div class="k-v">${fN(stock)}</div><div class="k-s">${mStock?'≈ '+(mStock>=100?fN(Math.round(mStock)):mStock.toFixed(0))+' meses al ritmo actual':'sin ventas en el período'}</div></div>
+  </div>`;
+
+  // Ranking: proyectos que más venden
+  const rk = [...st.entries()].sort((a,b)=>b[1].n-a[1].n);
+  const TOP = 12;
+  const maxV = rk.length ? rk[0][1].mes : 1;
+  const filaRk = ([k,x],i)=>{ const r=_mkProy(k)||{};
+    return `<button type="button" class="mk-rk${_mkEsPadova(r)?' pdv':''}" onclick='_mkIrAMapa(${JSON.stringify(k)})' title="Ver en el mapa">
+      <span class="i">${i+1}</span>
+      <span style="min-width:0"><span class="n">${_escapeHtml(_mkLbl(k))}${_mkTag(r)}</span><span class="h">${_escapeHtml(_mkT(r.inmobiliaria))} · ${_escapeHtml(_mkT(r.distrito)||'—')}</span></span>
+      <span class="mk-trk"><i style="width:${Math.max(3,x.mes/maxV*100).toFixed(1)}%"></i></span>
+      <span class="v">${_mkVel(x.mes)}<small>por mes</small></span>
+      <span class="v">${_mkSol(x.pm2)}<small>por m²</small></span>
+    </button>`; };
+  let rkHtml = _mkRkModo==='inmob' ? '' : rk.slice(0,TOP).map(filaRk).join('');
+  // Si algún proyecto Padova quedó fuera del top, se agrega abajo con su puesto real
+  if(_mkRkModo!=='inmob') rk.forEach((e,i)=>{ if(i>=TOP && _mkEsPadova(_mkProy(e[0]))) rkHtml += filaRk(e,i); });
+  // Ranking por inmobiliaria: monto vendido en el período (suma de precios de venta)
+  let rkTit, rkSub;
+  if(_mkRkModo==='inmob'){
+    const gI = new Map();
+    f.ventas.forEach(v=>{ const i=v.inmobiliaria||'—'; let x=gI.get(i); if(!x){ x={i, monto:0, n:0, proys:new Set()}; gI.set(i,x); } x.monto+=+v.precio_venta||0; x.n++; x.proys.add(_mkK(v)); });
+    const rkI = [...gI.values()].sort((a,b)=>b.monto-a.monto);
+    const totM = rkI.reduce((s,x)=>s+x.monto,0);
+    const maxM = rkI.length ? rkI[0].monto : 1;
+    const selI = _mselGet('inmobiliaria');
+    const filaI = (x,i)=>`<button type="button" class="mk-rk${_mkEsPadova({inmobiliaria:x.i})?' pdv':''}${selI.has(x.i)?' on':''}" onclick='_mkFiltrarInmob(${JSON.stringify(x.i)})' title="Filtrar por esta inmobiliaria">
+      <span class="i">${i+1}</span>
+      <span style="min-width:0"><span class="n">${_escapeHtml(_mkT(x.i))}</span><span class="h">${fN(x.proys.size)} proyecto${x.proys.size===1?'':'s'} · ${fN(x.n)} unid. · ${totM?(x.monto/totM*100).toFixed(1):0}% del monto</span></span>
+      <span class="mk-trk"><i style="width:${Math.max(3,x.monto/maxM*100).toFixed(1)}%"></i></span>
+      <span class="v">${_mkSolK(x.monto)}<small>vendido</small></span>
+      <span class="v">${_mkVel(x.n/nM)}<small>unid. / mes</small></span>
+    </button>`;
+    rkHtml = rkI.slice(0,TOP).map(filaI).join('');
+    rkI.forEach((x,i)=>{ if(i>=TOP && _mkEsPadova({inmobiliaria:x.i})) rkHtml += filaI(x,i); });
+    rkTit = 'Inmobiliarias que más venden';
+    rkSub = `Por monto vendido en el período · ${fN(rkI.length)} inmobiliarias · ${_mkSolK(totM)} en total · clic para filtrar`;
+  } else {
+    rkTit = 'Proyectos que más venden';
+    rkSub = `${fN(conVentas)} de ${fN(f.proys.length)} proyectos vendieron en el período · clic para verlo en el mapa`;
+  }
+  const ranking = `<section class="mk-card mk-main">
+    <div class="mk-card-hd"><div><h3>${rkTit}</h3><p>${rkSub}</p></div>
+      <div class="mk-seg"><button type="button" class="${_mkRkModo==='proy'?'on':''}" onclick="_mkSetRk('proy')">Proyectos</button><button type="button" class="${_mkRkModo==='inmob'?'on':''}" onclick="_mkSetRk('inmob')">Inmobiliarias (monto)</button></div></div>
+    <div class="mk-rk-list">${rkHtml || '<div class="mk-empty">Sin ventas en el período con estos filtros</div>'}</div>
+  </section>`;
+
+  // Padova frente al mercado filtrado
+  const promProy = conVentas ? vMes/conVentas : 0;
+  const pdv = (D.mercado||[]).filter(_mkEsPadova);
+  const fT = _mselGet('dorm');
+  const desde=f.meses[0]||'9999', hasta=f.meses[f.meses.length-1]||'0000';
+  const pdvV = (D.mercadoVentas||[]).filter(v=>_mkEsPadova(v) && (!fT.size||fT.has(_dormLabel(v.dormitorios))) && (v.fecha_venta||'').slice(0,7)>=desde && (v.fecha_venta||'').slice(0,7)<=hasta);
+  const pdvSt = _mkPorProy(pdvV, nM);
+  const puesto = new Map(rk.map((e,i)=>[e[0], i+1]));
+  pdv.sort((a,b)=>(puesto.get(_mkK(a))||1e9)-(puesto.get(_mkK(b))||1e9)); // los que entran en el filtro, primero
+  const pct = (a,b)=>{ if(!a||!b) return ''; const d=(a-b)/b; return `<span class="mk-d ${d>=0?'up':'down'}">${d>=0?'+':'−'}${Math.abs(d*100).toFixed(0)}%</span>`; };
+  const pdvHtml = pdv.map(r=>{ const k=_mkK(r), x=pdvSt.get(k);
+    const pos = puesto.get(k);
+    return `<div class="mk-pdv">
+      <div class="mk-pdv-hd"><b>${_escapeHtml(_mkLbl(k))}</b><span>${pos?'puesto <b>'+pos+'</b> de '+rk.length:'fuera del filtro'}</span></div>
+      <div class="mk-pdv-g">
+        <div><small>Ventas / mes</small><b>${x?_mkVel(x.mes):'0'}</b>${x?pct(x.mes,promProy):''}</div>
+        <div><small>Precio / m²</small><b>${x?_mkSol(x.pm2):'—'}</b>${x?pct(x.pm2,ag.pm2):''}</div>
+        <div><small>Ticket</small><b>${x?_mkSolK(x.ticket):'—'}</b>${x?pct(x.ticket,ag.ticket):''}</div>
+      </div></div>`; }).join('');
+  const padova = `<section class="mk-card">
+    <div class="mk-card-hd"><div><h3>Padova y Mirano frente al mercado</h3><p>Datos de nuestra base (Ventas y Stock) · % vs. el promedio de los proyectos filtrados</p></div></div>
+    <div style="padding:0 16px 14px;display:flex;flex-direction:column;gap:10px">${pdvHtml||'<div class="mk-empty">Sin proyectos Padova o Mirano en el estudio</div>'}</div>
+  </section>`;
+
+  // Por distrito
+  const gD = new Map();
+  f.proys.forEach(r=>{ if(!gD.has(r.distrito)) gD.set(r.distrito, {proys:0, v:[]}); gD.get(r.distrito).proys++; });
+  f.ventas.forEach(v=>{ const p=_mkProy(_mkK(v)); const d=p?p.distrito:v.distrito; if(gD.has(d)) gD.get(d).v.push(v); });
+  const filD = [...gD.entries()].map(([d,x])=>({d, proys:x.proys, ...(_mkAgg(x.v))})).sort((a,b)=>b.n-a.n);
+  const maxD = filD.length ? filD[0].n : 1;
+  const selD = _mselGet('distrito');
+  const distritos = `<section class="mk-card mk-main">
+    <div class="mk-card-hd"><div><h3>Por distrito</h3><p>${filD.length>14?'Los 14 que más venden · ':''}clic en un distrito para filtrarlo</p></div></div>
+    <div class="mk-tbl-wrap"><table class="mk-tbl lines mk-dist"><thead><tr><th>Distrito</th><th>Proyectos</th><th style="width:30%">Ventas por mes</th><th>Precio / m²</th><th>Ticket</th></tr></thead><tbody>
+    ${filD.slice(0,14).map(x=>`<tr class="mk-clk${selD.has(x.d)?' on':''}" onclick='_mkFiltrarDistrito(${JSON.stringify(x.d)})'><td><b>${_escapeHtml(_mkT(x.d)||'—')}</b></td><td>${fN(x.proys)}</td>
+      <td><div class="mk-prog" style="justify-content:flex-start"><span class="mk-trk" style="flex:1;width:auto"><i style="width:${Math.max(2,x.n/maxD*100).toFixed(1)}%"></i></span><span style="min-width:40px;text-align:right">${_mkVel(x.n/nM)}</span></div></td>
+      <td>${_mkSol(x.pm2)}</td><td>${_mkSolK(x.ticket)}</td></tr>`).join('') || `<tr><td colspan="5" class="mk-empty">Sin datos</td></tr>`}
+    </tbody></table></div></section>`;
+
+  // Por tipología y por etapa
+  const gT = {}; f.ventas.forEach(v=>{ const d=_dormLabel(v.dormitorios); (gT[d]=gT[d]||[]).push(v); });
+  const filT = Object.entries(gT).sort((a,b)=>_dormOrden(a[0])-_dormOrden(b[0])).map(([d,arr])=>({d, ...(_mkAgg(arr))}));
+  const tipos = `<section class="mk-card">
+    <div class="mk-card-hd"><div><h3>Por tipología</h3><p>Qué se vende más y a cuánto</p></div></div>
+    <div class="mk-tbl-wrap"><table class="mk-tbl lines"><thead><tr><th>Tipología</th><th>% ventas</th><th>Área</th><th>Precio / m²</th><th>Ticket</th></tr></thead><tbody>
+    ${filT.map(x=>`<tr><td><span class="mk-dot" style="background:${_mkDormColor(x.d)};margin-right:6px"></span><b>${x.d}</b></td>
+      <td><b>${ag.n?(x.n/ag.n*100).toFixed(0):0}%</b><small>${_mkVel(x.n/nM)} / mes</small></td><td>${x.area.toFixed(0)} m²</td><td>${_mkSol(x.pm2)}</td><td>${_mkSolK(x.ticket)}</td></tr>`).join('') || `<tr><td colspan="5" class="mk-empty">Sin ventas</td></tr>`}
+    </tbody></table></div></section>`;
+  const gE = {}; f.proys.forEach(r=>{ (gE[r.fase_proyecto]=gE[r.fase_proyecto]||{p:0,v:[]}).p++; });
+  f.ventas.forEach(v=>{ const p=_mkProy(_mkK(v)); if(p && gE[p.fase_proyecto]) gE[p.fase_proyecto].v.push(v); });
+  const ORD_E = ['En Planos','En Construcción','Entrega Inmediata'];
+  const etapas = `<section class="mk-card">
+    <div class="mk-card-hd"><div><h3>Por etapa</h3><p>Precio según avance de obra</p></div></div>
+    <div class="mk-tiles" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+    ${ORD_E.filter(e=>gE[e]).map(e=>{ const a=_mkAgg(gE[e].v); return `<div class="mk-tile"><div class="t-l">${_mkEtapaCorta(e)}</div><div class="t-v">${_mkSol(a.pm2)}</div><div class="t-s">por m² · ${fN(gE[e].p)} proy. · ${_mkVel(a.n/nM)}/mes</div></div>`; }).join('') || '<div class="mk-empty">Sin datos</div>'}
+    </div></section>`;
+
+  el.innerHTML = kpis +
+    `<div class="mk-row2">${ranking}<div class="mk-side">${padova}${etapas}</div></div>` +
+    `<div class="mk-row2">${distritos}<div class="mk-side">${tipos}</div></div>`;
+}
+
+// ══ PESTAÑA VENTAS ══
+// ── Gráfico: ventas por mes, apiladas por tipología ──
 function renderMercadoVentas(){
-  const data = D.mercadoVentas||[];
   const subEl = document.getElementById('mkt-ventas-sub');
-  if(!data.length){ if(subEl) subEl.textContent = 'Cargando...'; return; }
-
-  // Distrito/Inmobiliaria/Proyecto son compartidos con Mapa de Competencia y Precios.
-  const distritos = [...new Set(data.map(r=>r.distrito).filter(Boolean))].sort();
-  _mselBuildList('ventas-distrito', distritos, _mselGet('distrito'), 'distrito');
-  const inmobiliarias = [...new Set(data.map(r=>r.inmobiliaria).filter(Boolean))].sort();
-  _mselBuildList('ventas-inmobiliaria', inmobiliarias, _mselGet('inmobiliaria'), 'inmobiliaria');
-  const dataPorFiltroSuperior = data.filter(r=>
-    (!_mselGet('distrito').size || _mselGet('distrito').has(r.distrito)) &&
-    (!_mselGet('inmobiliaria').size || _mselGet('inmobiliaria').has(r.inmobiliaria))
-  );
-  const proyectos = [...new Set(dataPorFiltroSuperior.map(r=>r.proyecto).filter(Boolean))].sort();
-  _mselBuildList('ventas-proyecto', proyectos, _mselGet('proyecto'), 'proyecto');
-  _mselUpdateLabel('ventas-distrito', _mselGet('distrito'), 'Todos los distritos');
-  _mselUpdateLabel('ventas-inmobiliaria', _mselGet('inmobiliaria'), 'Todas las inmobiliarias');
-  _mselUpdateLabel('ventas-proyecto', _mselGet('proyecto'), 'Todos los proyectos');
-
-  let filtrado = data;
-  if(_mselGet('distrito').size) filtrado = filtrado.filter(r=>_mselGet('distrito').has(r.distrito));
-  if(_mselGet('inmobiliaria').size) filtrado = filtrado.filter(r=>_mselGet('inmobiliaria').has(r.inmobiliaria));
-  if(_mselGet('proyecto').size) filtrado = filtrado.filter(r=>_mselGet('proyecto').has(r.proyecto));
-
-  if(subEl) subEl.textContent = `Actualizado: ${D.updatedAt} · ${filtrado.length.toLocaleString('es-PE')} ventas registradas`;
-
-  // ── Gráfico: ventas por año-mes, apiladas por tipología (dormitorios) ──
-  const MM=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
+  if(!(D.mercadoVentas||[]).length){ if(subEl) subEl.textContent = 'Cargando...'; return; }
+  const f = _mkFiltrar();
+  const meses = f.meses;
   const porMesDorm = {};
-  filtrado.forEach(r=>{
+  f.ventas.forEach(r=>{
     const ym = (r.fecha_venta||'').slice(0,7);
-    if(!ym) return;
     const dl = _dormLabel(r.dormitorios);
-    if(!porMesDorm[ym]) porMesDorm[ym] = {};
-    porMesDorm[ym][dl] = (porMesDorm[ym][dl]||0)+1;
+    (porMesDorm[ym] = porMesDorm[ym]||{})[dl] = (porMesDorm[ym][dl]||0)+1;
   });
-  const meses = Object.keys(porMesDorm).sort();
-  const labels = meses.map(ym=>{ const[y,m]=ym.split('-'); return MM[+m]+' '+y; });
-  const dormsPresentes = [...new Set(filtrado.map(r=>_dormLabel(r.dormitorios)))].sort((a,b)=>_dormOrden(a)-_dormOrden(b));
-  const CHART_COLORS_MKT = ['#60a5fa','#a78bfa','#34d399','#fbbf24','#f472b6','#fb923c','#f87171'];
-  // Por mes, cuál segmento queda REALMENTE arriba de la pila: el de mayor índice que
-  // sea visualmente relevante (≥5% del total de esa barra) — si el de más arriba es
-  // una franja mínima (ej. "4D" con 3 unidades sobre 1800), el redondeo salta al
-  // siguiente segmento más grueso, para que la barra no se vea cuadrada.
-  const topeDatasetPorMes = meses.map(ym=>{
-    const total = dormsPresentes.reduce((s,dl)=>s+(porMesDorm[ym][dl]||0),0);
+  if(subEl) subEl.textContent = `${fN(f.ventas.length)} unidades vendidas · ${_mkPeriodoTxt()} · promedio ${_mkVel(f.ventas.length/(meses.length||1))} por mes`;
+  const dorms = [...new Set(f.ventas.map(r=>_dormLabel(r.dormitorios)))].sort((a,b)=>_dormOrden(a)-_dormOrden(b));
+  // El redondeo va arriba de la pila, en el último segmento con peso visible (≥5% de la barra)
+  const tope = meses.map(ym=>{
+    const x = porMesDorm[ym]||{}, total = dorms.reduce((s,d)=>s+(x[d]||0),0);
     if(!total) return -1;
-    for(let k=dormsPresentes.length-1; k>=0; k--){
-      const v = porMesDorm[ym][dormsPresentes[k]]||0;
-      if(v>0 && v/total>=0.05) return k;
-    }
-    for(let k=dormsPresentes.length-1; k>=0; k--){
-      if((porMesDorm[ym][dormsPresentes[k]]||0) > 0) return k;
-    }
+    for(let k=dorms.length-1;k>=0;k--){ const v=x[dorms[k]]||0; if(v>0 && v/total>=0.05) return k; }
+    for(let k=dorms.length-1;k>=0;k--){ if((x[dorms[k]]||0)>0) return k; }
     return -1;
   });
-
-  const datasets = dormsPresentes.map((dl,i)=>({
-    label: dl,
-    data: meses.map(ym=>porMesDorm[ym][dl]||0),
-    backgroundColor: CHART_COLORS_MKT[i%CHART_COLORS_MKT.length],
-    borderRadius: ctx => topeDatasetPorMes[ctx.dataIndex]===i ? {topLeft:6, topRight:6, bottomLeft:0, bottomRight:0} : 0,
-    borderSkipped: ctx => topeDatasetPorMes[ctx.dataIndex]===i ? false : true,
-    stack: 'ventas',
+  const datasets = dorms.map((dl,i)=>({
+    label: dl, data: meses.map(ym=>(porMesDorm[ym]||{})[dl]||0),
+    backgroundColor: _mkDormColor(dl),
+    borderRadius: ctx => tope[ctx.dataIndex]===i ? {topLeft:6, topRight:6, bottomLeft:0, bottomRight:0} : 0,
+    borderSkipped: ctx => tope[ctx.dataIndex]===i ? false : true,
+    stack: 'ventas', maxBarThickness: 46,
   }));
-
   if(window._mktVentasChart) window._mktVentasChart.destroy();
   const ctx = document.getElementById('mkt-ventas-chart');
-  if(ctx){
-    window._mktVentasChart = new Chart(ctx, {
-      type:'bar',
-      data:{ labels, datasets },
-      options:{ responsive:true, maintainAspectRatio:false,
-        interaction:{mode:'index',intersect:false},
-        plugins:{
-          legend:{display:true, position:'top', labels:{boxWidth:10,usePointStyle:true,pointStyle:'rectRounded'}},
-          tooltip:{callbacks:{label:c=>' '+c.dataset.label+': '+fN(c.parsed.y)+' unidades'}},
-        },
-        scales:{
-          x:{stacked:true, grid:{display:false}, ticks:{font:{size:10},maxRotation:60}},
-          y:{stacked:true, beginAtZero:true, ticks:{stepSize:1}},
-        }
+  if(!ctx) return;
+  window._mktVentasChart = new Chart(ctx, {
+    type:'bar',
+    data:{ labels: meses.map(_mkMesLbl), datasets },
+    options:{ responsive:true, maintainAspectRatio:false, animation:false,
+      interaction:{mode:'index', intersect:false},
+      plugins:{
+        legend:{display:true, position:'top', align:'end', labels:{boxWidth:10, usePointStyle:true, pointStyle:'rectRounded', font:{family:"'Plus Jakarta Sans'", size:11, weight:'600'}}},
+        tooltip:{callbacks:{
+          label:c=>' '+c.dataset.label+': '+fN(c.parsed.y)+' unid.',
+          footer:items=>'Total: '+fN(items.reduce((s,i)=>s+i.parsed.y,0))+' unid.'}},
+        datalabels:{display:false},
+      },
+      scales:{
+        x:{stacked:true, grid:{display:false}, ticks:{font:{family:"'Plus Jakarta Sans'", size:11}}},
+        y:{stacked:true, beginAtZero:true, ticks:{precision:0, maxTicksLimit:6, font:{family:"'Plus Jakarta Sans'", size:11}, callback:v=>fN(v)}},
       }
-    });
-  }
-
+    }
+  });
 }
 
-// ── Ventas Competencia: ventas por proyecto y tipología (con heatmap mensual) ──
-function _dormLabel(n){
-  n = Number(n)||0;
-  return n<=0 ? 'Estudio' : n+'D';
-}
+// ── Tabla: ventas por proyecto y tipología con mapa de calor mensual ──
+function _dormLabel(n){ n = Number(n)||0; return n<=0 ? 'Estudio' : n+'D'; }
 function _dormOrden(lbl){ return lbl==='Estudio' ? 0 : parseInt(lbl,10)||0; }
-
-let _tipologiaPeriodoMeses = 3;
-function _setTipologiaPeriodo(n){
-  _tipologiaPeriodoMeses = n;
-  const lbl = document.getElementById('tipologia-periodo-label'); if(lbl) lbl.textContent = `Últimos ${n} meses`;
-  const panel = document.getElementById('msel-tipologia-periodo-panel'); if(panel) panel.style.display='none';
-  renderMercadoTipologia();
-}
-function limpiarFiltroTipologia(){
-  _mselGet('tipologia-dorm').clear();
-  _tipologiaPeriodoMeses = 3;
-  const lbl = document.getElementById('tipologia-periodo-label'); if(lbl) lbl.textContent = 'Últimos 3 meses';
-  renderMercadoTipologia();
-}
 
 function renderMercadoTipologia(){
   const wrap = document.getElementById('mkt-tipologia-wrap');
   if(!wrap) return;
-  const dataProy = D.mercado||[], dataVentasAll = D.mercadoVentas||[];
-  if(!dataProy.length || !dataVentasAll.length){ wrap.innerHTML = '<div class="loading">Cargando...</div>'; return; }
-
-  const dormOpciones = [...new Set(dataVentasAll.map(v=>_dormLabel(v.dormitorios)))].sort((a,b)=>_dormOrden(a)-_dormOrden(b));
-  _mselBuildList('tipologia-dorm', dormOpciones, _mselGet('tipologia-dorm'));
-  _mselUpdateLabel('tipologia-dorm', _mselGet('tipologia-dorm'), 'Todas');
-  const filtroDorm = _mselGet('tipologia-dorm');
-  const filtroDistrito = _mselGet('distrito');
-  const filtroInmobiliaria = _mselGet('inmobiliaria');
-  const filtroProyecto = _mselGet('proyecto');
-
-  // Igual que Precios Competencia: no se calcula nada pesado hasta que elijas algún filtro.
-  if(!filtroDorm.size && !filtroDistrito.size && !filtroInmobiliaria.size && !filtroProyecto.size){
-    wrap.innerHTML = '<div style="padding:44px 20px;text-align:center;color:var(--ink-4);font-size:13px">Elige un distrito, inmobiliaria, proyecto (arriba) o una tipología (abajo) para ver el detalle.</div>';
-    return;
-  }
-
-  const projPorNombre = new Map(dataProy.map(p=>[p.proyecto, p]));
-  const esPropio = proj => (proj.inmobiliaria||'').trim().toLowerCase()==='padova';
-
-  const dataVentas = dataVentasAll.filter(v=>
-    (!filtroDistrito.size || filtroDistrito.has(v.distrito)) &&
-    (!filtroInmobiliaria.size || filtroInmobiliaria.has(v.inmobiliaria)) &&
-    (!filtroProyecto.size || filtroProyecto.has(v.proyecto))
-  );
-
-  // El filtro de período controla cuántos meses hacia atrás se muestran en el heatmap
-  // mensual (y por lo tanto el "Prom. mensual", que se calcula sobre esos mismos meses).
-  // Los precios (S/m² lista/venta) usan siempre una ventana fija de 3 meses, aparte.
-  const periodoMeses = _tipologiaPeriodoMeses || 3;
-  // Los datos de mercado se publican con rezago (el mes cerrado aparece recién
-  // pasada la quincena del mes siguiente). Para no mostrar ese mes como "0" ni
-  // diluir los promedios, la ventana termina en el ÚLTIMO MES QUE YA TIENE DATOS
-  // (como máximo, el último mes calendario completo).
-  const _hoyT = new Date();
-  const ultimoCompleto = (()=>{ const d=new Date(_hoyT.getFullYear(), _hoyT.getMonth()-1, 1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); })();
-  const ultimoConDatos = dataVentasAll.reduce((m,v)=>{ const ym=(v.fecha_venta||'').slice(0,7); return ym>m?ym:m; }, '');
-  const mesFin = (ultimoConDatos && ultimoConDatos<ultimoCompleto) ? ultimoConDatos : ultimoCompleto;
-  const cutoffPrecios = (()=>{ const [y,m]=mesFin.split('-').map(Number); const d=new Date(y, m-1-2, 1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01'; })();
-  const fSol = n => n ? 'S/ '+Math.round(n).toLocaleString('es-PE') : '—';
-  const fPct = n => n==null ? '—' : (n*100).toFixed(1)+'%';
-
-  // agrupar por (proyecto, tipología) respetando el filtro de dormitorio
+  if(!(D.mercado||[]).length || !(D.mercadoVentas||[]).length){ wrap.innerHTML = '<div class="loading">Cargando...</div>'; return; }
+  const f = _mkFiltrar();
+  const nM = f.meses.length||1;
+  // Mapa de calor: hasta 12 columnas de mes (los últimos del período)
+  const mesesVer = f.meses.slice(-12);
   const grupos = new Map();
-  dataVentas.forEach(v=>{
-    const dl = _dormLabel(v.dormitorios);
-    if(filtroDorm.size && !filtroDorm.has(dl)) return;
-    const key = v.proyecto+'||'+dl;
-    if(!grupos.has(key)) grupos.set(key, { proyecto:v.proyecto, dormLabel:dl, ventas:[] });
-    grupos.get(key).ventas.push(v);
+  f.ventas.forEach(v=>{
+    const k = _mkK(v), dl = _dormLabel(v.dormitorios);
+    if(!grupos.has(k)) grupos.set(k, {k, n:0, tipos:new Map()});
+    const g = grupos.get(k); g.n++;
+    if(!g.tipos.has(dl)) g.tipos.set(dl, []);
+    g.tipos.get(dl).push(v);
   });
-
-  const filas = [...grupos.values()].map(g=>{
-    const proj = projPorNombre.get(g.proyecto) || {};
-    const ventanaPrecios = g.ventas.filter(v=>v.fecha_venta>=cutoffPrecios);
-    const areaMed = g.ventas.reduce((s,v)=>s+(v.area_total||0),0)/g.ventas.length;
-    const sM2Lista = ventanaPrecios.length ? ventanaPrecios.reduce((s,v)=>s+(v.precio_m2_oferta||0),0)/ventanaPrecios.length : 0;
-    const sM2Venta = ventanaPrecios.length ? ventanaPrecios.reduce((s,v)=>s+(v.precio_m2_venta||0),0)/ventanaPrecios.length : 0;
-    const ticketProm = g.ventas.reduce((s,v)=>s+(v.precio_venta||0),0)/g.ventas.length;
-    const desc = sM2Lista ? (sM2Lista-sM2Venta)/sM2Lista : null;
-    const meses = {};
-    g.ventas.forEach(v=>{ const ym=(v.fecha_venta||'').slice(0,7); if(ym) meses[ym]=(meses[ym]||0)+1; });
-    return { proyecto:g.proyecto, dormLabel:g.dormLabel, etapa:proj.fase_proyecto, areaMed, sM2Lista, sM2Venta, ticketProm, desc, meses, esPropio: esPropio(proj) };
+  const proyOrden = [...grupos.values()].sort((a,b)=>b.n-a.n);
+  const LIM = _mselGet('proyecto').size ? 200 : 40;
+  const ver = proyOrden.slice(0, LIM);
+  const sub = document.getElementById('mk-tipo-sub');
+  if(sub) sub.textContent = (proyOrden.length>LIM ? `Los ${LIM} proyectos que más venden de ${fN(proyOrden.length)} · ` : `${fN(proyOrden.length)} proyectos · `) +
+    `precio/m², ticket y área = promedio de las ventas del período${f.meses.length>12?' · se ven los últimos 12 meses':''}`;
+  if(!ver.length){ wrap.innerHTML = '<div class="mk-empty">Sin ventas en el período con estos filtros.</div>'; return; }
+  const mesCnt = arr=>{ const m={}; arr.forEach(v=>{ const ym=(v.fecha_venta||'').slice(0,7); m[ym]=(m[ym]||0)+1; }); return m; };
+  const filas = [];
+  ver.forEach(g=>{
+    const r = _mkProy(g.k)||{};
+    [...g.tipos.entries()].sort((a,b)=>_dormOrden(a[0])-_dormOrden(b[0])).forEach(([dl,arr],i)=>{
+      filas.push({k:g.k, r, dl, primero:i===0, ag:_mkAgg(arr), meses:mesCnt(arr)});
+    });
   });
-  filas.sort((a,b)=> a.proyecto.localeCompare(b.proyecto) || _dormOrden(a.dormLabel)-_dormOrden(b.dormLabel));
-
-  if(!filas.length){
-    wrap.innerHTML = '<div style="padding:30px 20px;text-align:center;color:var(--ink-4);font-size:13px">Sin ventas para este filtro.</div>';
-    return;
-  }
-
-  // meses a mostrar en el heatmap: SIEMPRE los últimos "periodoMeses" meses calendario
-  // COMPLETOS (con celda vacía si no hubo ventas ese mes) — no incluye el mes actual,
-  // que todavía está a mitad y no es comparable con un mes cerrado.
-  const mesesOrdenados = [];
-  { const [fy,fm] = mesFin.split('-').map(Number);
-    for(let i=periodoMeses-1; i>=0; i--){
-      const d = new Date(fy, fm-1-i, 1);
-      mesesOrdenados.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
-    }
-  }
-  const maxMes = Math.max(1, ...filas.flatMap(f=>mesesOrdenados.map(ym=>f.meses[ym]||0)));
-  // "Prom. mensual" = promedio de unidades vendidas sobre los mismos meses que se ven en el heatmap
-  const promMensualDe = meses => mesesOrdenados.length ? mesesOrdenados.reduce((s,ym)=>s+(meses[ym]||0),0)/mesesOrdenados.length : 0;
-
-  const MM_CORTO = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
-  const fMesLbl = ym => { const [y,m] = ym.split('-'); return `${MM_CORTO[parseInt(m,10)]} ${y.slice(2)}`; };
-
-  const celdaMes = (meses, ym) => {
-    const v = meses[ym]||0;
-    if(!v) return '<td></td>';
-    const intensidad = Math.min(1, v/maxMes);
-    const bg = `color-mix(in srgb, var(--brand) ${Math.round(15+intensidad*85)}%, var(--panel))`;
-    const txt = intensidad>0.45 ? '#fff' : 'var(--ink)';
-    return `<td style="background:${bg};color:${txt};font-weight:600">${v}</td>`;
+  const maxMes = Math.max(1, ...filas.flatMap(x=>mesesVer.map(ym=>x.meses[ym]||0)));
+  const celda = (v)=>{
+    if(!v) return '<td class="hm"></td>';
+    const t = Math.min(1, v/maxMes);
+    return `<td class="hm" style="background:color-mix(in srgb, var(--brand) ${Math.round(12+t*80)}%, var(--panel));color:${t>0.45?'#fff':'var(--ink)'}">${fN(v)}</td>`;
   };
-  const celdasMeses = meses => mesesOrdenados.map(ym=>celdaMes(meses,ym)).join('');
-
-  let rowsHtml = filas.map(f=>`
-    <tr>
-      <td class="vp-rowlbl">${f.proyecto}</td>
-      <td>${f.dormLabel}</td>
-      <td><span class="pill" style="background:var(--line-2);color:var(--ink-2)">${f.etapa||'—'}</span></td>
-      <td>${f.areaMed?f.areaMed.toFixed(1)+' m²':'—'}</td>
-      <td>${fSol(f.sM2Venta)}</td>
-      <td>${fSol(f.ticketProm)}</td>
-      ${celdasMeses(f.meses)}
-      <td>${promMensualDe(f.meses).toFixed(1)}</td>
-    </tr>`).join('');
-
-  const mesesTotalGeneral = {};
-  filas.forEach(f=>Object.entries(f.meses).forEach(([ym,v])=>{ mesesTotalGeneral[ym]=(mesesTotalGeneral[ym]||0)+v; }));
-  const proyectosVisibles = new Set(filas.map(f=>f.proyecto)).size;
-
-  rowsHtml += `
-    <tr class="vp-total-general">
-      <td class="vp-rowlbl">COMPETENCIA — TOTAL</td>
-      <td></td><td>${proyectosVisibles} filas</td>
-      <td></td><td></td><td></td>
-      ${celdasMeses(mesesTotalGeneral)}
-      <td>${promMensualDe(mesesTotalGeneral).toFixed(1)}</td>
-    </tr>`;
-
-  wrap.innerHTML = `<table class="ventasproy-tabla">
-    <thead><tr>
-      <th class="vp-rowlbl">Proyecto</th><th>Dorm</th><th>Etapa</th>
-      <th>Área med.</th>
-      <th>S/m² venta (prom. 3m)</th>
-      <th>Ticket venta (prom.)</th>
-      ${mesesOrdenados.map(ym=>`<th>${fMesLbl(ym)}</th>`).join('')}
-      <th>Prom. mensual</th>
-    </tr></thead>
-    <tbody>${rowsHtml}</tbody>
+  const tot = mesCnt(f.ventas.filter(v=>grupos.has(_mkK(v)) && ver.includes(grupos.get(_mkK(v)))));
+  const totN = ver.reduce((s,g)=>s+g.n,0);
+  wrap.innerHTML = `<table class="mk-tbl lines mk-vt" id="mk-ventas-tabla">
+    <colgroup><col style="width:21%"><col style="width:7%"><col style="width:9%"><col style="width:6%"><col style="width:8%"><col style="width:9%">${mesesVer.map(()=>'<col>').join('')}<col style="width:6%"></colgroup>
+    <thead><tr><th>Proyecto</th><th>Tipología</th><th>Etapa</th><th>Área</th><th>Precio / m²</th><th>Ticket</th>${mesesVer.map(ym=>`<th>${_mkMesLbl(ym)}</th>`).join('')}<th>Prom. / mes</th></tr></thead>
+    <tbody>${filas.map(x=>`<tr class="${x.primero?'g1':''}${_mkEsPadova(x.r)?' pdv':''}">
+      <td class="${x.primero?'':'rep'}" title="${_escapeHtml(_mkLbl(x.k)+' · '+_mkT(x.r.inmobiliaria)+' · '+_mkT(x.r.distrito))}"><b>${_escapeHtml(_mkLbl(x.k))}</b>${x.primero?_mkTag(x.r):''}${x.primero?`<small>${_escapeHtml(_mkT(x.r.inmobiliaria))} · ${_escapeHtml(_mkT(x.r.distrito)||'—')}</small>`:''}</td>
+      <td><span class="mk-dot" style="background:${_mkDormColor(x.dl)};margin-right:5px"></span>${x.dl}</td>
+      <td>${x.primero?_escapeHtml(_mkEtapaCorta(x.r.fase_proyecto)):''}</td>
+      <td>${x.ag.area.toFixed(0)} m²</td><td>${_mkSol(x.ag.pm2)}</td><td>${_mkSolK(x.ag.ticket)}</td>
+      ${mesesVer.map(ym=>celda(x.meses[ym]||0)).join('')}
+      <td><b>${_mkVel(x.ag.n/nM)}</b></td></tr>`).join('')}</tbody>
+    <tfoot><tr class="tot"><td>Total · ${fN(ver.length)} proyectos</td><td colspan="5"></td>${mesesVer.map(ym=>`<td>${fN(tot[ym]||0)}</td>`).join('')}<td>${_mkVel(totN/nM)}</td></tr></tfoot>
   </table>`;
 }
 
-// ── Precios Competencia: tabla comparativa por proyecto (uno por columna) ──
+// ══ PESTAÑA COMPARADOR DE PRECIOS ══
+// Tabla comparativa por proyecto (uno por columna), igual que la versión anterior;
+// ahora usa la barra de filtros única (distrito, inmobiliaria, etapa, proyecto, tipología, período).
 // El último rango no tiene tope: 90 m² a más (Infinity)
 const PRECIOS_BUCKETS = [[30,50],[50,60],[60,70],[70,80],[80,90],[90,Infinity]];
 // misma familia de colores que el mapa de Competencia (SECTOR_COLORS), sin ámbar ni rojo
 const PRECIOS_DORM_COLORS = {1:'#2f6df6', 2:'#19b36b', 3:'#7b5bd6'};
-let _preciosPeriodoMeses = 6; // null = todo el histórico
-function _setPreciosPeriodo(n){
-  _preciosPeriodoMeses = n==='todo' ? null : n;
-  const lbl = document.getElementById('precios-periodo-label');
-  if(lbl) lbl.textContent = n==='todo' ? 'Todo el histórico' : `Últimos ${n} meses`;
-  const panel = document.getElementById('msel-precios-periodo-panel'); if(panel) panel.style.display='none';
-  renderMercadoPrecios();
-}
-function _isoMenosMeses(n){
-  const d = new Date();
-  d.setMonth(d.getMonth() - n);
-  return d.toISOString().slice(0,10);
-}
-// Últimos n meses calendario COMPLETOS, sin el mes actual (igual que el heatmap
-// de Ventas Competencia): [desde, hasta) — "hasta" es el 1er día del mes actual (exclusivo).
-function _rangoMesesCompletos(n){
-  const hoy = new Date();
-  const desde = new Date(hoy.getFullYear(), hoy.getMonth()-n, 1);
-  const hasta = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-  return { desde: desde.toISOString().slice(0,10), hasta: hasta.toISOString().slice(0,10) };
-}
-// meses transcurridos entre una fecha ISO 'YYYY-MM-DD' y hoy (para la velocidad cuando el periodo es "todo")
-function _preciosMesesDesde(fechaIso){
-  const [y,m] = fechaIso.split('-').map(Number);
-  const hoy = new Date();
-  return Math.max(1, (hoy.getFullYear()-y)*12 + (hoy.getMonth()+1-m) + 1);
-}
+const _mkEtiquetaPeriodo = () => _mkPeriodo ? `últimos ${_mkPeriodo} meses` : 'todo el histórico';
 
 function renderMercadoPrecios(){
   const wrap = document.getElementById('mkt-precios-wrap');
   const legend = document.getElementById('mkt-precios-legend');
+  const sub = document.getElementById('mk-cmp-sub');
   if(!wrap) return;
   const dataProy = D.mercado||[], dataVentas = D.mercadoVentas||[];
   if(!dataProy.length || !dataVentas.length){ wrap.innerHTML = '<div class="loading">Cargando...</div>'; return; }
 
-  // Distrito e Inmobiliaria son compartidos con Mapa de Competencia y Ventas Competencia.
-  // Etapa es propia de esta sección. Los 3 se acotan entre sí; Proyecto (también
-  // compartido) se acota por los 3.
-  const fD = _mselGet('distrito'), fI = _mselGet('inmobiliaria'), fE = _mselGet('precios-etapa');
-  const distritos = [...new Set(dataProy.filter(r=>
-    (!fI.size || fI.has(r.inmobiliaria)) && (!fE.size || fE.has(r.fase_proyecto))
-  ).map(r=>r.distrito).filter(Boolean))].sort();
-  _mselBuildList('precios-distrito', distritos, fD, 'distrito');
-  const inmobiliarias = [...new Set(dataProy.filter(r=>
-    (!fD.size || fD.has(r.distrito)) && (!fE.size || fE.has(r.fase_proyecto))
-  ).map(r=>r.inmobiliaria).filter(Boolean))].sort();
-  _mselBuildList('precios-inmobiliaria', inmobiliarias, fI, 'inmobiliaria');
-  const etapas = [...new Set(dataProy.filter(r=>
-    (!fD.size || fD.has(r.distrito)) && (!fI.size || fI.has(r.inmobiliaria))
-  ).map(r=>r.fase_proyecto).filter(Boolean))].sort();
-  _mselBuildList('precios-etapa', etapas, fE);
-  const dataPorFiltroSuperior = dataProy.filter(r=>
-    (!fD.size || fD.has(r.distrito)) &&
-    (!fI.size || fI.has(r.inmobiliaria)) &&
-    (!fE.size || fE.has(r.fase_proyecto))
-  );
-  const proyectosDisponibles = [...new Set(dataPorFiltroSuperior.map(r=>r.proyecto).filter(Boolean))].sort();
-  _mselBuildList('precios-proyecto', proyectosDisponibles, _mselGet('proyecto'), 'proyecto');
-  _mselUpdateLabel('precios-distrito', _mselGet('distrito'), 'Todos los distritos');
-  _mselUpdateLabel('precios-inmobiliaria', _mselGet('inmobiliaria'), 'Todas las inmobiliarias');
-  _mselUpdateLabel('precios-etapa', _mselGet('precios-etapa'), 'Todas las etapas');
-  _mselUpdateLabel('precios-proyecto', _mselGet('proyecto'), 'Elige proyectos a comparar');
-
+  const f = _mkFiltrar();
+  // Proyectos: los elegidos; si no hay elegidos pero sí distrito / inmobiliaria / etapa,
+  // todos los que quedan; sin ningún filtro, nada (hay que elegir qué comparar).
+  // Orden: por nombre, como siempre.
   let proyectos;
-  if(_mselGet('proyecto').size){
-    proyectos = proyectosDisponibles.filter(p=>_mselGet('proyecto').has(p));
-  } else if(_mselGet('distrito').size || _mselGet('inmobiliaria').size || _mselGet('precios-etapa').size){
-    proyectos = proyectosDisponibles;
-  } else {
-    proyectos = [];
-  }
+  const hayFiltro = _mselGet('distrito').size || _mselGet('inmobiliaria').size || _mselGet('etapa').size;
+  if(_mselGet('proyecto').size || hayFiltro) proyectos = f.proys.map(_mkK).sort();
+  else proyectos = [];
+  if(sub) sub.textContent = proyectos.length ? `${fN(proyectos.length)} proyecto${proyectos.length===1?'':'s'} · ventas de ${_mkPeriodoTxt()}` : 'Elige proyectos arriba (o usa Comp. D. Orue) para comparar';
 
   if(!proyectos.length){
     wrap.innerHTML = '<div style="padding:44px 20px;text-align:center;color:var(--ink-4);font-size:13px">Elige uno o más proyectos (o filtra por distrito / inmobiliaria / etapa) para comparar precios.</div>';
@@ -10901,32 +10771,24 @@ function renderMercadoPrecios(){
     proyectos = proyectos.slice(0, LIMITE);
   }
 
-  const periodoMeses = _preciosPeriodoMeses; // null = todo el histórico
-  // Igual que en Ventas Competencia: "últimos N meses" = N meses calendario
-  // COMPLETOS, sin contar el mes actual (que va a mitad y no es comparable).
-  const rangoPeriodo = periodoMeses ? _rangoMesesCompletos(periodoMeses) : null;
-  const enVentana = v => !rangoPeriodo || (v.fecha_venta >= rangoPeriodo.desde && v.fecha_venta < rangoPeriodo.hasta);
-  const etiquetaPeriodo = periodoMeses ? `últimos ${periodoMeses} meses` : 'todo el histórico';
+  const meses = new Set(f.meses);
+  const enVentana = v => meses.has((v.fecha_venta||'').slice(0,7));
+  const etiquetaPeriodo = _mkEtiquetaPeriodo();
   const fSol = n => n ? 'S/ '+Math.round(n).toLocaleString('es-PE') : '—';
+  const divisorMeses = f.meses.length || 1;
+  const ventasPorProy = new Map();
+  f.ventasAll.forEach(v=>{ const k=_mkK(v); if(!ventasPorProy.has(k)) ventasPorProy.set(k,[]); ventasPorProy.get(k).push(v); });
 
-  // divisor mensual para la velocidad: el periodo elegido, o -si es "todo"- los meses
-  // reales desde la venta más antigua registrada en el dataset completo.
-  let divisorMeses = periodoMeses;
-  if(!divisorMeses){
-    const fechas = dataVentas.map(v=>v.fecha_venta).filter(Boolean).sort();
-    divisorMeses = fechas.length ? _preciosMesesDesde(fechas[0]) : 1;
-  }
-
-  const cols = proyectos.map(proyecto=>{
-    const proj = dataProy.find(p=>p.proyecto===proyecto) || {};
-    const ventas = dataVentas.filter(v=>v.proyecto===proyecto);
+  const cols = proyectos.map(k=>{
+    const proj = _mkProy(k) || {};
+    const ventas = ventasPorProy.get(k) || [];
     const ventasVentana = ventas.filter(enVentana);
     const buckets = PRECIOS_BUCKETS.map(([lo,hi])=>{
       const unitsAll = ventas.filter(v=>v.area_total>=lo && v.area_total<hi);
       if(!unitsAll.length) return null;
       const unitsVentana = unitsAll.filter(enVentana);
-      // m² y dormitorios del bloque salen de las MISMAS ventas del período elegido (las de la cantidad y los precios);
-      // solo si en el período no hubo ventas de este rango se usa todo el histórico para mostrar el tamaño de referencia.
+      // m² y dormitorios del bloque salen de las MISMAS ventas del período elegido;
+      // solo si en el período no hubo ventas de este rango se usa todo el histórico.
       const base = unitsVentana.length ? unitsVentana : unitsAll;
       const avgM2 = base.reduce((s,v)=>s+v.area_total,0)/base.length;
       const dormCount = {};
@@ -10940,7 +10802,7 @@ function renderMercadoPrecios(){
     const precioProm = cantVentana ? ventasVentana.reduce((s,v)=>s+v.precio_venta,0)/cantVentana : 0;
     const precioM2Prom = cantVentana ? ventasVentana.reduce((s,v)=>s+v.precio_m2_venta,0)/cantVentana : 0;
     const totalVendidos = proj.unidades_vendidas||0;
-    return { proyecto, proj, buckets, cantVentana, velocidad: cantVentana/divisorMeses, precioProm, precioM2Prom, totalVendidos };
+    return { k, proyecto:_mkNom(k), proj, buckets, cantVentana, velocidad: cantVentana/divisorMeses, precioProm, precioM2Prom, totalVendidos };
   });
 
   const rowsHtml = [];
@@ -10948,12 +10810,10 @@ function renderMercadoPrecios(){
     const cells = cols.map(c=>`<td>${cellFn(c)}</td>`).join('');
     rowsHtml.push(`<tr class="${rowClass}"><td class="precios-rowlbl">${label}</td>${cells}</tr>`);
   };
-
-  const MM_CORTO = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
   const fFechaCorta = iso => {
     if(!iso) return '—';
     const [y,m] = iso.split('-');
-    return `${MM_CORTO[parseInt(m,10)]}-${y}`;
+    return `${MK_MM[parseInt(m,10)]}-${y}`;
   };
 
   addRow('Empresa Inmobiliaria', c=>c.proj.inmobiliaria||'—');
@@ -10981,7 +10841,7 @@ function renderMercadoPrecios(){
   addRow(`Precio promedio x m² (${etiquetaPeriodo})`, c=>fSol(c.precioM2Prom), 'pc-summary');
   addRow('Total vendidos (histórico)', c=>c.totalVendidos, 'pc-total');
 
-  const theadCols = cols.map(c=>`<th>${c.proyecto}</th>`).join('');
+  const theadCols = cols.map(c=>`<th>${_escapeHtml(_mkNomDup.has(c.proyecto) ? c.proyecto+' ('+c.proj.inmobiliaria+')' : c.proyecto)}</th>`).join('');
   wrap.innerHTML = nota + `<table class="precios-tabla">
     <thead><tr><th class="precios-rowlbl"></th>${theadCols}</tr></thead>
     <tbody>${rowsHtml.join('')}</tbody>
@@ -10990,6 +10850,255 @@ function renderMercadoPrecios(){
   if(legend) legend.innerHTML = Object.entries(PRECIOS_DORM_COLORS).map(([d,c])=>
     `<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:3px;background:${c};display:inline-block"></span>${d} dorm.</span>`
   ).join('') + `<span>· bloque de m² = promedio de las ventas del período elegido (si no hubo, del histórico) · color = dormitorios más frecuentes</span>`;
+}
+
+function renderMercadoMapa(){
+  const wrap = document.getElementById('mkt-mercado-map');
+  if(!wrap) return;
+  const data = D.mercado||[];
+  if(!data.length) return;
+  if(wrap.offsetParent===null && !_mercadoMap) return; // pestaña oculta: Leaflet no puede medir el contenedor
+
+  const fD=_mselGet('distrito'), fI=_mselGet('inmobiliaria'), fE=_mselGet('etapa'), selProy=_mselGet('proyecto');
+  let filtrado = data.filter(r=>(!fD.size||fD.has(r.distrito)) && (!fI.size||fI.has(r.inmobiliaria)) && (!fE.size||fE.has(r.fase_proyecto)));
+  // Selección por clic en el mapa: no se recortan los puntos, así se puede seguir
+  // haciendo clic en los demás.
+  const modoClic = _mapaSelPorClic && selProy.size>0;
+  if(selProy.size && !modoClic) filtrado = filtrado.filter(r=>selProy.has(_mkK(r)));
+
+  // Ventas del período por proyecto (para el cuadro y la lista)
+  const meses = _mkMeses(_mkPeriodo), nM = meses.length||1;
+  const desde = meses[0]||'9999', hasta = meses[meses.length-1]||'0000', fT = _mselGet('dorm');
+  const keysVis = new Set(filtrado.map(_mkK));
+  const st = _mkPorProy((D.mercadoVentas||[]).filter(v=>{ const ym=(v.fecha_venta||'').slice(0,7); return keysVis.has(_mkK(v)) && ym>=desde && ym<=hasta && (!fT.size||fT.has(_dormLabel(v.dormitorios))); }), nM);
+
+  if(!_mercadoMap){
+    // scrollWheelZoom apagado: el scroll de la página nunca se lo "roba" el mapa.
+    // Zoom con la rueda = Ctrl (o Cmd) + rueda, como Google Maps embebido.
+    _mercadoMap = L.map('mkt-mercado-map', { scrollWheelZoom:false, zoomControl:false }).setView([-12.05, -77.04], 11);
+    L.control.zoom({ position: 'topright' }).addTo(_mercadoMap);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(_mercadoMap);
+    wrap.addEventListener('wheel', function(e){
+      if(!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      const pt = _mercadoMap.mouseEventToContainerPoint(e);
+      _mercadoMap.setZoomAround(_mercadoMap.containerPointToLatLng(pt), _mercadoMap.getZoom() + (e.deltaY < 0 ? 1 : -1));
+    }, { passive:false });
+    _mercadoMap.on('zoomend popupopen popupclose resize', _mercadoAcomodarCuadrosPronto);
+  }
+  if(_mercadoLayer) _mercadoMap.removeLayer(_mercadoLayer);
+  if(_mercadoSelLayer) _mercadoMap.removeLayer(_mercadoSelLayer);
+  _mercadoMap.closePopup();
+  // Puntos normales agrupados en clusters; los elegidos en una capa aparte sin agrupar.
+  _mercadoLayer = L.markerClusterGroup({
+    maxClusterRadius: z => z>=15 ? 35 : 55,
+    disableClusteringAtZoom: 17, spiderfyOnMaxZoom: true, showCoverageOnHover: false,
+  }).addTo(_mercadoMap);
+  _mercadoSelLayer = L.layerGroup().addTo(_mercadoMap);
+  // Al cerrarse un grupo desplegado, los puntos elegidos (o con cuadro) pasan a la capa
+  // de elegidos para seguir visibles con su cuadro.
+  _mercadoLayer.on('unspiderfied', e=>{
+    const mover = (e.markers||[]).filter(m=>m._destacado || (m._mkKey && _mkPopKeys.has(m._mkKey)));
+    if(!mover.length) return;
+    setTimeout(()=>{ mover.forEach(m=>{
+      if(!_mercadoLayer.hasLayer(m)) return;
+      _mercadoLayer.removeLayer(m); _mercadoSelLayer.addLayer(m);
+      if(_mkPopKeys.has(m._mkKey)){ m.getPopup().options.autoPan = false; m.openPopup(); }
+    }); _mercadoAcomodarCuadrosPronto(); }, 0);
+  });
+
+  const fOracion = s => { s = String(s||'').trim().toLowerCase(); return s ? s.replace(/(^\s*\w|[.!?]\s+\w)/g, c => c.toUpperCase()) : '—'; };
+  const fMetraje = r => {
+    if(!r.area_min && !r.area_max) return '—';
+    const min = Math.round(r.area_min), max = Math.round(r.area_max);
+    return min===max ? `${min} m²` : `${min} – ${max} m²`;
+  };
+  const _iconoPunto = _mkIcono;
+
+  // Solo se abre el cuadro del último proyecto marcado (o del único elegido): el resto
+  // se ve ordenado en la lista de la derecha, sin cuadros encimados.
+  const nSel = modoClic ? selProy.size : (selProy.size ? filtrado.length : 0);
+  if(modoClic || selProy.size) [..._mkPopKeys].forEach(k=>{ if(!selProy.has(k)) _mkPopKeys.delete(k); });
+  else _mkPopKeys.clear();
+  const puntos = [];
+  const aAbrir = [];
+  _mkMarkers = new Map();
+  filtrado.forEach(r=>{
+    const k = _mkK(r);
+    const color = SECTOR_COLORS[(r.sector||'').toUpperCase()] || SECTOR_COLOR_DEFAULT;
+    const esSel = modoClic && selProy.has(k);
+    const destacado = modoClic ? esSel : (nSel===1 && selProy.has(k));
+    const pos = _mercadoPos(r);
+    const marker = L.marker(pos, {
+      icon: _iconoPunto(color, !modoClic ? '' : (esSel?'on':'off'), _mkEsPadova(r)),
+      zIndexOffset: destacado ? 1000 : _mkEsPadova(r) ? 500 : 0,
+    });
+    marker._sel = esSel;
+    marker._destacado = destacado;
+    marker._mk = {color, pdv:_mkEsPadova(r)};
+    marker._mkKey = k;
+    marker.bindPopup(()=>{ const x = st.get(k); return `
+      <div class="mk-pop">
+        <div class="t">${_escapeHtml(_mkLbl(k))}${_mkTag(r)}</div>
+        <div class="h">${_escapeHtml(_mkT(r.inmobiliaria))} · ${_escapeHtml(_mkT(r.distrito)||'—')}</div>
+        <div class="g">
+          <div><small>Ventas / mes</small><b>${x?_mkVel(x.mes):'0'}</b></div>
+          <div><small>Precio / m²</small><b>${x?_mkSol(x.pm2):_mkSol(r.precio_m2_promedio)}</b></div>
+          <div><small>Ticket</small><b>${x?_mkSolK(x.ticket):_mkSolK(r.precio_promedio)}</b></div>
+        </div>
+        <div class="l"><span>${_escapeHtml(r.fase_proyecto||'—')}</span> · ${fMetraje(r)} · ${fN(r.unidades_vendidas)} de ${fN(r.unidades_totales)} vendidas</div>
+        <div class="l">${_escapeHtml(fOracion(r.direccion))}</div>
+      </div>
+    `; }, { autoClose:false, closeOnClick:false, minWidth:200, maxWidth:260, autoPan: k===_mapaUltimoClic });
+    // La X del cuadro solo cierra ese cuadro (el proyecto sigue elegido).
+    marker.on('popupopen', e=>{
+      const btn = e.popup.getElement() && e.popup.getElement().querySelector('.leaflet-popup-close-button');
+      if(btn && !btn._mktX){ btn._mktX = true; L.DomEvent.on(btn, 'click', ()=>{ _mkPopKeys.delete(k); _mercadoAcomodarCuadrosPronto(); }); }
+    });
+    // El clic lo maneja _mkClicPunto (se quita el abrir/cerrar automático de Leaflet,
+    // que chocaba con el repintado y dejaba los cuadros abriéndose y cerrándose solos).
+    marker.off('click', marker._openPopup, marker);
+    marker.on('click', ()=>_mkClicPunto(k));
+    const conCuadro = _mkPopKeys.has(k) || (nSel===1 && selProy.has(k));
+    marker.addTo(destacado || conCuadro ? _mercadoSelLayer : _mercadoLayer);
+    _mkMarkers.set(k, marker);
+    if(conCuadro) aAbrir.push(marker);
+    puntos.push(pos);
+  });
+  aAbrir.forEach(m=>m.openPopup());
+  _mercadoAcomodarCuadrosPronto();
+
+  // Reencuadrar solo si cambió lo que define la vista (no en un repintado por otra causa).
+  const hayFiltro = fD.size || fI.size || fE.size || selProy.size || _zonaDibujada;
+  const _ord = set=>[...set].sort();
+  const vistaKey = JSON.stringify([_ord(fD), _ord(fI), _ord(fE), modoClic ? [] : _ord(selProy), _zonaDibujada ? _zonaDibujada.length : 0]);
+  const vistaCambio = vistaKey !== _mercadoVistaKey;
+  _mercadoVistaKey = vistaKey;
+  if(_zonaMantenerVista || !vistaCambio){
+    _zonaMantenerVista = false;
+  } else if(hayFiltro && puntos.length){
+    _mercadoMap.fitBounds(puntos, { maxZoom: 15, padding:[30,30] });
+  } else if(!hayFiltro){
+    _mercadoMap.setView([-12.05,-77.04], 11);
+  }
+  _actualizarContornoDistrito();
+
+  const legend = document.getElementById('mkt-mercado-legend');
+  if(legend && !legend.dataset.built){
+    legend.dataset.built = '1';
+    legend.innerHTML = Object.entries(SECTOR_COLORS).map(([s,c])=>`<span class="mk-lg"><i style="background:${c}"></i>${_mkT(s)}</span>`).join('') +
+      `<span class="mk-lg"><i style="background:#fff;box-shadow:0 0 0 2.5px #f4a228"></i>Padova y Mirano (datos propios)</span><span style="color:var(--ink-4)">color = sector</span>`;
+  }
+  _mkMapaUlt = {filtrado, st};
+  _mkRenderMapaLista(filtrado, st, modoClic);
+}
+
+let _mkMarkers = new Map();
+let _mkMapaUlt = null; // última lista pintada (para actualizarla sin redibujar el mapa)
+// markerClusterGroup solo agrupa L.marker: el punto de color es un ícono propio (cacheado).
+const _mkIconCache = new Map();
+function _mkIcono(color, estado, pdv){
+  const ck = color+'|'+estado+'|'+(pdv?1:0);
+  if(_mkIconCache.has(ck)) return _mkIconCache.get(ck);
+  const tam = estado==='on' ? 22 : pdv ? 18 : 14;
+  const borde = estado==='on' ? '3px solid #0f172a' : pdv ? '3px solid #f4a228' : '2.5px solid #fff';
+  const sombra = estado==='on' ? '0 0 0 3px #fff,0 2px 8px rgba(0,0,0,.6)' : '0 0 0 1px rgba(15,23,42,.7),0 2px 5px rgba(0,0,0,.45)';
+  const ic = L.divIcon({
+    className: 'mkt-punto-dot',
+    html: `<span style="display:block;width:${tam}px;height:${tam}px;box-sizing:border-box;border-radius:50%;background:${color};border:${borde};box-shadow:${sombra}"></span>`,
+    iconSize: [tam,tam], iconAnchor: [tam/2,tam/2], popupAnchor: [0,-tam/2],
+  });
+  _mkIconCache.set(ck, ic);
+  return ic;
+}
+// Marca/desmarca un punto SIN redibujar el mapa: cambia su ícono, lo saca/mete al
+// agrupador y abre/cierra su cuadro. Así el clic responde al instante.
+function _mkPuntoEstado(k, on, abrir){
+  const m = _mkMarkers.get(k); if(!m || !m._mk) return;
+  m.setIcon(_mkIcono(m._mk.color, on?'on':'off', m._mk.pdv));
+  m.setZIndexOffset(on||abrir ? 1000 : m._mk.pdv ? 500 : 0);
+  m._destacado = on;
+  const enSel = _mercadoSelLayer.hasLayer(m);
+  // Si el punto está dentro de un grupo abierto (los puntos desplegados de un círculo),
+  // no se saca del grupo: eso lo volvía a cerrar y los demás puntos "desaparecían".
+  // Se pasa a la capa de elegidos recién cuando el grupo se cierra (ver 'unspiderfied').
+  const desplegado = !!(m._spiderLeg || m._preSpiderfyLatlng);
+  if(!desplegado){
+    if((on||abrir) && !enSel){ _mercadoLayer.removeLayer(m); _mercadoSelLayer.addLayer(m); }
+    if(!(on||abrir) && enSel){ _mercadoSelLayer.removeLayer(m); _mercadoLayer.addLayer(m); }
+  }
+  if(abrir){ m.getPopup().options.autoPan = true; m.openPopup(); }
+  else m.closePopup();
+  _mercadoAcomodarCuadrosPronto();
+}
+function _mkTrasClicRapido(){
+  _mselLabelsRapido(); _mselRenderChips(); _mkFiltrosSucios = true;
+  if(_mkMapaUlt) _mkRenderMapaLista(_mkMapaUlt.filtrado, _mkMapaUlt.st, _mapaSelPorClic && _mselGet('proyecto').size>0);
+}
+// Proyectos con su cuadro abierto (se mantienen abiertos al repintar; máx. 5, sin encimarse)
+let _mkPopKeys = new Set();
+const MK_POP_MAX = 5;
+function _mkPopAdd(k){ _mkPopKeys.delete(k); _mkPopKeys.add(k); while(_mkPopKeys.size>MK_POP_MAX) _mkPopKeys.delete(_mkPopKeys.values().next().value); }
+// Clic en un punto (o en la lista):
+//  · punto no elegido → se elige y se abre su cuadro (los otros cuadros siguen abiertos)
+//  · punto elegido con el cuadro cerrado → se vuelve a abrir su cuadro
+//  · punto elegido con el cuadro abierto → se quita de la selección
+// Si la selección vino de la lista de Proyecto, la búsqueda, una zona o Comp. D. Orue,
+// en el mapa solo están esos puntos: el clic abre o cierra su cuadro.
+function _mkClicPunto(k){
+  const sel = _mselGet('proyecto');
+  _mapaUltimoClic = k;
+  // Cuadros que se cierran por pasar el máximo
+  const cerrarSobrantes = ()=>{ [..._mkMarkers.entries()].forEach(([kk,m])=>{ if(m.isPopupOpen() && !_mkPopKeys.has(kk)) _mkPuntoEstado(kk, _mapaSelPorClic && sel.has(kk), false); }); };
+  if(sel.size>0 && !_mapaSelPorClic){
+    // selección de la lista / búsqueda / zona / Comp. D. Orue: el clic abre o cierra el cuadro
+    if(_mkPopKeys.has(k)){ _mkPopKeys.delete(k); _mkPuntoEstado(k, false, false); }
+    else { _mkPopAdd(k); _mkPuntoEstado(k, false, true); cerrarSobrantes(); }
+    return;
+  }
+  _busqActiva = false;
+  if(sel.has(k) && !_mkPopKeys.has(k)){ _mkPopAdd(k); _mkPuntoEstado(k, true, true); cerrarSobrantes(); return; }
+  if(sel.has(k)){ sel.delete(k); _mkPopKeys.delete(k); _mapaUltimoClic = null; _mkPuntoEstado(k, false, false); }
+  else { sel.add(k); _mkPopAdd(k); _mkPuntoEstado(k, true, true); cerrarSobrantes(); }
+  _mapaSelPorClic = sel.size>0;
+  _mkTrasClicRapido();
+}
+const _mkMapaToggle = _mkClicPunto;
+// Clic en la lista: centra el punto y lo marca/desmarca igual que un clic en el mapa
+function _mkMapaItem(k){
+  const r = _mkProy(k);
+  _mkMapaToggle(k);
+  if(r && _mercadoMap) setTimeout(()=>_mercadoMap.panTo(_mercadoPos(r)), 30);
+}
+function _mkSetMapaOrden(o){ _mkMapaOrden = o; renderMercadoMapa(); }
+function _mkRenderMapaLista(filtrado, st, modoClic){
+  const list = document.getElementById('mk-ml-list'); if(!list) return;
+  const sel = _mselGet('proyecto');
+  const tit = document.getElementById('mk-ml-tit'), sub = document.getElementById('mk-ml-sub');
+  if(tit) tit.textContent = `${fN(filtrado.length)} proyecto${filtrado.length===1?'':'s'} en el mapa`;
+  if(sub) sub.textContent = modoClic ? `${sel.size} elegido${sel.size===1?'':'s'} con clic · ventas del período` : `Ventas y precios: ${_mkPeriodoTxt()}`;
+  const seg = document.getElementById('mk-ml-orden');
+  if(seg) seg.innerHTML = [['ventas','Más vendidos'],['precio','Precio / m²'],['nombre','A – Z']].map(([o,l])=>`<button type="button" class="${_mkMapaOrden===o?'on':''}" onclick="_mkSetMapaOrden('${o}')">${l}</button>`).join('');
+  const val = r => st.get(_mkK(r));
+  const ord = [...filtrado].sort((a,b)=>{
+    if(modoClic){ const d = (sel.has(_mkK(b))?1:0)-(sel.has(_mkK(a))?1:0); if(d) return d; }
+    if(_mkMapaOrden==='nombre') return _mkLbl(_mkK(a)).localeCompare(_mkLbl(_mkK(b)),'es');
+    if(_mkMapaOrden==='precio') return ((val(b)||{}).pm2||b.precio_m2_promedio||0)-((val(a)||{}).pm2||a.precio_m2_promedio||0);
+    return ((val(b)||{}).n||0)-((val(a)||{}).n||0);
+  });
+  const LIM = 150;
+  if(seg) list.style.top = (seg.parentElement.offsetTop + seg.parentElement.offsetHeight) + 'px';
+  list.innerHTML = ord.slice(0,LIM).map(r=>{
+    const k=_mkK(r), x=val(r), on = modoClic && sel.has(k);
+    const color = SECTOR_COLORS[(r.sector||'').toUpperCase()] || SECTOR_COLOR_DEFAULT;
+    return `<button type="button" class="mk-ml-it${on?' on':''}${_mkEsPadova(r)?' pdv':''}" onclick='_mkMapaItem(${JSON.stringify(k)})'>
+      <span class="mk-dot" style="background:${color};width:10px;height:10px"></span>
+      <span style="min-width:0"><span class="n">${_escapeHtml(_mkLbl(k))}${_mkTag(r)}</span><span class="h">${_escapeHtml(_mkT(r.inmobiliaria))} · ${_escapeHtml(_mkT(r.distrito)||'—')} · ${_escapeHtml(r.fase_proyecto||'')}</span></span>
+      <span class="v">${x?_mkVel(x.mes):'0'}<small>/mes</small></span>
+      <span class="v">${_mkSol(x?x.pm2:r.precio_m2_promedio)}<small>/m²</small></span>
+    </button>`;
+  }).join('') + (ord.length>LIM ? `<div class="mk-empty" style="padding:12px">y ${fN(ord.length-LIM)} más — filtra o acerca el mapa para acotar</div>` : '')
+    || '<div class="mk-empty">Sin proyectos con estos filtros</div>';
 }
 
 // ─── INIT ──────────────────────────────────────────────────────────────────
