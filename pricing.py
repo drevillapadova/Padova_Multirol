@@ -41,6 +41,12 @@ PARAMS = {
         "alerta_pm2_bajo_plan": 0.02,  # rojo: S/ m² vendido >2% bajo el plan
         "alerta_ritmo_pct": 0.70,      # rojo: ritmo <70% del plan 2 meses seguidos
         "alerta_ticket_pct": 0.10,     # amarillo: ticket >10% bajo el plan
+        # rojo: la lista de Evolta (menos el dscto esperado) queda bajo el precio
+        # del tramo vigente por más de este %. Debe ser menor que el salto entre
+        # tramos (T2→T3 en Orué es 1.8%), si no la alerta nunca salta.
+        "alerta_lista_pct": 0.005,
+        # rojo: venta con descuento sobre la lista mayor a este % (exagerado)
+        "dscto_maximo": 0.10,
         # Lista sugerida para Evolta: se redondea a este múltiplo (S/)
         "redondeo_lista": 100,
         # Estados del stock a los que se les sugiere cambiar la lista (a una
@@ -187,6 +193,7 @@ def calcular_pricing(proyecto, ventas, stock, plan, hoy=None, params=None):
             "objetivo": objetivo,
             "dif_objetivo": (precio - objetivo) if objetivo else None,
             "canal": str(r.get("ComoSeEntero", "")).strip(),
+            "asesor": str(r.get("Vendedor", "")).strip(),
             "_f": f,
         })
     n_vend = len(vendidos)
@@ -350,17 +357,37 @@ def calcular_pricing(proyecto, ventas, stock, plan, hoy=None, params=None):
         sin_usar = t_cupo["hasta"] - n_cupo
         alertas.append({"nivel": "amarillo", "tipo": "obra",
                         "texto": f"La obra está en el tramo {t_actual['n']} ({t_actual['etapa']}) y por ventas recién iba en el {t_cupo['n']}: "
-                                 f"{sin_usar} unidades del cupo del tramo {t_cupo['n']} ya no se venden a ese precio."
-                                 + (f" La lista de Evolta está {abs(desfase_lista):.1%} bajo el tramo {t_actual['n']}: cargar la lista sugerida (pestaña Precios por depa)."
-                                    if desfase_lista is not None and desfase_lista < -0.0025 else "")})
+                                 f"{sin_usar} unidades del cupo del tramo {t_cupo['n']} ya no se venden a ese precio."})
     ancho_act = t_actual["hasta"] - t_actual["desde"] + 1
     usados_act = max(0, n_cupo - t_actual["desde"] + 1)
     if usados_act / ancho_act >= P["alerta_cupo_pct"]:
         alertas.append({"nivel": "amarillo", "tipo": "cupo",
                         "texto": f"El tramo {t_actual['n']} lleva {usados_act} de {ancho_act} ({usados_act/ancho_act:.0%}). Preparar la subida al tramo {t_actual['n']+1}."})
-    if desfase_lista is not None and desfase_lista < -P["alerta_pm2_bajo_plan"]:
-        alertas.append({"nivel": "rojo", "tipo": "lista",
-                        "texto": f"La lista de hoy (menos {dscto:.0%}) está {abs(desfase_lista):.1%} por debajo del precio del tramo {t_actual['n']} (S/ {t_actual['pm2']:,.0f}/m²). Actualizar Evolta con la lista sugerida del tramo {t_actual['n']} (pestaña Precios por depa)."})
+    if desfase_lista is not None and desfase_lista < -P["alerta_lista_pct"]:
+        # Ventas que ya cayeron en el tramo vigente: si salieron bajo su precio
+        # objetivo es lo que Bruce llama "te pasaste": se vendió a precio del
+        # tramo anterior cuando ya tocaba subir.
+        vt = [v for v in vendidos if v["tramo"] == t_actual["n"] and v["dif_objetivo"] is not None]
+        bajo = [v for v in vt if v["dif_objetivo"] < 0]
+        perdida = sum(v["dif_objetivo"] for v in bajo)
+        motivo_txt = "se llenó el cupo del tramo anterior" if motivo == "cupo" else "la obra avanzó"
+        if bajo:
+            texto = (f"Pasaste al tramo {t_actual['n']} ({motivo_txt}) y la lista de Evolta sigue {abs(desfase_lista):.1%} por debajo: "
+                     f"{len(bajo)} de {len(vt)} ventas del tramo {t_actual['n']} salieron bajo su precio objetivo, "
+                     f"S/ {abs(perdida):,.0f} menos. Cargar la lista sugerida del T{t_actual['n']} (Precios por depa).")
+        else:
+            texto = (f"Ya toca el tramo {t_actual['n']} ({motivo_txt}) y la lista de Evolta (menos {dscto:.0%}) está {abs(desfase_lista):.1%} por debajo "
+                     f"de su precio (S/ {t_actual['pm2']:,.0f}/m²). Cargar la lista sugerida del T{t_actual['n']} antes de la próxima venta (Precios por depa).")
+        alertas.append({"nivel": "rojo", "tipo": "lista", "texto": texto, "ventas": [v["orden"] for v in bajo]})
+    exagerados = [v for v in vendidos if v["dscto"] is not None and v["dscto"] > P["dscto_maximo"] + 0.0005]
+    if exagerados:
+        extra = sum((v["dscto"] - dscto) * v["lista_dia"] for v in exagerados)
+        peor = max(exagerados, key=lambda v: v["dscto"])
+        alertas.append({"nivel": "rojo", "tipo": "dscto_maximo",
+                        "texto": f"{len(exagerados)} ventas con descuento mayor al {P['dscto_maximo']:.0%} permitido "
+                                 f"(la mayor: {peor['dscto']:.1%}, depa {peor['nro']} edif. {peor['edificio']}). "
+                                 f"Descuento por encima del {dscto:.0%} esperado: S/ {extra:,.0f}.",
+                        "ventas": [v["orden"] for v in sorted(exagerados, key=lambda v: -v["dscto"])]})
     if recuperacion > 0.0005:
         alertas.append({"nivel": "amarillo", "tipo": "recuperacion",
                         "texto": f"Aun subiendo según el plan faltan S/ {falta - por_vender_plan:,.0f} para la recaudación requerida: habría que sumar +{recuperacion:.1%} a todo lo que queda por vender (o subir más los tramos que vienen)."})
@@ -377,7 +404,8 @@ def calcular_pricing(proyecto, ventas, stock, plan, hoy=None, params=None):
                         "texto": f"Ticket promedio S/ {ticket_real:,.0f}, {1 - ticket_real/plan['ticket_plan']:.0%} bajo el plan (S/ {plan['ticket_plan']:,.0f}): se venden los depas más chicos."})
     if sobre_dscto:
         alertas.append({"nivel": "amarillo", "tipo": "descuento",
-                        "texto": f"{len(sobre_dscto)} de {len(dsctos)} ventas con descuento mayor al {dscto:.0%} esperado (promedio {dscto_prom:.1%})."})
+                        "texto": f"{len(sobre_dscto)} de {len(dsctos)} ventas con descuento mayor al {dscto:.0%} esperado (promedio {dscto_prom:.1%}).",
+                        "ventas": [v["orden"] for v in sorted(sobre_dscto, key=lambda v: -v["dscto"])]})
 
     for v in vendidos:
         v.pop("_f", None)

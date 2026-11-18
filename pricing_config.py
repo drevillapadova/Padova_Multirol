@@ -35,6 +35,8 @@ DEFAULTS = {
         "alerta_pm2_bajo_plan": 0.02,
         "alerta_ritmo_pct": 0.70,
         "alerta_ticket_pct": 0.10,
+        "alerta_lista_pct": 0.005,
+        "dscto_maximo": 0.10,
         "tramos": [
             {"n": 1, "etapa": "Lanzamiento",       "unidades": 30, "velocidad": 6,  "meses": 5, "pm2": 6700},
             {"n": 2, "etapa": "En planos",         "unidades": 50, "velocidad": 10, "meses": 5, "pm2": 7070},
@@ -54,6 +56,7 @@ CAMPOS_NUM = {
     "requerida": (0, None), "unidades_plan": (0, None), "ticket_plan": (0, None), "area_plan": (0, None),
     "dscto_esperado": (0, 0.5), "redondeo_lista": (1, 100000),
     "alerta_cupo_pct": (0, 1), "alerta_pm2_bajo_plan": (0, 1), "alerta_ritmo_pct": (0, 1), "alerta_ticket_pct": (0, 1),
+    "alerta_lista_pct": (0, 1), "dscto_maximo": (0, 0.6),
 }
 
 
@@ -90,8 +93,13 @@ def cargar(proyecto):
     with _lock:
         data = _leer_archivo()
     cfg = data.get(proyecto)
+    base = copy.deepcopy(DEFAULTS.get(proyecto))
     if cfg is None:
-        cfg = copy.deepcopy(DEFAULTS.get(proyecto))
+        return base
+    if base:
+        # Campos agregados después de que se guardó el archivo: valor por defecto
+        for k, v in base.items():
+            cfg.setdefault(k, v)
     return cfg
 
 
@@ -187,4 +195,4 @@ def a_params(cfg):
     """Parámetros de cálculo que sobrescriben pricing.PARAMS."""
     return {k: cfg[k] for k in ("dscto_esperado", "cupo_cuenta_separaciones", "redondeo_lista",
                                 "alerta_cupo_pct", "alerta_pm2_bajo_plan", "alerta_ritmo_pct",
-                                "alerta_ticket_pct") if k in cfg}
+                                "alerta_ticket_pct", "alerta_lista_pct", "dscto_maximo") if k in cfg}
