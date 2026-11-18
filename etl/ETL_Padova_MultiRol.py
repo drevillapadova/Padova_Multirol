@@ -292,7 +292,7 @@ AÑO_INICIO_FLUJO_CAJA  = 2025
 MES_INICIO_FLUJO_CAJA  = "Enero"
 AÑO_FIN_FLUJO_CAJA     = 2027
 MES_FIN_FLUJO_CAJA     = "Diciembre"
-AÑOS_ESCRITURA         = [2025, 2026]  # el reporte también tiene tope de 1 año por descarga
+AÑOS_ESCRITURA         = [2023, 2024, 2025, 2026]  # el reporte también tiene tope de 1 año por descarga (desde 2023, igual que Ventas)
 
 # ── Columnas a conservar por pestaña (reduce celdas en Sheets) ──
 COLS_VENTAS = [
