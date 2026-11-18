@@ -898,6 +898,50 @@ select.mk-btn{appearance:auto}
   .mk-card-hd{padding:14px 14px 6px}
 }
 
+/* el desglose del popup tiene display:flex en línea: sin esto 'hidden' no lo ocultaba (franja vacía) */
+#fl-cli-desglose-wrap[hidden],#fl-cli-canal-wrap[hidden],#fl-cli-resp-wrap[hidden]{display:none !important}
+/* ═══ COMERCIAL ═══ */
+.mk-kpi .k-v small{font-size:14px;font-weight:600;color:var(--ink-3);letter-spacing:0}
+.mk-kpi.hero .k-v small{color:#dbeafe}
+.mk-kpi .adm-meter{height:10px}
+.mk-kpi.hero .adm-meter{background:rgba(255,255,255,.25)}
+.mk-kpi.hero .adm-meter>b{background:#fff}
+.mk-kpi .k-s b{color:var(--ink);font-weight:700}
+.mk-kpi.hero .k-s b{color:#fff}
+.mk-typ-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;padding:4px 20px 20px}
+.mk-typ{display:flex;flex-direction:column;gap:10px;text-align:left;border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:14px;font-family:inherit;color:var(--ink);cursor:pointer;min-width:0}
+.mk-typ:hover{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+.mk-typ .ty-hd{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mk-typ .ty-code{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:26px;padding:0 8px;border-radius:8px;background:var(--brand-soft);color:var(--brand);font-weight:800;font-size:13px}
+.mk-typ .ty-area{font-size:11.5px;color:var(--ink-3);font-weight:600}
+.mk-typ .ty-n{font-size:28px;line-height:30px;font-weight:800;letter-spacing:-.02em}
+.mk-typ .ty-n small{font-size:12px;font-weight:600;color:var(--ink-3);margin-left:6px;letter-spacing:0}
+.mk-typ .ty-st{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr);gap:6px;border-top:1px solid var(--line-2);padding-top:10px}
+.mk-typ .ty-st span{display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-4)}
+.mk-typ .ty-st b{display:block;font-size:13px;font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mk-typ .adm-stk i{background:var(--mk-gold)}
+.mk-steps{list-style:none;margin:0;padding:6px 20px 18px;display:flex;flex-direction:column}
+.mk-steps li{display:grid;grid-template-columns:22px 1fr auto;gap:12px;align-items:start;position:relative;padding-bottom:16px}
+.mk-steps li:last-child{padding-bottom:0}
+.mk-steps li::before{content:'';position:absolute;left:10px;top:20px;bottom:0;width:2px;background:var(--line)}
+.mk-steps li:last-child::before{display:none}
+.mk-steps .st-dot{width:22px;height:22px;border-radius:999px;border:2px solid var(--line);background:var(--panel);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--ink-4);z-index:1}
+.mk-steps li.ok .st-dot{background:var(--brand);border-color:var(--brand);color:#fff}
+.mk-steps li.ok::before{background:var(--brand)}
+.mk-steps li.bad .st-dot{background:var(--mk-bad);border-color:var(--mk-bad);color:#fff}
+.mk-steps .st-l{font-size:13px;font-weight:700;color:var(--ink);padding-top:2px}
+.mk-steps li:not(.ok):not(.bad) .st-l{color:var(--ink-4);font-weight:600}
+.mk-steps .st-f{font-size:12.5px;font-weight:700;color:var(--ink-2);padding-top:3px}
+.mk-kv{display:grid;grid-template-columns:auto 1fr;gap:0;padding:0 20px 16px}
+.mk-kv>span{padding:9px 0;border-bottom:1px solid var(--line-2);font-size:12.5px}
+.mk-kv>span:nth-child(odd){color:var(--ink-3)}
+.mk-kv>span:nth-child(even){text-align:right;font-weight:700;color:var(--ink)}
+.mk-kv>span:nth-last-child(-n+2){border-bottom:none}
+#panel-director .tbl th{font-size:10.5px;letter-spacing:.06em}
+#panel-director td,#panel-director .mk-amt,#panel-director .t-v{font-family:'Plus Jakarta Sans',sans-serif;font-variant-numeric:tabular-nums}
+#panel-director .fl-cross-clk{cursor:pointer}
+#panel-director .fl-cross-clk:hover .mk-amt{color:var(--brand)}
+
 /* ═══ ADM. DE VENTAS (mismo lenguaje que Marketing) ═══ */
 .mk-panel{font-family:'Plus Jakarta Sans',sans-serif;font-variant-numeric:tabular-nums}
 .mk-grp-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:0 0 18px}
@@ -1128,11 +1172,11 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
 
 <!-- ═══════════ DIRECTOR COMERCIAL ═══════════ -->
 <main>
-<div class="panel active" id="panel-director">
+<div class="panel active mk-panel" id="panel-director">
   <div class="topbar">
     <div>
       <div class="crumbs">Dashboard <span>›</span><b>Comercial</b></div>
-      <h1 class="page-title">Resumen comercial</h1>
+      <h1 class="page-title">Comercial</h1>
       <div class="page-sub" id="dir-sub">Cargando...</div>
     </div>
     <div class="toolbar" style="flex-wrap:wrap;row-gap:6px;overflow:visible">
@@ -1146,40 +1190,41 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
           <div id="dir-proj-list"></div>
         </div>
       </div>
-      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◈</span>
-        <select id="dir-tipo" onchange="renderDirector()"><option value="">Tipo: Todos</option><option value="departamento">Departamento</option><option value="azotea">Azotea</option><option value="estacionamiento">Estacionamiento</option><option value="deposito">Depósito</option><option value="comercio">Comercio</option></select>
-      </label>
       <div class="chip refresh" onclick="loadAll(true)">↻ Actualizar</div>
       <button class="dark-toggle-btn" onclick="toggleDark()" title="Modo oscuro" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all .2s">◑</button>
     </div>
   </div>
-  <div class="kpi-row kpi-4" id="dir-kpis"><div class="loading">Cargando datos...</div></div>
-  <div style="display:flex;align-items:center;gap:8px;padding:10px 24px 0;flex-wrap:wrap">
-    <span style="font-size:11px;color:var(--ink-3);font-weight:700;letter-spacing:.04em;text-transform:uppercase">Período:</span>
-    <div style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:3px 10px">
-      <span style="font-size:10px;color:var(--ink-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Desde</span>
-      <input type="date" id="dir-date-desde" oninput="renderDirector()" style="border:none;background:transparent;font-size:12.5px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;outline:none;padding:2px 0">
-      <span style="color:var(--ink-4);font-size:13px">→</span>
-      <span style="font-size:10px;color:var(--ink-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Hasta</span>
-      <input type="date" id="dir-date-hasta" oninput="renderDirector()" style="border:none;background:transparent;font-size:12.5px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;outline:none;padding:2px 0">
+  <div class="mk-filtros" id="dir-date-bar">
+    <span class="mk-lbl">Período</span>
+    <div class="mk-dates">
+      <span>Desde</span>
+      <input type="date" id="dir-date-desde" oninput="renderDirector()">
+      <span style="font-size:13px">→</span>
+      <span>Hasta</span>
+      <input type="date" id="dir-date-hasta" oninput="renderDirector()">
+      <button type="button" class="mk-x" title="Limpiar fechas" onclick="document.getElementById('dir-date-desde').value='';document.getElementById('dir-date-hasta').value='';renderDirector()">✕</button>
     </div>
-    <button onclick="document.getElementById('dir-date-desde').value='';document.getElementById('dir-date-hasta').value='';renderDirector()" title="Limpiar fechas" style="background:transparent;border:none;color:var(--ink-4);font-size:14px;cursor:pointer;padding:0 4px;line-height:1">✕</button>
-    <div style="width:1px;height:18px;background:var(--line);margin:0 2px"></div>
-    <button id="dir-comp-btn" onclick="toggleDirComp()" style="background:var(--bg);border:1px solid var(--line);color:var(--ink-2);font-size:11px;padding:5px 12px;border-radius:6px;cursor:pointer;font-weight:600">⊕ Comparar</button>
+    <div class="ddb-sep"></div>
+    <button type="button" class="mk-sw" id="dir-comp-btn" aria-pressed="false" onclick="toggleDirComp()" title="Compara con otro período (por defecto, el mismo tramo del período anterior)"><i></i>Comparar</button>
     <span id="dir-range-b" style="display:none;align-items:center;gap:6px">
-      <span style="font-size:11px;font-weight:700;color:var(--ink-3);margin-left:4px">vs.</span>
-      <div style="display:flex;align-items:center;gap:6px;background:var(--brand-soft);border:1.5px solid var(--line);border-radius:8px;padding:3px 10px">
-        <span style="font-size:10px;color:var(--ink-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Desde</span>
-        <input type="date" id="dir-date-desde-b" oninput="renderDirector()" style="border:none;background:transparent;font-size:12.5px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;outline:none;padding:2px 0">
-        <span style="color:var(--ink-4);font-size:13px">→</span>
-        <span style="font-size:10px;color:var(--ink-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Hasta</span>
-        <input type="date" id="dir-date-hasta-b" oninput="renderDirector()" style="border:none;background:transparent;font-size:12.5px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;outline:none;padding:2px 0">
+      <span class="mk-lbl">vs.</span>
+      <div class="mk-dates vs">
+        <span>Desde</span>
+        <input type="date" id="dir-date-desde-b" oninput="renderDirector()">
+        <span style="font-size:13px">→</span>
+        <span>Hasta</span>
+        <input type="date" id="dir-date-hasta-b" oninput="renderDirector()">
       </div>
     </span>
+    <div class="ddb-sep"></div>
+    <span class="mk-lbl">Tipo</span>
+    <select class="mk-btn" id="dir-tipo" onchange="renderDirector()"><option value="">Todos</option><option value="departamento">Departamento</option><option value="azotea">Azotea</option><option value="estacionamiento">Estacionamiento</option><option value="deposito">Depósito</option><option value="comercio">Comercio</option></select>
   </div>
+  <div class="mk-kpis" id="dir-kpis"><div class="loading">Cargando datos...</div></div>
   <div class="tab-bar" id="dir-tab-bar">
     <button class="tab-btn active" id="dir-tab-resumen" onclick="setDirTab('resumen',this)">Resumen</button>
-    <button class="tab-btn" id="dir-tab-detalle" onclick="setDirTab('detalle',this)">Detalle</button>
+    <button class="tab-btn" id="dir-tab-detalle" onclick="setDirTab('detalle',this)">Detalle de ventas</button>
+    <button class="tab-btn" id="dir-tab-separaciones" onclick="setDirTab('separaciones',this)">Detalle de separaciones</button>
     <button class="tab-btn" id="dir-tab-buscador" onclick="setDirTab('buscador',this)">Buscador de clientes</button>
   </div>
   <div id="dir-content"><div class="loading">Cargando...</div></div>
@@ -1219,10 +1264,17 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
       <h1 class="page-title">Adm. de Ventas</h1>
       <div class="page-sub" id="adm-sub">Cargando...</div>
     </div>
-    <div class="toolbar">
-      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
-        <select id="adm-proj" onchange="renderAdmVentas()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO 4</option><option>LOMAS DE CARABAYLLO 5</option><option>DOMINGO ORUE</option></select>
-      </label>
+    <div class="toolbar" style="overflow:visible">
+      <div style="position:relative">
+        <button type="button" class="chip-sel msel-btn" style="border:1px solid var(--line)" onclick="projMsToggle('adm')">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
+          <span id="adm-proj-label">Todos los proyectos</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
+        </button>
+        <div class="msel-panel" id="adm-proj-panel" style="display:none;min-width:260px">
+          <div class="msel-tools"><button type="button" onclick="projMsLimpiar('adm')">Todos / Limpiar</button></div>
+          <div id="adm-proj-list"></div>
+        </div>
+      </div>
       <div class="chip refresh" onclick="loadAll(true)">↻ Actualizar</div>
       <button class="dark-toggle-btn" onclick="toggleDark()" title="Modo oscuro" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all .2s">◑</button>
     </div>
@@ -1376,9 +1428,16 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
       <div class="page-sub" id="sp-sub">Cargando...</div>
     </div>
     <div class="toolbar" style="flex-wrap:wrap;row-gap:6px">
-      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
-        <select id="sp-proj" onchange="_spEtapa='';_spEstados=new Set();document.getElementById('sp-tipo').value='departamento';renderStockProy()"><option value="">Todos los proyectos</option><option>HELIO - SANTA BEATRIZ</option><option>SUNNY</option><option>LITORAL 900</option><option>LOMAS DE CARABAYLLO 4</option><option>LOMAS DE CARABAYLLO 5</option><option>DOMINGO ORUE</option></select>
-      </label>
+      <div style="position:relative">
+        <button type="button" class="chip-sel msel-btn" style="border:1px solid var(--line)" onclick="projMsToggle('sp')">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
+          <span id="sp-proj-label">Todos los proyectos</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
+        </button>
+        <div class="msel-panel" id="sp-proj-panel" style="display:none;min-width:260px">
+          <div class="msel-tools"><button type="button" onclick="projMsLimpiar('sp')">Todos / Limpiar</button></div>
+          <div id="sp-proj-list"></div>
+        </div>
+      </div>
       <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">◈</span>
         <select id="sp-tipo" onchange="renderStockProy()"><option value="">Tipo: Todos</option><option value="departamento">Departamento</option><option value="azotea">Azotea</option><option value="estacionamiento">Estacionamiento</option><option value="deposito">Depósito</option></select>
       </label>
@@ -2017,6 +2076,8 @@ const DIR_PROJS=['HELIO - SANTA BEATRIZ','SUNNY','LITORAL 900','LOMAS DE CARABAY
 const _dirProjSel=new Set();
 function _projArr(prefix){
   if(prefix==='dir') return [..._dirProjSel];
+  if(prefix==='adm') return [..._projSel.adm];
+  if(prefix==='sp')  return [..._projSel.sp];
   const v=document.getElementById(prefix+'-proj')?.value||'';
   return v?[v]:[];
 }
@@ -2035,6 +2096,28 @@ function _dirProjRenderList(){
 }
 function dirProjSet(p,on){ if(on)_dirProjSel.add(p); else _dirProjSel.delete(p); _dirProjRenderList(); renderDirector(); }
 function dirProjLimpiar(){ _dirProjSel.clear(); _dirProjRenderList(); renderDirector(); }
+
+// Selección múltiple de proyectos genérica (Adm. de Ventas, Stock Proyecto). Vacío = todos.
+const _projSel = {dir:_dirProjSel, adm:new Set(), sp:new Set()};
+const _projOnChange = {
+  adm: ()=>renderAdmVentas(),
+  sp:  ()=>{ _spEtapa=''; _spEstados=new Set(); const t=document.getElementById('sp-tipo'); if(t) t.value='departamento'; renderStockProy(); },
+};
+function projMsToggle(px){
+  const panel=document.getElementById(px+'-proj-panel'); if(!panel) return;
+  const abierto=panel.style.display==='block';
+  document.querySelectorAll('.msel-panel').forEach(x=>x.style.display='none');
+  if(!abierto){ projMsRender(px); panel.style.display='block'; }
+}
+function projMsRender(px){
+  const sel=_projSel[px]; if(!sel) return;
+  const list=document.getElementById(px+'-proj-list');
+  if(list) list.innerHTML=DIR_PROJS.map(p=>`<label class="msel-item"><input type="checkbox" ${sel.has(p)?'checked':''} onchange="projMsSet('${px}','${p}',this.checked)"><span>${p}</span></label>`).join('');
+  const lbl=document.getElementById(px+'-proj-label');
+  if(lbl) lbl.textContent=sel.size?(sel.size===1?[...sel][0]:sel.size+' proyectos'):'Todos los proyectos';
+}
+function projMsSet(px,p,on){ const sel=_projSel[px]; if(on) sel.add(p); else sel.delete(p); projMsRender(px); (_projOnChange[px]||(()=>{}))(); }
+function projMsLimpiar(px){ _projSel[px].clear(); projMsRender(px); (_projOnChange[px]||(()=>{}))(); }
 
 function filtrarVentasRango(prefix,sfx=''){
   const projArr=_projArr(prefix);
@@ -2076,7 +2159,55 @@ function _dirClk(titulo, filas, cols){
 }
 function _dirAbrir(k){ const q=_dirPop[k]; if(q) _dirAbrirDir(q.titulo, q.filas, q.cols); }
 
+// Tipologías: el clic abre el detalle por MODELO (X01, X02…) de esa tipología:
+// vendidas (Ventas), separadas y disponibles (Stock), área, ticket y precio/m².
+function _dirTypClk(lbl, vendidas, stockRows){
+  const k='t'+(++_dirPopN);
+  _dirPop[k]={lbl, vendidas, stockRows};
+  return ` onclick="_dirAbrirTyp('${k}')" title="Ver por modelo"`;
+}
+function _dirAbrirTyp(k){
+  const q=_dirPop[k]; if(!q) return;
+  const nro=x=>String(x||'').trim().replace(/\.0+$/,'').toUpperCase();
+  const mod=x=>String(x||'').trim().toUpperCase()||'SIN MODELO';
+  const key=r=>String(r.Proyecto||'').trim().toUpperCase()+'|'+mod(r.Modelo);
+  const g={};
+  const grupo=r=>{ const kk=key(r); return g[kk]||(g[kk]={Proyecto:String(r.Proyecto||'').trim(), Modelo:mod(r.Modelo), vend:0, monto:0, nMonto:0, sep:new Set(), disp:new Set(), area:[], pm2:[]}); };
+  q.vendidas.forEach(r=>{ const x=grupo(r); x.vend++; const p=Number(r.PrecioVentaSoles||r.PrecioVenta||0); if(p>0){ x.monto+=p; x.nMonto++; } });
+  q.stockRows.forEach(r=>{
+    const x=grupo(r), est=String(r.Estado||'').toLowerCase(), u=nro(r.NroInmuebleActual||r.NroInmueble)+'|'+String(r.Edificio||'');
+    if(est.includes('disponib')) x.disp.add(u);
+    if(est.includes('separac')) x.sep.add(u);
+    if(Number(r.AreaTechada)>0) x.area.push(Number(r.AreaTechada));
+    if(Number(r.PrecioM2)>0) x.pm2.push(Number(r.PrecioM2));
+  });
+  const prom=a=>a.length?a.reduce((s,v)=>s+v,0)/a.length:0;
+  const filas=Object.values(g).map(x=>({Proyecto:x.Proyecto, Modelo:x.Modelo, _vend:x.vend, _sep:x.sep.size, _disp:x.disp.size,
+    _area:prom(x.area), _ticket:x.nMonto?x.monto/x.nMonto:0, _pm2:prom(x.pm2)})).filter(x=>x._vend||x._sep||x._disp);
+  const varios=new Set(filas.map(f=>f.Proyecto)).size>1;
+  const n0=v=>v?fN(Math.round(v)):'—';
+  const cols=[
+    ...(varios?[{label:'Proyecto', get:r=>_flProjShort(r.Proyecto)}]:[]),
+    {label:'Modelo',      get:r=>r.Modelo, align:'center'},
+    {label:'Vendidas',    get:r=>fN(r._vend), align:'center', sortVal:r=>r._vend, numeric:true},
+    {label:'Separadas',   get:r=>fN(r._sep), align:'center', sortVal:r=>r._sep, numeric:true},
+    {label:'Disponibles', get:r=>fN(r._disp), align:'center', sortVal:r=>r._disp, numeric:true},
+    {label:'Área prom. (m²)', get:r=>r._area?r._area.toFixed(1):'—', align:'center', sortVal:r=>r._area, numeric:true},
+    {label:'Ticket prom.', get:r=>r._ticket?'S/ '+n0(r._ticket):'—', align:'center', sortVal:r=>r._ticket, numeric:true},
+    {label:'Precio/m² lista', get:r=>r._pm2?'S/ '+n0(r._pm2):'—', align:'center', sortVal:r=>r._pm2, numeric:true},
+  ];
+  const totV=filas.reduce((a,f)=>a+f._vend,0);
+  _abrirModalFunnelEtapa('Tipología '+q.lbl+' · por modelo',
+    {label:'Modelos', val:fN(filas.length), color:'#2563eb'},
+    {label:'Unidades vendidas', val:fN(totV), color:'#F4A228'},
+    filas, cols);
+  // más vendido primero
+  _flPopupSortIdx = cols.findIndex(c=>c.label==='Vendidas'); _flPopupSortDir='desc';
+  _flRenderPopupTable();
+}
+
 function setDirTab(tab,el){
+  if(tab!==_dirTab){ _dirTabBusq=''; _dirTabSort=null; }
   _dirTab=tab;
   document.querySelectorAll('#panel-director .tab-btn').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
@@ -2091,22 +2222,48 @@ let _dirTabBusq = '';
 let _dirTabFilt = {};     // filtros tipo Excel por columna: {idx: Set(valores permitidos)}
 let _dirTabCtx = null;
 let _dirTabRows = [];
-const _dirTabCols = [
-  {label:'Proyecto',   align:'left',   get:r=>String(r.Proyecto||'').trim()||'—'},
+let _dirTabColsAct = null; // columnas visibles (Torre solo si hay Sunny/Orue)
+// Detalle de ventas y Detalle de separaciones: misma tabla, mismas columnas.
+// Las separaciones (filas de Stock) se normalizan a la forma de una venta en _dirSepComoVenta.
+let _dirTabModo = 'ventas'; // 'ventas' | 'sep'
+const _dirTabFechaIso = r => _dirTabModo==='sep' ? _flIsoFecha(r.FechaSepDefinitiva) : _flIsoFecha(r.FechaVenta||r.FechaEntrega_Minuta);
+const _dirTabColsBase = [
+  {label:'Proyecto',   align:'left',   get:r=>_flProjShort(r.Proyecto)||'—'},
   {label:'Cliente',    align:'left'  , get:r=>_flNombreCompleto(r)},
-  {label:'Tipo',       align:'center', get:r=>String(r.TipoInmueble||'').trim()||'—'},
+  {label:'DNI',        align:'center', get:r=>_flDNI(r)},
   {label:'Inmueble',   align:'center', get:r=>String(r.NroInmueble||'').trim().replace(/\.0+$/,'')||'—'},
-  {label:'Precio',     align:'center', get:r=>{ const n=Number(r.PrecioVenta||r.PrecioVentaSoles||0); return n?_comMoneda(r)+' '+n.toLocaleString('en-US',{maximumFractionDigits:2}):'—'; },
+  {label:'Torre',      align:'center', get:r=>r._torre!==undefined?r._torre:_torreDe(r), soloTorre:true},
+  {label:'Canal',      align:'center', get:r=>_flCanal(r)},
+  {label:'Contacto',   align:'center', get:r=>_flTitleCase(String(r.FormaContacto||'').trim())||'—'},
+  {label:'Precio',     align:'center', get:r=>{ const n=Number(r.PrecioVenta||r.PrecioVentaSoles||0); return n?_comMoneda(r)+' '+Math.round(n).toLocaleString('en-US'):'—'; },
                                         sort:r=>Number(r.PrecioVentaSoles||r.PrecioVenta||0)},
   {label:'Moneda',     align:'center', get:r=>String(r.TipoMoneda||'').toUpperCase().includes('DOLAR')?'Dólares':'Soles'},
   {label:'m²',        align:'center', get:r=>r._m2?r._m2.toFixed(1):'—', sort:r=>r._m2||0},
-  {label:'Crédito',    align:'center', get:r=>String(r.TipoFinanciamiento||'').split('/')[0].trim()||'—'},
-  {label:'Entidad',    align:'center', get:r=>{ const t=String(r.EntidadFinanciamiento||'').trim(); return (t&&t!=='nan'&&t!=='None')?t:'—'; }},
-  {label:'F. Venta',   align:'center', get:r=>_flFmtFecha(r.FechaVenta||r.FechaEntrega_Minuta), sort:r=>_flIsoFecha(r.FechaVenta||r.FechaEntrega_Minuta)},
+  {label:'Crédito',    align:'center', get:r=>{ const t=String(r.TipoFinanciamiento||'').split('/')[0].trim(); return (t&&t!=='nan'&&t!=='None')?t:'—'; }},
+  {label:'Entidad',    align:'center', get:r=>{ const t=String(r.EntidadFinanciamiento||'').trim(); return (t&&t!=='nan'&&t!=='None')?_flTitleCase(t):'—'; }},
 ];
-function _renderDirTablaDetalle(vGlob){
+const _dirTabColsDe = modo => modo==='sep'
+  ? [..._dirTabColsBase.filter(c=>c.label!=='Crédito' && c.label!=='Entidad'), // separaciones: sin crédito ni entidad
+     {label:'Estado',        align:'center', get:r=>String(r.Estado||'').trim()||'—'},
+     {label:'F. Separación', align:'center', get:r=>_flFmtFecha(r.FechaSepDefinitiva), sort:r=>_flIsoFecha(r.FechaSepDefinitiva)}]
+  : [..._dirTabColsBase,
+     {label:'F. Venta',      align:'center', get:r=>_flFmtFecha(r.FechaVenta||r.FechaEntrega_Minuta), sort:r=>_flIsoFecha(r.FechaVenta||r.FechaEntrega_Minuta)}];
+let _dirTabCols = _dirTabColsDe('ventas');
+// Una separación (fila de Stock) con la forma de una venta (mismas columnas que Detalle de ventas).
+function _dirSepComoVenta(r){
+  return Object.assign({}, r, {
+    _torre: _torreDe(r),
+    NroInmueble: String(r.NroInmuebleActual||r.NroInmueble||''),
+    NroDocumentoTitular: r.NroDocumento,
+    TipoMoneda: r.Moneda,
+    _m2: _m2Efectivo(r)||0,
+  });
+}
+function _renderDirTablaDetalle(vGlob, modo){
   const wrap = document.getElementById('dir-content');
   if(!wrap) return;
+  _dirTabModo = modo==='sep' ? 'sep' : 'ventas';
+  _dirTabCols = _dirTabColsDe(_dirTabModo);
   const nro = x=>String(x||'').trim().replace(/\.0+$/,'');
   const area = {};
   (D.stock||[]).forEach(x=>{
@@ -2114,15 +2271,15 @@ function _renderDirTablaDetalle(vGlob){
     const k=_m2Key(x.Proyecto, nro(x.NroInmuebleActual||x.NroInmueble), dni);
     if(!(k in area)) area[k]=_m2Efectivo(x);
   });
-  _dirTabRows = vGlob.map(r=>Object.assign({}, r, {_m2: area[_m2Key(r.Proyecto, nro(r.NroInmueble), r.NroDocumentoTitular)]||0}));
+  _dirTabRows = _dirTabModo==='sep' ? vGlob : vGlob.map(r=>Object.assign({}, r, {_m2: area[_m2Key(r.Proyecto, nro(r.NroInmueble), r.NroDocumentoTitular)]||0}));
+  _dirTabColsAct = _colsConTorre(_dirTabCols, _dirTabRows);
+  _dirTabSort = null;
   wrap.innerHTML = `
-  <div class="section-title"><h2>Detalle de ventas</h2><div class="hint" id="dir-tab-hint"></div></div>
-  <div class="card" style="margin-bottom:16px">
-    <div style="padding:12px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <input type="text" class="sp-search" id="dir-tab-search" style="margin-left:0;width:280px" placeholder="Buscar en la tabla..." value="${_escapeHtml(_dirTabBusq)}" oninput="_dirTabBuscar(this.value)">
-      <button type="button" class="chip-sel" style="cursor:pointer;border:none;margin-left:auto" onclick="_exportarTablaExcel('#dir-detalle-tabla','resumen_comercial_detalle')">
-        <span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">⬇</span><span>Descargar Excel</span>
-      </button>
+  <section class="mk-card" style="margin:4px 0 16px">
+    <div class="mk-card-hd"><div><h3>${_dirTabModo==='sep'?'Detalle de separaciones':'Detalle de ventas'}</h3><p id="dir-tab-hint"></p></div>
+      <button type="button" class="mk-btn" onclick="_exportarTablaExcel('#dir-detalle-tabla','${_dirTabModo==='sep'?'comercial_detalle_separaciones':'resumen_comercial_detalle'}')">↓ Excel</button></div>
+    <div style="padding:4px 20px 14px">
+      <input type="text" class="mk-search" id="dir-tab-search" placeholder="Buscar en la tabla: cliente, DNI, proyecto, inmueble, canal, entidad${_dirTabModo==='sep'?', estado':''}..." value="${_escapeHtml(_dirTabBusq)}" oninput="_dirTabBuscar(this.value)">
     </div>
     <div style="overflow:auto;max-height:70vh;border-top:1px solid var(--line-2)">
       <table class="tbl" id="dir-detalle-tabla" style="width:100%">
@@ -2131,7 +2288,7 @@ function _renderDirTablaDetalle(vGlob){
         <tfoot id="dir-tab-tfoot" style="position:sticky;bottom:0;background:var(--panel);z-index:2"></tfoot>
       </table>
     </div>
-  </div>`;
+  </section>`;
   _dirTabFilt = {};
   _dirTabPintar();
 }
@@ -2145,23 +2302,23 @@ function _dirTabOrdenar(i){
 function _dirTabPintar(){
   const tb = document.getElementById('dir-tab-tbody'); if(!tb) return;
   const q = normStr(_dirTabBusq).trim();
-  if(!_dirTabCtx) _dirTabCtx = {state:{get filas(){return _dirTabRows;}, cols:_dirTabCols}, get filtros(){return _dirTabFilt;}, render:_dirTabPintar};
-  let rows = _flFilasFiltradas(_dirTabRows, _dirTabCols, undefined, _dirTabFilt);
-  if(q) rows = rows.filter(r=>normStr(_dirTabCols.map(c=>c.get(r)).join(' ')).includes(q));
+  if(!_dirTabCtx) _dirTabCtx = {state:{get filas(){return _dirTabRows;}, get cols(){return _dirTabColsAct||_dirTabCols;}}, get filtros(){return _dirTabFilt;}, render:_dirTabPintar};
+  let rows = _flFilasFiltradas(_dirTabRows, (_dirTabColsAct||_dirTabCols), undefined, _dirTabFilt);
+  if(q) rows = rows.filter(r=>normStr((_dirTabColsAct||_dirTabCols).map(c=>c.get(r)).join(' ')).includes(q));
   if(_dirTabSort){
-    const c=_dirTabCols[_dirTabSort.idx], f=c.sort||c.get, d=_dirTabSort.dir==='desc'?-1:1;
+    const c=(_dirTabColsAct||_dirTabCols)[_dirTabSort.idx], f=c.sort||c.get, d=_dirTabSort.dir==='desc'?-1:1;
     rows.sort((a,b)=>{ const va=f(a), vb=f(b);
       return (typeof va==='number'&&typeof vb==='number' ? va-vb : String(va).localeCompare(String(vb),undefined,{numeric:true,sensitivity:'base'}))*d; });
   } else {
-    rows.sort((a,b)=>String(b.FechaVenta||b.FechaEntrega_Minuta||'').localeCompare(String(a.FechaVenta||a.FechaEntrega_Minuta||'')));
+    rows.sort((a,b)=>String(_dirTabFechaIso(b)||'').localeCompare(String(_dirTabFechaIso(a)||'')));
   }
-  document.getElementById('dir-tab-thead').innerHTML = _dirTabCols.map((c,i)=>{
+  document.getElementById('dir-tab-thead').innerHTML = (_dirTabColsAct||_dirTabCols).map((c,i)=>{
     const ico=_dirTabSort&&_dirTabSort.idx===i?(_dirTabSort.dir==='asc'?' ↑':' ↓'):'';
     const act=!!_dirTabFilt[i];
     return `<th style="text-align:${c.align};cursor:pointer;user-select:none;white-space:nowrap" onclick="_dirTabOrdenar(${i})" title="Ordenar">${c.label}${ico}<span onclick="event.stopPropagation();_flFiltAbrir(${i},this,_dirTabCtx)" title="Filtrar" style="margin-left:5px;font-size:10px;padding:1px 3px;border-radius:4px;${act?'color:#fff;background:var(--brand)':'color:var(--ink-4)'}">${act?'▼':'▾'}</span></th>`;
   }).join('');
-  tb.innerHTML = rows.map(r=>`<tr>${_dirTabCols.map(c=>`<td style="text-align:${c.align}${c.label==='Proyecto'||c.label==='Cliente'?'':';white-space:nowrap'}">${_escapeHtml(String(c.get(r)))}</td>`).join('')}</tr>`).join('')
-    || `<tr><td colspan="${_dirTabCols.length}" style="text-align:center;color:var(--ink-4);padding:20px">Sin registros</td></tr>`;
+  tb.innerHTML = rows.map(r=>`<tr>${(_dirTabColsAct||_dirTabCols).map(c=>`<td style="text-align:${c.align}${c.label==='Proyecto'||c.label==='Cliente'?'':';white-space:nowrap'}">${_escapeHtml(String(c.get(r)))}</td>`).join('')}</tr>`).join('')
+    || `<tr><td colspan="${(_dirTabColsAct||_dirTabCols).length}" style="text-align:center;color:var(--ink-4);padding:20px">Sin registros</td></tr>`;
   // Fila de total según lo filtrado. El precio se suma por moneda, con el mismo monto que
   // muestra la columna Precio (así el total cuadra con lo que se ve). Si lo filtrado mezcla
   // soles y dólares salen dos totales; bajo "Moneda" va el equivalente total en soles.
@@ -2173,20 +2330,22 @@ function _dirTabPintar(){
     const hayUSD=rows.some(r=>_comMoneda(r)==='$');
     const fm=n=>Math.round(n).toLocaleString('en-US');
     const precioTxt=[tot['S/']?'S/ '+fm(tot['S/']):'', tot['$']?'$ '+fm(tot['$']):''].filter(Boolean).join('  ·  ')||'—';
-    const totM2=rows.reduce((a,r)=>a+(r._m2||0),0);
-    const celdas=_dirTabCols.map((c,i)=>{
+    // m²: promedio de las unidades con área (sumar m² de departamentos, depósitos y estacionamientos no dice nada)
+    const conM2=rows.filter(r=>r._m2>0);
+    const promM2=conM2.length?conM2.reduce((a,r)=>a+r._m2,0)/conM2.length:0;
+    const celdas=(_dirTabColsAct||_dirTabCols).map((c,i)=>{
       let t='';
-      if(i===0) t='Total · '+fN(rows.length)+' unid.';
+      if(i===0) t='Total · '+fN(rows.length)+(_dirTabModo==='sep'?' separaciones':' unid.');
       else if(c.label==='Precio') t=precioTxt;
       else if(c.label==='Moneda') t=hayUSD?'equiv. S/ '+fm(totSoles):'';
-      else if(c.label==='m²') t=totM2?totM2.toFixed(1):'—';
+      else if(c.label==='m²') t=promM2?'prom. '+promM2.toFixed(1):'—';
       const ex=c.label==='Moneda'?';font-weight:400;font-size:10.5px;color:var(--ink-4)':';font-weight:700';
       return `<td style="text-align:${c.align};white-space:nowrap;border-top:2px solid var(--line)${ex}">${_escapeHtml(t)}</td>`;
     });
     tf.innerHTML=`<tr>${celdas.join('')}</tr>`;
   }
   const h=document.getElementById('dir-tab-hint');
-  if(h) h.textContent = `${fN(rows.length)}${rows.length!==_dirTabRows.length?' de '+fN(_dirTabRows.length):''} unidades vendidas · ${_rangeLabel('dir','')} · clic en una cabecera para ordenar`;
+  if(h) h.textContent = `${fN(rows.length)}${rows.length!==_dirTabRows.length?' de '+fN(_dirTabRows.length):''} ${_dirTabModo==='sep'?'separaciones · '+_rangeLabel('dir','')+' (por fecha de separación)':'unidades vendidas · '+_rangeLabel('dir','')} · clic en una cabecera para ordenar`;
 }
 
 // ── Pestaña Buscador de clientes del Resumen comercial: búsqueda + ficha ──────────
@@ -2199,13 +2358,13 @@ function _renderDirDetalle(vGlob){
   if(!wrap) return;
   if(_dirDetSel && !vGlob.some(r=>_dirDetKey(r)===_dirDetSel)) _dirDetSel = null;
   wrap.innerHTML = `
-  <div class="section-title"><h2>Buscador de clientes</h2><div class="hint">Busca por nombre, DNI, N° de inmueble o N° de venta</div></div>
-  <div class="card" style="margin-bottom:16px">
-    <div style="padding:14px 18px">
-      <input type="text" class="sp-search" id="dir-detalle-search" style="width:100%;max-width:480px" placeholder="Buscar por nombre, DNI, N° Dpto o N° de venta..." value="${_escapeHtml(_dirDetSearch)}" oninput="_dirDetBuscar(this.value)">
+  <section class="mk-card" style="margin:4px 0 16px">
+    <div class="mk-card-hd"><div><h3>Buscar cliente</h3><p>Por nombre, DNI, N° de inmueble o N° de venta · ${fN(vGlob.length)} unidades vendidas</p></div></div>
+    <div style="padding:4px 20px 14px">
+      <input type="text" class="mk-search" id="dir-detalle-search" placeholder="Ej. Pérez, 45879632, 1204 u OC-0123" value="${_escapeHtml(_dirDetSearch)}" oninput="_dirDetBuscar(this.value)">
     </div>
     <div id="dir-detalle-resultados"></div>
-  </div>
+  </section>
   <div id="dir-detalle-ficha"></div>`;
   _dirDetResultados();
   _dirDetFicha();
@@ -2233,18 +2392,18 @@ function _dirDetResultados(){
     const r0=rows[0];
     const dptos=rows.map(x=>String(x.NroInmueble||'').replace(/\.0$/,'')).filter(Boolean).join(', ');
     const activo=_dirDetSel===key;
-    return `<div onclick='_dirDetSeleccionar(${JSON.stringify(key)})' style="padding:10px 18px;border-top:1px solid var(--line-2);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;${activo?'background:var(--brand-soft)':''}">
-      <span style="font-weight:600;font-size:13px;color:var(--ink)">${_escapeHtml(_flNombreCompleto(r0))}</span>
-      <span style="font-size:11.5px;color:var(--ink-3);white-space:nowrap">DNI ${_escapeHtml(_flDNI(r0))} · ${_escapeHtml(String(r0.Proyecto||'—'))} · Inmueble(s) ${_escapeHtml(dptos||'—')}</span>
-    </div>`;
-  }).join('') || `<div style="padding:14px 18px;color:var(--ink-4);font-size:13px">Sin resultados para "${_escapeHtml(_dirDetSearch)}"</div>`;
+    return `<button type="button" class="mk-res${activo?' on':''}" onclick='_dirDetSeleccionar(${JSON.stringify(key)})'>
+      <b>${_escapeHtml(_flNombreCompleto(r0))}</b>
+      <span>DNI ${_escapeHtml(_flDNI(r0))} · ${_escapeHtml(_flProjShort(r0.Proyecto))} · Inmueble(s) ${_escapeHtml(dptos||'—')}</span>
+    </button>`;
+  }).join('') || `<div class="mk-empty" style="border-top:1px solid var(--line-2)">Sin resultados para "${_escapeHtml(_dirDetSearch)}"</div>`;
 }
 
 function _dirDetFicha(){
   const el = document.getElementById('dir-detalle-ficha');
   if(!el) return;
   if(!_dirDetSel){
-    el.innerHTML = '<div class="card" style="padding:36px 20px;text-align:center;color:var(--ink-4);font-size:13px">Busca y selecciona un cliente para ver el detalle de su compra.</div>';
+    el.innerHTML = '<section class="mk-card mk-empty" style="padding:40px 20px">Busca y selecciona un cliente para ver el detalle de su compra.</section>';
     return;
   }
   const rows = _dirDetVentas.filter(r=>_dirDetKey(r)===_dirDetSel);
@@ -2275,66 +2434,69 @@ function _dirDetFicha(){
     ['Entrega de minuta', r.FechaEntrega_Minuta],
   ];
   if(String(r.FechaDevolucion||'').trim()) pasos.push(['Devolución', r.FechaDevolucion]);
-  const tlRows = pasos.map(([lbl,f])=>`<tr><td style="text-align:left">${lbl}</td><td style="text-align:right;font-family:var(--mono)">${_flFmtFecha(f)}</td></tr>`).join('');
+  const _fv = f => { const t=String(f||'').trim(); return t && t!=='nan' && t!=='None' && t!=='-'; };
+  const tlRows = pasos.map(([lbl,f],k)=>`<li class="${_fv(f)?(lbl==='Devolución'?'bad':'ok'):''}"><span class="st-dot">${_fv(f)?(lbl==='Devolución'?'!':'✓'):k+1}</span><span class="st-l">${lbl}</span><span class="st-f">${_fv(f)?_flFmtFecha(f):'—'}</span></li>`).join('');
 
-  const kv = (lbl,v)=>`<tr><td style="text-align:left;color:var(--ink-3)">${lbl}</td><td style="text-align:right;font-weight:600">${v}</td></tr>`;
+  const kv = (lbl,v)=>`<span>${lbl}</span><span>${v}</span>`;
   const unidRows = rows.map(x=>{
     const c=_comMoneda(x);
     return `<tr>
-      <td style="text-align:left">${val(x.TipoInmueble)}</td>
-      <td style="text-align:center">${val(String(x.NroInmueble||'').replace(/\.0$/,''))}</td>
-      <td style="text-align:center">${val(String(x.NroPiso||'').replace(/\.0$/,''))}</td>
-      <td style="text-align:left">${val(x.Modelo)}</td>
-      <td style="text-align:right">${c} ${Number(x.PrecioBase||0).toLocaleString('en-US',{maximumFractionDigits:2})}</td>
-      <td style="text-align:right">${c} ${Number(x.PrecioVenta||0).toLocaleString('en-US',{maximumFractionDigits:2})}</td>
-      <td style="text-align:right;font-weight:600">${fSol(x.PrecioVentaSoles||x.PrecioVenta)}</td>
+      <td style="text-align:left;font-weight:600">${_flTitleCase(val(x.TipoInmueble))}</td>
+      <td>${val(String(x.NroInmueble||'').replace(/\.0$/,''))}</td>
+      <td>${val(String(x.NroPiso||'').replace(/\.0$/,''))}</td>
+      <td>${val(x.Modelo)}</td>
+      <td>${_admMonto(c,x.PrecioBase,'soft')}</td>
+      <td>${_admMonto(c,x.PrecioVenta)}</td>
+      <td>${_admMonto('S/',x.PrecioVentaSoles||x.PrecioVenta)}</td>
     </tr>`;
   }).join('');
 
+  const pago = (lbl, monto, extra) => `<span>${lbl}</span><span>${Number(monto)?_admMonto(cur,monto):'<span class="mk-amt soft">—</span>'}${extra?` <span style="font-weight:500;color:var(--ink-3)">· ${extra}</span>`:''}</span>`;
   el.innerHTML = `
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>${_escapeHtml(_flNombreCompleto(r))}</h3><p>DNI ${_escapeHtml(_flDNI(r))} · ${_escapeHtml(proy||'—')} · ${val(r.CorrelativoOC)} · ${val(r.Estado)}</p></div></div>
-    <div class="kpi-row kpi-4" style="padding:14px 18px">
-      ${kpi('Monto de la operación', fSol(total), 'Suma de las '+fN(rows.length)+' unidad(es), en S/')}
-      ${kpi('Unidades', fN(rows.length), rows.map(x=>String(x.TipoInmueble||'').trim()).filter(Boolean).join(' · ')||'—')}
-      ${kpi('Financiamiento', val(r.TipoFinanciamiento), val(r.EntidadFinanciamiento))}
-      ${kpi('Vendedor', val(_flTitleCase(r.Vendedor)), 'Canal: '+val(r.ComoSeEntero))}
+  <section class="mk-card" style="margin-bottom:16px">
+    <div class="mk-card-hd"><div><h3 style="font-size:19px">${_escapeHtml(_flNombreCompleto(r))}</h3><p>DNI ${_escapeHtml(_flDNI(r))} · ${_escapeHtml(_flProjShort(proy))} · ${val(r.CorrelativoOC)} · ${val(r.Estado)}</p></div></div>
+    <div class="mk-tiles" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+      <div class="mk-tile"><div class="t-l">Monto de la operación</div><div class="t-v">${_admMonto('S/',total)}</div><div class="t-s">${fN(rows.length)} unidad(es), en S/</div></div>
+      <div class="mk-tile"><div class="t-l">Unidades</div><div class="t-v">${fN(rows.length)}</div><div class="t-s">${(()=>{const m={};rows.forEach(x=>{const t=String(x.TipoInmueble||'').trim().toLowerCase();if(t)m[t]=(m[t]||0)+1;});return Object.entries(m).map(([t,n])=>n+' '+(n>1?(t.endsWith('o')||t.endsWith('a')?t+'s':t+'es'):t)).join(' · ')||'—';})()}</div></div>
+      <div class="mk-tile"><div class="t-l">Financiamiento</div><div class="t-v" style="font-size:16px">${_flTitleCase(val(r.TipoFinanciamiento))}</div><div class="t-s">${_flTitleCase(val(r.EntidadFinanciamiento))}</div></div>
+      <div class="mk-tile"><div class="t-l">Vendedor</div><div class="t-v" style="font-size:16px">${val(_flTitleCase(r.Vendedor))}</div><div class="t-s">Canal: ${val(r.ComoSeEntero)}</div></div>
     </div>
-  </div>
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>Unidades de la operación</h3><p>${fN(rows.length)} unidad(es)</p></div></div>
-    <div style="overflow-x:auto"><table class="tbl" style="width:100%">
-      <thead><tr><th style="text-align:left">Tipo</th><th style="text-align:center">N° Inmueble</th><th style="text-align:center">Piso</th><th style="text-align:left">Modelo</th><th style="text-align:right">Precio base</th><th style="text-align:right">Precio venta</th><th style="text-align:right">Precio venta S/</th></tr></thead>
+  </section>
+  <section class="mk-card" style="margin-bottom:16px">
+    <div class="mk-card-hd"><div><h3>Unidades de la operación</h3><p>${fN(rows.length)} unidad(es)</p></div></div>
+    <div class="mk-tbl-wrap"><table class="mk-tbl lines mk-eq" style="min-width:720px">
+      <colgroup><col style="width:18%"><col><col><col style="width:16%"><col><col><col></colgroup>
+      <thead><tr><th>Tipo</th><th>N° inmueble</th><th>Piso</th><th>Modelo</th><th>Precio base</th><th>Precio venta</th><th>Precio venta S/</th></tr></thead>
       <tbody>${unidRows}</tbody>
     </table></div>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-    <div class="card">
-      <div class="card-hd"><div><h3>Línea de tiempo</h3><p>Del lead a la entrega</p></div></div>
-      <table class="tbl" style="width:100%"><tbody>${tlRows}</tbody></table>
-    </div>
-    <div class="card">
-      <div class="card-hd"><div><h3>Cliente y origen</h3><p>Perfil y canal de captación</p></div></div>
-      <table class="tbl" style="width:100%"><tbody>
-        ${kv('Distrito', val(r.Distrito_Procedencia))}
+  </section>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:16px">
+    <section class="mk-card">
+      <div class="mk-card-hd"><div><h3>Línea de tiempo</h3><p>Del lead a la entrega de minuta</p></div></div>
+      <ol class="mk-steps">${tlRows}</ol>
+    </section>
+    <section class="mk-card">
+      <div class="mk-card-hd"><div><h3>Cliente y origen</h3><p>Perfil y canal de captación</p></div></div>
+      <div class="mk-kv">
+        ${kv('Distrito', _flTitleCase(val(r.Distrito_Procedencia)))}
         ${kv('Género · Rango de edad', val(r.Genero)+' · '+val(r.RangoEdad))}
-        ${kv('Nivel de interés', val(r.NivelInteres))}
-        ${kv('Perfil crediticio', val(r.PerfilCrediticio))}
+        ${kv('Nivel de interés', _flTitleCase(val(r.NivelInteres)))}
+        ${kv('Perfil crediticio', _flTitleCase(val(r.PerfilCrediticio)))}
         ${kv('Canal', val(r.ComoSeEntero))}
-        ${kv('Forma de contacto', val(r.FormaContacto))}
-      </tbody></table>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-hd"><div><h3>Pagos y financiamiento</h3><p>Montos en ${cur==='$'?'dólares':'soles'} (moneda de la operación)</p></div></div>
-    <table class="tbl" style="width:100%"><tbody>
-      ${kv('Separación', fC(r.MontoSeparacion))}
-      ${kv('Cuota inicial', fC(r.MontoCuotaInicial))}
-      ${kv('Cuota inicial pagada', fC(r.MontoPagadoCI)+' · '+val(r.Estado_CI))}
-      ${kv('Financiamiento', fC(r.MontoFinanciamiento))}
-      ${kv('Desembolsado', fC(r.MontoDesembolsado)+' · '+val(r.PorcetanjePagado_SF)+' · '+val(r.EstadoSF))}
-      ${kv('Bono', fC(r.MontoBono)+' · pagado '+fC(r.MontoPagadoBono)+' · '+val(r.EstadoBono))}
-    </tbody></table>
+        ${kv('Forma de contacto', _flTitleCase(val(r.FormaContacto)))}
+      </div>
+    </section>
+    <section class="mk-card">
+      <div class="mk-card-hd"><div><h3>Pagos y financiamiento</h3><p>En ${cur==='$'?'dólares':'soles'} (moneda de la operación)</p></div></div>
+      <div class="mk-kv">
+        ${pago('Separación', r.MontoSeparacion)}
+        ${pago('Cuota inicial', r.MontoCuotaInicial)}
+        ${pago('Cuota inicial pagada', r.MontoPagadoCI, _flTitleCase(val(r.Estado_CI)))}
+        ${pago('Financiamiento', r.MontoFinanciamiento)}
+        ${pago('Desembolsado', r.MontoDesembolsado, val(r.PorcetanjePagado_SF)+' · '+_flTitleCase(val(r.EstadoSF)))}
+        ${pago('Bono', r.MontoBono, 'pagado '+(Number(r.MontoPagadoBono)?_admMonto(cur,r.MontoPagadoBono,'soft'):'—')+' · '+_flTitleCase(val(r.EstadoBono)))}
+      </div>
+    </section>
   </div>`;
 }
 
@@ -2342,8 +2504,27 @@ function toggleDirComp(){
   _dirComp=!_dirComp;
   const btn=document.getElementById('dir-comp-btn');
   const rb=document.getElementById('dir-range-b');
-  if(_dirComp){btn.textContent='✕ Comparar';btn.style.background='#f5f3ff';btn.style.color='#a78bfa';rb.style.display='flex';}
-  else{btn.textContent='⊕ Comparar';btn.style.background='';btn.style.color='';rb.style.display='none';}
+  if(btn) btn.setAttribute('aria-pressed', _dirComp?'true':'false');
+  if(rb) rb.style.display=_dirComp?'flex':'none';
+  if(_dirComp){
+    // Período B por defecto: el mismo tramo del período anterior (igual que Marketing)
+    const d2=document.getElementById('dir-date-desde-b'), h2=document.getElementById('dir-date-hasta-b');
+    const from=document.getElementById('dir-date-desde')?.value||'', toRaw=document.getElementById('dir-date-hasta')?.value||'';
+    if(d2&&h2&&!d2.value&&!h2.value&&from){
+      const pd=x=>{const [y,m,d]=x.split('-').map(Number); return new Date(y,m-1,d);};
+      const a=pd(from), b=toRaw?pd(toRaw):new Date();
+      let bF,bT;
+      if(a.getDate()===1 && b.getMonth()===a.getMonth() && b.getFullYear()===a.getFullYear()){
+        bF=new Date(a.getFullYear(),a.getMonth()-1,1);
+        bT=new Date(a.getFullYear(),a.getMonth()-1,Math.min(b.getDate(),new Date(a.getFullYear(),a.getMonth(),0).getDate()));
+      } else {
+        const dias=Math.max(Math.round((b-a)/864e5),0);
+        bT=new Date(a.getFullYear(),a.getMonth(),a.getDate()-1);
+        bF=new Date(bT.getFullYear(),bT.getMonth(),bT.getDate()-dias);
+      }
+      d2.value=_flIso(bF); h2.value=_flIso(bT);
+    }
+  }
   renderDirector();
 }
 
@@ -2499,23 +2680,24 @@ function renderDirector(){
       const _pm=_precioM2Ponderado(sGlob.map(r=>({precio:Number(r.PrecioLista||0), m2:_m2Efectivo(r)})));
       avgM2=_pm!=null?Math.round(_pm):null;
     }
-    const sufP=enPeriodo?' · período':'';
-    document.getElementById('dir-kpis').innerHTML=
-      kpi('Avance de meta · Unidades'+sufP,`${fN(vPer.length)} <span class="unit">/ ${meta.uni?fN(meta.uni):'—'} und.</span>`,
-          meta.uni?(vPer.length>=meta.uni
-            ?`<span class="delta up">✓ Meta cumplida</span>`
-            :`<span class="delta down">▼ Faltan ${fN(meta.uni-vPer.length)} und.</span>`)
-          :'Sin meta definida','',
-          `<div class="bar"><i style="width:${avancePct}%"></i></div>`)+
-      kpi('Avance de meta · Monto'+sufP,`${fFull(montoGlob)} <span class="unit">/ ${meta.monto?fFull(meta.monto):'—'}</span>`,
-          meta.monto?(montoGlob>=meta.monto
-            ?`<span class="delta up">✓ Meta cumplida</span>`
-            :`<span class="delta down">▼ Faltan ${fFull(meta.monto-montoGlob)}</span>`)
-          :'Sin meta definida','',
-          `<div class="bar ok"><i style="width:${avanceMontoP}%"></i></div>`)+
-      kpi('Velocidad de venta',`${vel} <span class="unit">und / mes</span>`,`<span class="delta neutral">${enPeriodo?_rangeLabel('dir'):'acumulado'}</span>`)+
-      kpi('Precio / m² promedio',avgM2?fFull(avgM2):'—',
-          avgM2?`<span class="delta up">${enPeriodo?'de las ventas del período':'desde stock disponible'}</span>`:(enPeriodo?'Sin ventas con m² en el período':'Sin PrecioM2 en stock'));
+    const _faltaU = meta.uni ? (vPer.length>=meta.uni ? `<b>${avancePct}%</b> · meta cumplida` : `<b>${avancePct}%</b> de la meta · faltan <b>${fN(meta.uni-vPer.length)}</b> und.`) : 'Sin meta definida';
+    const _faltaM = meta.monto ? (montoGlob>=meta.monto ? `<b>${avanceMontoP}%</b> · meta cumplida` : `<b>${avanceMontoP}%</b> de la meta · faltan <b>S/ ${_fCompact(meta.monto-montoGlob)}</b>`) : 'Sin meta definida';
+    const _perTxt = enPeriodo ? _rangeLabel('dir') : 'acumulado';
+    document.getElementById('dir-kpis').innerHTML=`
+      <div class="mk-kpi hero"><div class="k-l">Avance de meta · unidades</div>
+        <div class="k-v">${fN(vPer.length)}<small>de ${meta.uni?fN(meta.uni):'—'} und.</small></div>
+        <div class="adm-meter"><b style="width:${avancePct}%"></b></div>
+        <div class="k-s">${_faltaU}</div></div>
+      <div class="mk-kpi"><div class="k-l"><span class="mk-dot" style="background:var(--brand)"></span>Avance de meta · monto</div>
+        <div class="k-v" title="S/ ${montoGlob.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}">S/ ${Math.round(montoGlob).toLocaleString('en-US')}</div>
+        <div class="adm-meter"><b style="width:${avanceMontoP}%"></b></div>
+        <div class="k-s" title="${meta.monto?'Meta S/ '+Math.round(meta.monto).toLocaleString('en-US'):''}">${_faltaM}</div></div>
+      <div class="mk-kpi"><div class="k-l"><span class="mk-dot" style="background:#60a5fa"></span>Velocidad de venta</div>
+        <div class="k-v">${vel}<small>und. / mes</small></div>
+        <div class="k-s">${_flEsc(_perTxt)} · ${fN(vPer.length)} und. en ${fN(mesesAct)} ${mesesAct===1?'mes':'meses'}</div></div>
+      <div class="mk-kpi"><div class="k-l"><span class="mk-dot" style="background:var(--mk-gold)"></span>Precio / m² promedio</div>
+        <div class="k-v">${avgM2?'S/ '+fN(avgM2):'—'}</div>
+        <div class="k-s">${avgM2?(enPeriodo?'De las ventas del período':'Del stock disponible'):(enPeriodo?'Sin ventas con m² en el período':'Sin precio/m² en stock')}</div></div>`;
   }
 
   // Tipologías desde stock — dormitorios + locales comerciales
@@ -2568,16 +2750,19 @@ function renderDirector(){
     const areaArr=sAll.filter(r=>Number(r.AreaTechada||0)>0);
     const area=areaArr.length?Math.round(areaArr.reduce((a,r)=>a+Number(r.AreaTechada||0),0)/areaArr.length):null;
     const lbl=d==='COMERCIO'?'Local':d+'D';
-    const _cTy=_dirClk('Ventas · Tipología '+lbl, vendidas, FL_COM_VENTA_COLS).replace(' class="fl-cross-clk"',' style="cursor:pointer"');
-    return`<div class="typ"${_cTy}>
-      <div class="t"><span class="code">${lbl}</span><span style="font-size:11px;color:var(--ink-3)">${area?area+' m² prom.':'—'}</span></div>
-      <div class="n">${vendidas.length}</div><div class="r">unidades vendidas</div>
-      <div class="typ-stats">
-        <div class="typ-stat"><div class="sl">Ticket prom.</div><div class="sv">${tick?fM(tick):'—'}</div></div>
-        <div class="typ-stat"><div class="sl">Disponibles</div><div class="sv">${sDisp.length}</div></div>
-        <div class="typ-stat"><div class="sl">Separadas</div><div class="sv">${sSep.length}</div></div>
+    const _cTy=_dirTypClk(lbl, vendidas, sAll);
+    const totTy=vendidas.length+sSep.length+sDisp.length;
+    const pV=totTy?vendidas.length/totTy*100:0, pS=totTy?sSep.length/totTy*100:0;
+    return`<button type="button" class="mk-typ"${_cTy}>
+      <div class="ty-hd"><span class="ty-code">${lbl}</span><span class="ty-area">${area?area+' m² prom.':'—'}</span></div>
+      <div class="ty-n">${fN(vendidas.length)}<small>vendidas</small></div>
+      <div class="adm-stk" title="Vendidas ${fN(vendidas.length)} · Separadas ${fN(sSep.length)} · Disponibles ${fN(sDisp.length)}"><b style="width:${pV}%"></b><i style="width:${pS}%"></i></div>
+      <div class="ty-st">
+        <div title="Ticket promedio${tick?': S/ '+fN(tick):''}"><span>Ticket</span><b>${tick?'S/ '+_fCompact(tick):'—'}</b></div>
+        <div><span>Disp.</span><b>${fN(sDisp.length)}</b></div>
+        <div><span>Sep.</span><b>${fN(sSep.length)}</b></div>
       </div>
-    </div>`;
+    </button>`;
   }).join('');
 
   // ── Ventas por mes para Period B (comparación) ──
@@ -2611,7 +2796,16 @@ function renderDirector(){
     return;
   }
   if(_dirTab==='detalle'){
-    _renderDirTablaDetalle(v); // v = ventas del período (filtro Desde/Hasta) + proyecto + tipo
+    _renderDirTablaDetalle(v, 'ventas'); // v = ventas del período (filtro Desde/Hasta) + proyecto + tipo
+    return;
+  }
+  if(_dirTab==='separaciones'){
+    // Mismas separaciones que el popup de Marketing (Stock, una por cliente/unidad),
+    // filtradas por proyecto, tipo y fecha de separación dentro del período.
+    const _sD=document.getElementById('dir-date-desde')?.value||'', _sH=document.getElementById('dir-date-hasta')?.value||'';
+    const seps=_flSeparacionesUnicas(D.stock||[]).filter(r=>_projOk(projArr,r.Proyecto) && _matchTipo(r,_tipo)
+      && (!(_sD||_sH) || _matchDateRange(r.FechaSepDefinitiva, _sD, _sH)));
+    _renderDirTablaDetalle(seps.map(_dirSepComoVenta), 'sep');
     return;
   }
 
@@ -2625,32 +2819,23 @@ function renderDirector(){
     const _dateHastaB=document.getElementById('dir-date-hasta-b')?.value||'';
     const _inPeriodB=d=>{if(!d)return true;const ym=_fechaYM(d);if(!ym)return false;return(!_dateDesdeB||ym>=_dateDesdeB.slice(0,7))&&(!_dateHastaB||ym<=_dateHastaB.slice(0,7));};
 
-    const _tdC='padding:9px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12px;border-bottom:1px solid var(--line-2);white-space:nowrap';
-    const _tdL='padding:9px 14px;text-align:left;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12px;border-bottom:1px solid var(--line-2)';
-    const _thS='padding:10px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);border-bottom:2px solid var(--line);background:var(--panel)';
-    const _thL='padding:10px 14px;text-align:left;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);border-bottom:2px solid var(--line);background:var(--panel)';
-
     const _projRowHTML=(r,lbl)=>{
-      const barW=r.cumplPct!==null?Math.min(r.cumplPct,100):0;
-      const barCol=r.cumplPct===null?'#e2e8f0':r.cumplPct>=80?'#34d399':r.cumplPct>=50?'#fbbf24':'#f87171';
-      const name=r.p.replace('LOMAS DE CARABAYLLO','LOMAS').replace('HELIO - SANTA BEATRIZ','HELIO');
       const isTotal=r.p==='TOTAL';
-      const rowStyle=isTotal?'font-weight:700;border-top:2px solid var(--line);background:var(--panel)':'';
-      const _ttl=isTotal?'Todos los proyectos':toTitle(name.toLowerCase());
+      const _ttl=isTotal?'Todos los proyectos':_flProjShort(r.p);
       const _cV=_dirClk('Ventas · '+_ttl+' · '+lbl, r._rows, FL_COM_VENTA_COLS);
       const _cS=_dirClk('Separaciones · '+_ttl+' · '+lbl, r._seps, FL_SEP_COLS);
-      return '<tr style="'+rowStyle+'">'
-        +'<td style="'+_tdL+';color:'+(isTotal?'var(--ink)':'var(--ink-2)')+';font-weight:'+(isTotal?'700':'500')+'">'+toTitle(name.toLowerCase())+'</td>'
-        +'<td'+_cV+' style="'+_tdC+';font-weight:'+(isTotal?'700':'500')+';color:var(--ink)">'+r.n+'</td>'
-        +'<td style="'+_tdC+';color:var(--ink-3)">'+(r.meta||'—')+'</td>'
-        +'<td style="'+_tdC+'"><div style="display:flex;align-items:center;gap:6px;justify-content:center">'
-          +'<div style="width:60px;height:7px;border-radius:4px;background:var(--line-2);flex-shrink:0"><div style="height:100%;width:'+barW+'%;border-radius:4px;background:'+barCol+'"></div></div>'
-          +'<span style="font-size:11px;font-weight:500;color:'+barCol+';min-width:32px;text-align:left">'+(r.cumplPct!==null?r.cumplPct+'%':'—')+'</span>'
-        +'</div></td>'
-        +'<td'+_cV+' style="'+_tdC+';font-weight:'+(isTotal?'700':'500')+';color:var(--ink)">'+(r.monto?fMFull(r.monto):'—')+'</td>'
-        +'<td style="'+_tdC+';font-weight:'+(isTotal?'700':'500')+';color:var(--ink-3)">'+(r.pm2?'S/ '+fN(r.pm2):'—')+'</td>'
-        +'<td'+_cS+' style="'+_tdC+';font-weight:'+(isTotal?'700':'500')+';color:var(--brand)">'+r.seps+'</td>'
-        +'</tr>';
+      const pct=r.cumplPct, w=pct!=null?Math.min(pct,100):0;
+      const av = r.meta ? `<div class="mk-prog"><span class="mk-trk" style="width:110px;height:8px"><b style="width:${w}%;background:var(--brand)"></b></span><span>${pct}%</span></div>` : '<span class="mk-amt soft">Sin meta</span>';
+      const nombre = isTotal ? 'TOTAL' : `<span style="display:inline-flex;align-items:center;gap:8px;font-weight:700"><span class="mk-dot" style="background:${FL_PROJ_COLOR[String(r.p).toUpperCase()]||'#94a3b8'}"></span>${_flEsc(_ttl)}</span>`;
+      return `<tr${isTotal?' class="tot"':''}>
+        <td>${nombre}</td>
+        <td${_cV}><span class="mk-amt">${fN(r.n)}</span></td>
+        <td><span class="mk-amt soft">${r.meta?fN(r.meta):'—'}</span></td>
+        <td>${av}</td>
+        <td${_cV}>${_admMonto('S/',r.monto)}</td>
+        <td>${r.pm2?_admMonto('S/',r.pm2,'soft'):'<span class="mk-amt soft">—</span>'}</td>
+        <td${_cS}><span class="mk-amt" style="color:var(--brand)">${fN(r.seps)}</span></td>
+      </tr>`;
     };
 
     const _buildProjRows=(ventasArr,inPeriodFn,nMeses)=>{
@@ -2677,35 +2862,24 @@ function renderDirector(){
       return{rows,tot};
     };
 
-    const _buildProjTable=(rows,tot,lbl)=>'<div style="overflow-x:auto"><table class="tbl" style="width:100%;table-layout:fixed;border-collapse:collapse">'
-      +'<colgroup><col style="width:22%"><col style="width:11%"><col style="width:9%"><col style="width:16%"><col style="width:17%"><col style="width:14%"><col style="width:11%"></colgroup>'
-      +'<thead><tr>'
-        +'<th style="'+_thL+'">PROYECTO</th>'
-        +'<th style="'+_thS+'">VENDIDAS</th>'
-        +'<th style="'+_thS+'">META</th>'
-        +'<th style="'+_thS+'">AVANCE</th>'
-        +'<th style="'+_thS+'">MONTO</th>'
-        +'<th style="'+_thS+'">PM2</th>'
-        +'<th style="'+_thS+'">SEPS.</th>'
-      +'</tr></thead>'
-      +'<tbody>'+rows.map(x=>_projRowHTML(x,lbl)).join('')+_projRowHTML(tot,lbl)+'</tbody>'
-      +'</table></div>';
+    const _buildProjTable=(rows,tot,lbl)=>`<div class="mk-tbl-wrap"><table class="mk-tbl lines mk-eq" style="min-width:780px">
+      <colgroup><col style="width:21%"><col style="width:10%"><col style="width:8%"><col style="width:20%"><col style="width:16%"><col style="width:13%"><col style="width:12%"></colgroup>
+      <thead><tr><th>Proyecto</th><th>Vendidas</th><th>Meta</th><th>Avance</th><th>Monto</th><th>Precio/m²</th><th>Separaciones</th></tr></thead>
+      <tbody>${rows.map(x=>_projRowHTML(x,lbl)).join('')}${_projRowHTML(tot,lbl)}</tbody></table></div>`;
 
-    const _thM='padding:10px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);border-bottom:2px solid var(--line);background:var(--panel)';
-    const _tdM='padding:9px 12px;text-align:center;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12px;border-bottom:1px solid var(--line-2);white-space:nowrap';
-
-    const _buildMesRows=entries=>entries.map(([,d])=>{
-      const _pm2=_precioM2Ponderado(d.pares||[]);
-      const pm2=_pm2!=null?Math.round(_pm2):null;
-      const _cM=_dirClk('Ventas · '+d.mes, d.rows, FL_COM_VENTA_COLS);
-      return '<tr>'
-        +'<td style="'+_tdM+';text-align:left;font-weight:500;color:var(--ink-2)">'+d.mes+'</td>'
-        +'<td'+_cM+' style="'+_tdM+';font-weight:500;color:var(--ink)">'+d.n+'</td>'
-        +'<td'+_cM+' style="'+_tdM+';font-weight:500;color:var(--ink)">'+fMFull(d.monto)+'</td>'
-        +'<td style="'+_tdM+';color:var(--ink-2)">'+(d.n?fMFull(d.monto/d.n):'—')+'</td>'
-        +'<td style="'+_tdM+';color:var(--ink-3)">'+(pm2?'S/ '+fN(pm2):'—')+'</td>'
-        +'</tr>';
-    }).join('');
+    const _buildMesRows=entries=>{
+      const mx=Math.max(1,...entries.map(([,d])=>d.n));
+      return entries.map(([,d])=>{
+        const _pm2=_precioM2Ponderado(d.pares||[]);
+        const pm2=_pm2!=null?Math.round(_pm2):null;
+        const _cM=_dirClk('Ventas · '+d.mes, d.rows, FL_COM_VENTA_COLS);
+        return `<tr><td style="font-weight:600">${d.mes}</td>
+          <td${_cM}><span style="display:grid;grid-template-columns:minmax(0,1fr) 28px;gap:8px;align-items:center"><span class="mk-trk" style="height:8px"><b style="width:${Math.round(d.n/mx*100)}%;background:var(--brand)"></b></span><span class="mk-amt" style="text-align:right">${fN(d.n)}</span></span></td>
+          <td${_cM}>${_admMonto('S/',d.monto)}</td>
+          <td>${d.n?_admMonto('S/',d.monto/d.n,'soft'):'<span class="mk-amt soft">—</span>'}</td>
+          <td>${pm2?_admMonto('S/',pm2,'soft'):'<span class="mk-amt soft">—</span>'}</td></tr>`;
+      }).join('');
+    };
 
     const {rows:projRows,tot:totRow}=_buildProjRows(v,_inPeriod,mesEntries.length||1);
     const {rows:projRowsB,tot:totRowB}=_dirComp?_buildProjRows(vB,_inPeriodB,mesEntries_B.length||1):{rows:[],tot:{}};
@@ -2713,43 +2887,36 @@ function renderDirector(){
     const mesRowsA=_buildMesRows(mesEntries);
     const mesRowsB=_dirComp?_buildMesRows(mesEntries_B):'';
 
-    const _mesTotalRow=(tot,lbl)=>{const _cT=_dirClk('Ventas · '+lbl, tot.rows, FL_COM_VENTA_COLS);return '<tr style="font-weight:700;border-top:2px solid var(--line);background:var(--panel)">'
-      +'<td style="text-align:left;padding:9px 12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12px;color:var(--ink)">TOTAL</td>'
-      +'<td'+_cT+' style="text-align:center;padding:9px 12px;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12px;color:var(--ink)">'+tot.n+'</td>'
-      +'<td'+_cT+' style="text-align:center;padding:9px 12px;font-family:var(--mono);font-size:12px;color:var(--ink)">'+fFull(tot.monto)+'</td>'
-      +'<td style="text-align:center;padding:9px 12px;font-family:var(--mono);font-size:12px;color:var(--ink-2)">'+(tot.n?fFull(tot.monto/tot.n):'—')+'</td>'
-      +'<td style="text-align:center;padding:9px 12px;font-family:var(--mono);font-size:12px;color:var(--ink-3)">'+(tot.pm2?'S/ '+fN(tot.pm2):'—')+'</td>'
-      +'</tr>';};
+    const _mesTotalRow=(tot,lbl)=>{const _cT=_dirClk('Ventas · '+lbl, tot.rows, FL_COM_VENTA_COLS);
+      return `<tr class="tot"><td>TOTAL</td><td${_cT}><span class="mk-amt">${fN(tot.n)}</span></td><td${_cT}>${_admMonto('S/',tot.monto)}</td><td>${tot.n?_admMonto('S/',tot.monto/tot.n):'—'}</td><td>${tot.pm2?_admMonto('S/',tot.pm2):'—'}</td></tr>`;};
 
-    const _mesTable=(rows,tot,lbl,tid)=>'<div class="card">'
-      +'<div class="card-hd"><div><h3>Ventas por mes</h3><p>'+lbl+' · '+tot.n+' und. · '+fM(tot.monto)+'</p></div>'
-        +'<button type="button" class="chip-sel" style="cursor:pointer;border:none;margin-left:auto" onclick="_exportarTablaExcel(\'#'+tid+'\',\'ventas_por_mes\')"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">⬇</span><span>Descargar Excel</span></button></div>'
-      +'<div style="overflow-x:auto"><table class="tbl" id="'+tid+'" style="width:100%">'
-        +'<thead><tr><th style="'+_thM+';text-align:left">MES</th><th style="'+_thM+'">UNID.</th><th style="'+_thM+'">MONTO</th><th style="'+_thM+'">TICKET PROM.</th><th style="'+_thM+'">PRECIO/m²</th></tr></thead>'
-        +'<tbody>'+rows+_mesTotalRow(tot,lbl)+'</tbody>'
-      +'</table></div>'
-      +'</div>';
+    const _mesTable=(rows,tot,lbl,tid)=>`<section class="mk-card" style="height:100%">
+      <div class="mk-card-hd"><div><h3>Ventas por mes</h3><p>${_flEsc(lbl)} · ${fN(tot.n)} und. · ${_admMonto('S/',tot.monto)}</p></div>
+        <button type="button" class="mk-btn" onclick="_exportarTablaExcel('#${tid}','ventas_por_mes')">↓ Excel</button></div>
+      <div class="mk-tbl-wrap"><table class="mk-tbl lines mk-eq" id="${tid}" style="min-width:560px">
+        <colgroup><col style="width:21%"><col style="width:23%"><col><col><col></colgroup>
+        <thead><tr><th>Mes</th><th>Unidades</th><th>Monto</th><th>Ticket prom.</th><th>Precio/m²</th></tr></thead>
+        <tbody>${rows}${_mesTotalRow(tot,lbl)}</tbody></table></div></section>`;
 
-    const proyLabel='<p>'+(lblA||'Todo el período')+(lblB?' vs. '+lblB:'')+' · unidades, meta y monto</p>';
+    const _legTyp='<div class="adm-leg"><span><i style="background:var(--brand)"></i>Vendidas</span><span><i style="background:var(--mk-gold)"></i>Separadas</span><span><i style="background:var(--mk-track);border:1px solid var(--line)"></i>Disponibles</span></div>';
 
     document.getElementById('dir-content').innerHTML=
-      _buildDateBar()+
-      '<div class="card" style="margin-bottom:16px">'
-        +'<div class="card-hd"><div><h3>Resumen por proyecto</h3>'+proyLabel+'</div></div>'
-        +(_dirComp
-          ?'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
-            +'<div><div style="font-size:11px;font-weight:700;color:#3b82f6;padding:0 14px 6px;text-transform:uppercase;letter-spacing:.04em">'+lblA+'</div>'+_buildProjTable(projRows,totRow,lblA)+'</div>'
-            +'<div style="border-left:1px solid var(--line)"><div style="font-size:11px;font-weight:700;color:#a78bfa;padding:0 14px 6px;text-transform:uppercase;letter-spacing:.04em">'+lblB+'</div>'+_buildProjTable(projRowsB,totRowB,lblB)+'</div>'
-            +'</div>'
-          :_buildProjTable(projRows,totRow,lblA))
-      +'</div>'
+      `<section class="mk-card" style="margin:4px 0 16px">
+        <div class="mk-card-hd"><div><h3>Avance por proyecto</h3><p>${_flEsc(lblA||'Todo el período')}${lblB?' vs. '+_flEsc(lblB):''} · unidades vendidas contra la meta · clic en un número para ver las ventas</p></div></div>`
       +(_dirComp
-        ?'<div class="grid-2" style="margin-bottom:16px">'+_mesTable(mesRowsA,totales,lblA,'dir-mes-tabla-a')+_mesTable(mesRowsB,totB,lblB,'dir-mes-tabla-b')+'</div>'
-        :'<div class="grid-2" style="margin-bottom:16px">'
-          +_mesTable(mesRowsA,totales,lblA,'dir-mes-tabla-a')
-          +'<div class="card"><div class="card-hd"><div><h3>Tipologías</h3><p>Vendidas, disponibles y separadas</p></div></div>'
-            +'<div style="padding:12px 14px"><div class="typ-grid">'+(typs||'<div style="padding:20px;color:var(--ink-4);font-size:12px">Sin datos de stock</div>')+'</div></div></div>'
-          +'</div>');
+        ? `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(560px,1fr));gap:10px">
+            <div><div style="padding:0 20px 4px"><span class="mk-tag">${_flEsc(lblA)}</span></div>${_buildProjTable(projRows,totRow,lblA)}</div>
+            <div><div style="padding:0 20px 4px"><span class="mk-tag" style="background:var(--mk-gold-soft);color:var(--mk-gold-ink)">${_flEsc(lblB)}</span></div>${_buildProjTable(projRowsB,totRowB,lblB)}</div>
+          </div>`
+        : _buildProjTable(projRows,totRow,lblA))
+      +`</section>`
+      +(_dirComp
+        ? `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(480px,1fr));gap:16px;margin-bottom:16px">${_mesTable(mesRowsA,totales,lblA,'dir-mes-tabla-a')}${_mesTable(mesRowsB,totB,lblB,'dir-mes-tabla-b')}</div>`
+        : `<section class="mk-card" style="margin-bottom:16px">
+              <div class="mk-card-hd"><div><h3>Tipologías</h3><p>Stock y ventas por tipo de unidad (histórico del proyecto) · clic para ver las ventas</p></div>${_legTyp}</div>
+              <div class="mk-typ-grid">${typs||'<div class="mk-empty">Sin datos de stock</div>'}</div>
+            </section>
+            <div style="margin-bottom:16px">${_mesTable(mesRowsA,totales,lblA,'dir-mes-tabla-a')}</div>`);
 
   } else if(_dirTab==='tendencias'){
     const lblA=_rangeLabel('dir',''), lblB=_dirComp?_rangeLabel('dir','-b'):'';
@@ -5103,17 +5270,19 @@ function renderAdmVentas(){
     }
   }
   const proj  = filtrarProj('adm');
+  const projsAdm = _projArr('adm'); // selección múltiple (vacío = todos)
+  projMsRender('adm');
   const _tipo = document.getElementById('adm-tipo')?.value||'';
   let v       = filtrarVentas('adm');
   if(_tipo) v = v.filter(r=>_matchTipo(r,_tipo));
-  let sep     = getSeps(proj);
+  let sep     = getSeps().filter(r=>_projOk(projsAdm, r.Proyecto));
   if(_tipo) sep = sep.filter(r=>_matchTipo(r,_tipo));
   const monto = v.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
 
   // Ingreso x Depósito: pagos ya recibidos, usado en la tabla detalle, la
   // proyección de cobros, y el gráfico real vs. proyectada.
   let ingDep = D.ingresoDeposito||[];
-  if(proj) ingDep = ingDep.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
+  if(projsAdm.length) ingDep = ingDep.filter(r=>_projOk(projsAdm, r.Proyecto));
   if(_tipo) ingDep = ingDep.filter(r=>normStr(r.TipoInmueble_1||'').includes(_tipo));
 
   // "Ventas totales"/"Monto de ventas" del KPI de arriba: respeta el período
@@ -5121,7 +5290,7 @@ function renderAdmVentas(){
   const _admDesdeTop = document.getElementById('adm-date-desde')?.value||'';
   const _admHastaTop = document.getElementById('adm-date-hasta')?.value||'';
   let vTodas = D.ventas||[];
-  if(proj)  vTodas = vTodas.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
+  if(projsAdm.length) vTodas = vTodas.filter(r=>_projOk(projsAdm, r.Proyecto));
   if(_tipo) vTodas = vTodas.filter(r=>_matchTipo(r,_tipo));
   if(_admDesdeTop||_admHastaTop) vTodas = vTodas.filter(r=>_matchDateRange(r.FechaVenta||r.FechaEntrega_Minuta||'', _admDesdeTop, _admHastaTop));
   const montoTotal = vTodas.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
@@ -5140,7 +5309,7 @@ function renderAdmVentas(){
 
   // ── Cobranza real desde Flujo de Caja (1 fila = 1 transacción, moneda por fila) ──
   let fc = D.flujoCaja||[];
-  if(proj)  fc = fc.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
+  if(projsAdm.length) fc = fc.filter(r=>_projOk(projsAdm, r.Proyecto));
   // Antes de aplicar el filtro de tipo por fila: una fila de Flujo de Caja puede
   // empaquetar hasta 6 unidades (NroInmueble_1..6/TipoInmueble_1..6, ej. 2
   // departamentos en la misma orden) bajo un solo saldo. Se guarda sin el filtro
@@ -6667,15 +6836,15 @@ function toggleSidebar(){
 
 // ─── FILTRO HELPERS ─────────────────────────────────────────────────────────
 function filtrarVentas(prefix){
-  const proj  = document.getElementById(prefix+'-proj')?.value||'';
+  const projs = _projArr(prefix);
   const desde = document.getElementById(prefix+'-date-desde')?.value||'';
   const hasta = document.getElementById(prefix+'-date-hasta')?.value||'';
   let v = D.ventas||[];
-  if(proj) v = v.filter(r=>String(r.Proyecto||'').toUpperCase()===proj.toUpperCase());
+  if(projs.length) v = v.filter(r=>_projOk(projs, r.Proyecto));
   if(desde||hasta) v = v.filter(r=>_matchDateRange(r.FechaVenta||r.FechaEntrega_Minuta||'', desde, hasta));
   return v;
 }
-function filtrarProj(prefix){ return prefix==='dir' ? [..._dirProjSel].join(', ') : (document.getElementById(prefix+'-proj')?.value||''); }
+function filtrarProj(prefix){ return _projSel[prefix] ? [..._projSel[prefix]].join(', ') : (document.getElementById(prefix+'-proj')?.value||''); }
 
 // ── CALCULADORA DESCUENTO ────────────────────────────────────────────────────
 let _calcPrecio = 0;
@@ -6760,6 +6929,7 @@ function _cobMesOrdenar(idx){
   _cobMesRenderTabla();
 }
 function _abrirModalDetalle(titulo, kpi1, kpi2, filas, cols){
+  cols = _colsConTorre(cols, filas);
   document.getElementById('cob-mes-titulo-mes').textContent = titulo;
   document.getElementById('cob-mes-kpi-total-lbl').textContent = kpi1.label;
   const k1 = document.getElementById('cob-mes-kpi-total');
@@ -7050,11 +7220,31 @@ function _kpiClic(html, onclick){
 // Stock (Edificio) por proyecto + N° de unidad + DNI del comprador (misma llave que el
 // área real); si no calza por DNI, por proyecto + tipo + N° solo cuando ese N° existe
 // en un único edificio. Solo Sunny (Edificio 1 y 2) y Domingo Orué (Torre 3 y 4).
-let _torreIdx = null;
+let _torreIdx = null, _torreIdxSrc = null;
+// Torre/Edificio para cualquier fila: las de Stock (separaciones) ya traen Edificio;
+// las de Ventas se cruzan con Stock (_torreDeVenta).
+// Formato corto pedido: Sunny "EDI 1"/"EDI 2", Domingo Orué "T3"/"T4"
+function _torreFmt(proy, ed){
+  proy = String(proy||'').trim().toUpperCase();
+  if(!ed) return '—';
+  return proy==='SUNNY' ? 'EDI '+ed : proy==='DOMINGO ORUE' ? 'T'+ed : '—';
+}
+// La columna Torre solo se muestra si en las filas hay Sunny o Domingo Orué
+const _proyConTorre = r => /^(SUNNY|DOMINGO ORUE)$/.test(String(r&&r.Proyecto||'').trim().toUpperCase());
+const _colsConTorre = (cols, filas) => (cols||[]).some(c=>c.soloTorre) && !(filas||[]).some(_proyConTorre)
+  ? cols.filter(c=>!c.soloTorre) : cols;
+function _torreDe(r){
+  if(r && r.Edificio!==undefined && !('NroDocumentoTitular' in r)){
+    const ed = String(r.Edificio||'').trim();
+    return /^\d+$/.test(ed) ? _torreFmt(r.Proyecto, ed) : '—';
+  }
+  return _torreDeVenta(r);
+}
 function _torreDeVenta(r){
   const proy = String(r.Proyecto||'').trim().toUpperCase();
   const rot = proy==='SUNNY' ? 'Edificio' : proy==='DOMINGO ORUE' ? 'Torre' : '';
   if(!rot) return '—';
+  if(_torreIdxSrc!==D.stock){ _torreIdx=null; _torreIdxSrc=D.stock; }
   if(!_torreIdx){
     _torreIdx = {dni:{}, nro:{}};
     (D.stock||[]).forEach(x=>{
@@ -7069,7 +7259,7 @@ function _torreDeVenta(r){
   const nro = String(r.NroInmueble||'').trim().replace(/\.0+$/,'');
   const ed = _torreIdx.dni[_m2Key(r.Proyecto, nro, r.NroDocumentoTitular)]
           || _torreIdx.nro[proy+'|'+String(r.TipoInmueble||'').trim().toUpperCase()+'|'+nro];
-  return ed ? rot+' '+ed : '—';
+  return ed ? _torreFmt(proy, ed) : '—';
 }
 // Popup con las ventas que componen "Monto de ventas S/" o "$" (mismo período/filtros del KPI).
 function _abrirDetalleMontoVentas(moneda){
@@ -7085,7 +7275,7 @@ function _abrirDetalleMontoVentas(moneda){
     {label:'DNI',        get:_flDNI, align:'center'},
     {label:'Proyecto',   get:_flProyectoCli, align:'center'},
     {label:'N° Dpto',    get:_flNroDpto, align:'center'},
-    {label:'Torre',      get:_torreDeVenta, align:'center'},
+    {label:'Torre',      get:_torreDeVenta, align:'center', soloTorre:true},
     {label:'Tipo',       get:r=>String(r.TipoInmueble||'').trim()||'—', align:'center'},
     {label:'Vendedor',   get:_flAsesor, align:'center'},
     {label:'F. Venta',   get:r=>_flFmtFecha(fv(r)), align:'center', sortVal:r=>_flIsoFecha(fv(r))},
@@ -7352,6 +7542,7 @@ const FL_SEP_COLS=[
   {label:'DNI',            get:_flDNI, align:'center'},
   {label:'Proyecto',       get:_flProyectoCli},
   {label:'N° Dpto',        get:_flNroDpto, align:'center'},
+  {label:'Torre',          get:_torreDe, align:'center', soloTorre:true},
   {label:'Canal',          get:_flCanal},
   {label:'Contacto',       get:r=>String(r.FormaContacto||'').trim()||'—'},
   {label:'Vendedor',       get:_flAsesor},
@@ -7390,6 +7581,7 @@ const FL_VENTA_COLS=[
   {label:'DNI',             get:_flDNI, align:'center'},
   {label:'Proyecto',        get:_flProyectoCli},
   {label:'N° Dpto',         get:_flNroDpto, align:'center'},
+  {label:'Torre',           get:_torreDe, align:'center', soloTorre:true},
   {label:'Canal',           get:_flCanal},
   {label:'Vendedor',        get:_flAsesor},
   {label:'Distrito',        get:_flDistritoCli},
@@ -7406,6 +7598,7 @@ const FL_COM_VENTA_COLS=[
   {label:'DNI',           get:_flDNI, align:'center'},
   {label:'Proyecto',      get:_flProyectoCli},
   {label:'N° Inmueble',   get:r=>String(r.NroInmueble||'').replace(/\.0$/,'')||'—', align:'center'},
+  {label:'Torre',         get:_torreDe, align:'center', soloTorre:true},
   {label:'Tipo',          get:r=>String(r.TipoInmueble||'').trim()||'—'},
   {label:'Canal',         get:_flCanal},
   {label:'Vendedor',      get:_flAsesor},
@@ -7428,6 +7621,7 @@ function _flPopupBuscar(q){
 }
 
 function _abrirModalFunnelEtapa(titulo, kpi1, kpi2, filas, cols){
+  cols = _colsConTorre(cols, filas);
   _flPopupState = {titulo, kpi1, kpi2, filas, cols};
   _flPopupSortIdx = null;
   _flPopupSortDir = 'asc';
@@ -7623,20 +7817,30 @@ function toggleSpEstado(cls){
 function setSpEtapa(e){ _spEtapa=e; renderStockProy(); }
 
 // ── STOCK PROYECTO ───────────────────────────────────────────────────────────
+// Varios proyectos: un mapa por pisos para cada uno, uno debajo del otro; los botones de
+// estado y el buscador van una sola vez arriba y aplican a todos (filtran por clase CSS).
 function renderStockProy(){
-  const proj = (document.getElementById('sp-proj')?.value||'').toUpperCase();
+  const projs = _projArr('sp');
   const tipo = normStr(document.getElementById('sp-tipo')?.value||'');
   const el   = document.getElementById('sp-content');
+  projMsRender('sp');
 
   // sin proyecto seleccionado → vacío
-  if(!proj){
-    document.getElementById('sp-sub').textContent = 'Selecciona un proyecto';
+  if(!projs.length){
+    document.getElementById('sp-sub').textContent = 'Selecciona uno o más proyectos';
     el.innerHTML = `<div class="sp-empty">
       <div class="sp-empty-icon">🏢</div>
-      <p>Selecciona un proyecto en el filtro para ver el inventario de unidades</p>
+      <p>Selecciona uno o más proyectos en el filtro para ver el inventario de unidades</p>
     </div>`;
     return;
   }
+  const partes = projs.map(p=>_spRenderProyecto(p.toUpperCase(), tipo));
+  const legend = (partes.find(x=>x.legend)||{}).legend||'';
+  document.getElementById('sp-sub').textContent = 'Actualizado: '+D.updatedAt+' · Stock'+(projs.length>1?' · '+projs.length+' proyectos':'');
+  el.innerHTML = legend + partes.map(x=>x.vacio ? `<div class="card" style="margin-bottom:16px"><div class="card-hd"><div><h3>${x.proj}</h3><p>Sin unidades para este proyecto</p></div></div></div>` : x.torreBar + x.grids).join('<div style="height:16px"></div>');
+  if(_spSearch) filterSpUnits(_spSearch);
+}
+function _spRenderProyecto(proj, tipo){
 
   const clsEst = r=>{
     const e = String(r.Estado||'').toLowerCase();
@@ -7679,11 +7883,7 @@ function renderStockProy(){
   });
   const rows = [...seen.values()];
 
-  if(!rows.length){
-    document.getElementById('sp-sub').textContent = 'Actualizado: '+D.updatedAt+' · Stock';
-    el.innerHTML = '<div class="loading">Sin unidades para este proyecto</div>';
-    return;
-  }
+  if(!rows.length) return {proj, vacio:true};
 
   // torres: solo cuando hay tipo seleccionado — cruce tipo × edificio
   const torreKey   = r=>String(r.Edificio||'').trim();
@@ -7780,9 +7980,7 @@ function renderStockProy(){
     <div style="padding:4px 18px 18px">${floors}</div>
   </div>`;
 
-  document.getElementById('sp-sub').textContent = 'Actualizado: '+D.updatedAt+' · Stock';
-  el.innerHTML = torreBar + legend + grids;
-  if(_spSearch) filterSpUnits(_spSearch);
+  return {proj, torreBar, legend, grids};
 }
 
 // ══════════════════════════════════════════════════════════════════════════
