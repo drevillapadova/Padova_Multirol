@@ -4685,13 +4685,17 @@ function renderAdmVentas(){
   // de tipo aquí para poder contar unidades por slot más abajo, no solo por fila.
   const fcProjFiltrado = fc;
   if(_tipo) fc = fc.filter(r=>normStr(r.TipoInmueble_1||'').includes(_tipo));
+  // "Liberado" necesita también los expedientes sin FechaVenta: si ya tienen
+  // Escritura Pública firmada cuentan como liberados aunque en Evolta solo
+  // figure la separación.
+  const fcConSeparados = fc;
   // Un expediente sin FechaVenta (solo separado, aún no vendido) no cuenta en
   // ninguna cifra de cobranza/proyección: no es una venta confirmada todavía.
   fc = fc.filter(r=>{ const s=String(r.FechaVenta||'').trim(); return s && s!=='nan' && s!=='None'; });
 
   if(_admTab === 'liberado'){
     document.getElementById('adm-kpis').innerHTML = '';
-    renderAdmLiberado(fc);
+    renderAdmLiberado(fcConSeparados);
     return;
   }
 
@@ -5022,11 +5026,14 @@ function _unidadesDeRow(r, maxSlots){
   const proj = String(r.Proyecto||'').trim().toUpperCase();
   const keys = [];
   for(let i=1;i<=maxSlots;i++){
-    const nro = String(r['NroInmueble_'+i]||'').trim().toUpperCase();
-    if(nro) keys.push(proj+'|'+nro);
+    // La hoja Escritura Pública trae a veces el N° como float ("1309.0").
+    const nro = String(r['NroInmueble_'+i]||'').trim().toUpperCase().replace(/^(\d+)\.0+$/,'$1');
+    if(nro && nro!=='NAN' && nro!=='NONE') keys.push(proj+'|'+nro);
   }
   return keys;
 }
+
+const _dniLib = v => { const s=String(v||'').trim().toUpperCase().replace(/\.0+$/,''); return (s==='NAN'||s==='NONE')?'':s.replace(/^0+/,''); };
 
 let _admLiberadoSearch = '';
 let _admLiberadoPendientes = []; // cache para refiltrar sin perder el foco del buscador
@@ -5068,16 +5075,21 @@ function renderAdmLiberado(fc){
     if(!fecha || fecha==='nan' || fecha==='None') return;
     const ym = fecha.slice(0,7);
     const enPeriodo = !_periodoLibActivo || _matchDateRange(fecha, _desdeLib, _hastaLib);
-    _unidadesDeRow(row, 4).forEach(k=>{
+    // Unidad + DNI del titular: el N° solo no basta (el estacionamiento 17 y
+    // el depósito 17 comparten número, y una unidad re-vendida heredaría la
+    // escritura del dueño anterior). Escrituras sin DNI cruzan solo por unidad.
+    const dni = _dniLib(row.NroDocTitular);
+    _unidadesDeRow(row, 4).map(k=>k+'|'+dni).forEach(k=>{
       escrituraFirmadaKeys.add(k);
       if(enPeriodo) escrituraEnPeriodoKeys.add(k);
       if(/^\d{4}-\d{2}$/.test(ym) && !(k in escrituraFechaPorUnidad)) escrituraFechaPorUnidad[k] = ym;
     });
   });
-  const _tieneEscritura = r => _unidadesDeRow(r, 6).some(k=>escrituraFirmadaKeys.has(k));
-  const _tieneEscrituraMostrada = r => _unidadesDeRow(r, 6).some(k=>escrituraEnPeriodoKeys.has(k));
+  const _keysLib = r => { const d=_dniLib(r.NroDocumentoTitular); return _unidadesDeRow(r, 8).flatMap(k=>[k+'|'+d, k+'|']); };
+  const _tieneEscritura = r => _keysLib(r).some(k=>escrituraFirmadaKeys.has(k));
+  const _tieneEscrituraMostrada = r => _keysLib(r).some(k=>escrituraEnPeriodoKeys.has(k));
   const _fechaEscrituraDe = r => {
-    for(const k of _unidadesDeRow(r, 6)){ if(escrituraFechaPorUnidad[k]) return escrituraFechaPorUnidad[k]; }
+    for(const k of _keysLib(r)){ if(escrituraFechaPorUnidad[k]) return escrituraFechaPorUnidad[k]; }
     return null;
   };
   const _esUSD = r => String(r.Tipo_Moneda||'').toUpperCase().includes('DOLAR');
@@ -5091,15 +5103,22 @@ function renderAdmLiberado(fc){
   const FX_LIB = 3.5; // solo para blendear el gráfico mensual (una sola serie, no por moneda)
   const montoPorMes = {};
   const filasPorMes = {}; // ym -> expedientes liberados ese mes, para el popup de detalle
+  const _conFechaVenta = r => { const s=String(r.FechaVenta||'').trim(); return s && s!=='nan' && s!=='None'; };
   fc.forEach(r=>{
-    const pagado = _n(r.Pagos_Recibido);
+    const tieneGlobal = _tieneEscritura(r);
+    // Sin Escritura: solo ventas confirmadas (con FechaVenta), por lo pagado.
+    // Con Escritura firmada: se libera el MONTO TOTAL DE VENTA (separación +
+    // cuota inicial + saldo/financiamiento), aunque en Evolta aún figure solo
+    // la separación o el expediente no tenga FechaVenta.
+    if(!tieneGlobal && !_conFechaVenta(r)) return;
+    const pagado = tieneGlobal ? Math.max(_n(r.TotalVenta), _n(r.Pagos_Recibido)) : _n(r.Pagos_Recibido);
     if(pagado<=0) return;
+    r._montoLiberado = tieneGlobal ? pagado : 0;
     const esD = _esUSD(r);
     const proj = String(r.Proyecto||'').trim() || 'Sin proyecto';
     if(!porProyecto[proj]) porProyecto[proj] = {cobS:0,cobD:0,libS:0,libD:0};
     if(esD){ cobradoD+=pagado; porProyecto[proj].cobD+=pagado; }
     else   { cobradoS+=pagado; porProyecto[proj].cobS+=pagado; }
-    const tieneGlobal = _tieneEscritura(r);
     if(tieneGlobal){
       if(esD) liberadoD+=pagado; else liberadoS+=pagado;
       const ym = _fechaEscrituraDe(r);
@@ -5259,7 +5278,7 @@ function _admAbrirLiberadoMes(ym, mesLabel){
   const filas = _admLiberadoFilasPorMes[ym]||[];
   const FX_LIB = 3.5;
   const totalMes = filas.reduce((a,r)=>{
-    const monto = _detNum(r.Pagos_Recibido);
+    const monto = _detNum(r._montoLiberado||r.Pagos_Recibido);
     return a + (_detEsUSD(r)?monto*FX_LIB:monto);
   },0);
   const cols = [
@@ -5268,7 +5287,7 @@ function _admAbrirLiberadoMes(ym, mesLabel){
     {label:'N° Dpto.', align:'center', get:r=>_admUnidadesTxt(r,'<br>')},
     {label:'Proyecto', align:'center', get:r=>String(r.Proyecto||'—')},
     {label:'Moneda', align:'center', get:r=>_detMonedaBadge(_detEsUSD(r))},
-    {label:'Monto Liberado', align:'center', get:r=>_detMonto(_detNum(r.Pagos_Recibido), _detEsUSD(r))},
+    {label:'Monto Liberado', align:'center', get:r=>_detMonto(_detNum(r._montoLiberado||r.Pagos_Recibido), _detEsUSD(r))},
   ];
   _abrirModalDetalle(
     'Liberado — '+mesLabel,

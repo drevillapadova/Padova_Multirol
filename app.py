@@ -739,6 +739,47 @@ def calcular_stock_resumen():
 
 TABS_CON_PROYECTO = {"ventas", "stock", "prospectos", "visitas", "flujo_caja", "ingreso_deposito", "escritura_publica"}
 
+def _etapa_lomas_escritura(registros, flujo_caja):
+    """La hoja Escritura Pública trae Lomas como "LOMAS DE CARABAYLLO" sin
+    etapa, y _normalizar_proyectos la descartaría. Se le asigna la etapa (4/5)
+    buscando la misma unidad + DNI del titular en Flujo de Caja (ya normalizado)."""
+    def _u(v):
+        s = str(v or "").strip().upper()
+        return re.sub(r"^(\d+)\.0+$", r"\1", s)
+
+    def _d(v):
+        return _u(v).lstrip("0")
+
+    por_unidad_dni, por_unidad = {}, {}
+    for r in flujo_caja:
+        proj = str(r.get("Proyecto", "")).upper()
+        if "LOMAS DE CARABAYLLO" not in proj:
+            continue
+        dni = _d(r.get("NroDocumentoTitular"))
+        for i in range(1, 9):
+            u = _u(r.get(f"NroInmueble_{i}"))
+            if u:
+                por_unidad_dni[(u, dni)] = proj
+                por_unidad.setdefault(u, set()).add(proj)
+
+    out = []
+    for r in registros:
+        proj = str(r.get("Proyecto", "")).upper().strip()
+        if "LOMAS DE CARABAYLLO" in proj and not re.search(r"\b(4|5)\b", proj):
+            dni = _d(r.get("NroDocTitular"))
+            unidades = [_u(r.get(f"NroInmueble_{i}")) for i in range(1, 5)]
+            unidades = [u for u in unidades if u]
+            etapa = next((por_unidad_dni[(u, dni)] for u in unidades if (u, dni) in por_unidad_dni), None)
+            if not etapa:  # sin DNI que cruce: solo si la unidad es inequívoca
+                cands = set().union(*(por_unidad.get(u, set()) for u in unidades)) if unidades else set()
+                etapa = next(iter(cands)) if len(cands) == 1 else None
+            if etapa:
+                r = dict(r)
+                r["Proyecto"] = etapa
+        out.append(r)
+    return out
+
+
 def leer_tab_header(tab_key, header_row):
     """Lee una pestaña usando una fila específica como encabezado (0-indexed)."""
     try:
@@ -766,6 +807,8 @@ def actualizar_cache():
             raw = leer_tab_header(key, header_row=4)
         else:
             raw = leer_tab(key)
+        if key == "escritura_publica":
+            raw = _etapa_lomas_escritura(raw, _cache.get("flujo_caja") or [])
         if key in TABS_CON_PROYECTO:
             # Prospectos y visitas no traen etapa de Lomas: todo es etapa 5
             fija = "5" if key in ("prospectos", "visitas") else None
