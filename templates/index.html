@@ -342,6 +342,67 @@ html.dark .pr-sw i{background:#475569}
 .pr-guardar{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;padding:14px 18px;margin-bottom:16px;position:sticky;bottom:8px;z-index:3}
 .pr-aviso{padding:12px 18px;margin-bottom:16px;font-size:12.5px;color:var(--ink-2);border-left:4px solid #F4A228}
 .pr-nota{font-size:11.5px;color:var(--ink-3);line-height:1.55;margin:0 2px 20px}
+/* ═══ PRICING (mismo lenguaje que Marketing) ═══ */
+#panel-pricing .mk-kpis{grid-template-columns:1.15fr 1.2fr 1fr 1fr}
+#panel-pricing .mk-kpi .k-v{font-size:30px;line-height:34px}
+#panel-pricing .mk-kpi.hero .k-v{font-size:36px;line-height:40px}
+.mk-pill.ok{background:var(--ok-soft);color:var(--mk-ok)}
+.pr-als{list-style:none;margin:0;padding:2px 20px 18px;display:flex;flex-direction:column;gap:10px}
+.pr-al{display:flex;gap:12px;align-items:flex-start;padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:var(--mk-inset);font-size:13px;line-height:1.5;color:var(--ink)}
+.pr-al.r{border-color:color-mix(in srgb,var(--mk-bad) 35%,var(--line));background:color-mix(in srgb,var(--mk-bad) 6%,var(--panel))}
+.pr-al.a{border-color:var(--mk-gold-line);background:var(--mk-gold-soft)}
+.pr-al-ic{flex:none;width:22px;height:22px;border-radius:999px;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:-1px}
+.pr-al .mk-link{font-size:12.5px;white-space:nowrap}
+.pr-rec-top{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:2px 20px 12px}
+.pr-rec-top small{display:block;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-4)}
+.pr-rec-top b{font-size:16px;font-weight:800;color:var(--ink);white-space:nowrap}
+#panel-pricing .mk-side{flex:1 1 400px;max-width:470px}
+.pr-esc{padding:10px 20px 12px;border-top:1px solid var(--line-2)}
+.pr-esc-hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;color:var(--ink)}
+.pr-esc-hd .mk-d{font-size:15px}
+.pr-esc-bar{position:relative;height:12px;border-radius:999px;background:var(--mk-track);margin:8px 0 6px;display:flex;overflow:visible}
+.pr-esc-bar i{display:block;height:100%}
+.pr-esc-bar i.v{background:var(--brand);border-radius:999px 0 0 999px}
+.pr-esc-bar i.p{background:color-mix(in srgb,var(--brand) 30%,transparent)}
+.pr-esc-bar em{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink);border-radius:2px}
+.pr-esc-n{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--ink-3)}
+.pr-esc-n b{color:var(--ink)}
+.pr-esc small{display:block;font-size:11px;color:var(--ink-4);margin-top:3px}
+.pr-esc-lg{display:flex;gap:14px;padding:6px 20px 16px;font-size:11px;color:var(--ink-3)}
+.pr-esc-lg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.pr-hoy{font-size:12.5px;color:var(--ink-3);padding-top:4px}
+.pr-hoy b{color:var(--ink)}
+.pr-steps{display:flex;gap:8px;padding:4px 20px 14px;overflow-x:auto}
+.pr-step{min-width:118px;display:flex;flex-direction:column;gap:7px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--mk-inset);text-align:left;font-family:inherit;color:var(--ink);cursor:pointer}
+.pr-step:disabled{cursor:default;opacity:.85}
+.pr-step:not(:disabled):hover{border-color:var(--brand)}
+.pr-step-hd{display:flex;align-items:baseline;gap:6px;min-width:0}
+.pr-step-hd b{font-size:15px;font-weight:800}
+.pr-step-hd span{font-size:11.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pr-step .mk-trk{height:7px}
+.pr-step .mk-trk>i{background:var(--ink-4)}
+.pr-step.done .mk-trk>i{background:var(--mk-ok)}
+.pr-step.act{border-color:var(--mk-gold);background:var(--mk-gold-soft);box-shadow:0 0 0 3px color-mix(in srgb,var(--mk-gold) 18%,transparent)}
+.pr-step.act .mk-trk>i{background:var(--mk-gold)}
+.pr-step-n{display:flex;justify-content:space-between;align-items:baseline;gap:6px;font-size:13px;font-weight:800}
+.pr-step-n small{font-size:11px;font-weight:600;color:var(--ink-4)}
+.pr-tt tr.pr-act td{background:var(--mk-gold-soft)}
+.pr-tt td small{display:inline;margin-left:4px}
+.mk-tbl.mk-eq.pr-tip,.mk-tbl.mk-eq.pr-tt{min-width:0}
+.pr-pie{margin:0;padding:0 20px 16px;font-size:11.5px;color:var(--ink-4)}
+.pr-ins li{font-size:12.5px}
+.pr-tblwrap{overflow:auto;max-height:640px;border-top:1px solid var(--line-2);margin:0 0 6px}
+.pr-dt{border-spacing:0}
+#panel-pricing .pr-dt{font-size:12px}
+#panel-pricing .pr-dt th{position:sticky;top:0;background:var(--panel);z-index:2;white-space:normal;line-height:1.2;padding:8px 4px;font-size:10px;letter-spacing:.02em;vertical-align:bottom}
+#panel-pricing .pr-dt td{white-space:nowrap;padding:7px 4px}
+#panel-pricing .pr-dt .pr-wr{display:inline-block;white-space:normal;max-width:96px;line-height:1.25}
+.pr-dt tbody tr:hover td{background:var(--brand-soft)}
+#panel-pricing .pr-cfg-tbl th{font-size:10.5px}
+#panel-pricing .pr-guardar{display:flex}
+#panel-pricing .pr-aviso{border-left:4px solid var(--mk-gold)}
+@media (max-width:1100px){ #panel-pricing .mk-kpis{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:640px){ #panel-pricing .mk-kpis{grid-template-columns:1fr} .pr-rec-top{grid-template-columns:1fr 1fr} }
 
 /* ── CELLBAR (mini inline spark) ── */
 .cellbar{display:flex;align-items:center;gap:8px;justify-content:flex-end}
@@ -1378,22 +1439,25 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
 </div>
 
 <!-- ═══════════ PRICING ═══════════ -->
-<div class="panel" id="panel-pricing">
+<div class="panel mk-panel" id="panel-pricing">
   <div class="topbar">
     <div>
       <div class="crumbs">Dashboard <span>›</span><b>Pricing</b></div>
-      <h1 class="page-title">Pricing · avance por tramos</h1>
+      <h1 class="page-title">Pricing</h1>
       <div class="page-sub" id="pr-sub">Cargando...</div>
     </div>
     <div class="toolbar">
-      <label class="chip-sel"><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">≡</span>
-        <select id="pr-proj" onchange="_prResAt=null;renderPricing()"><option value="DOMINGO ORUE">Domingo Orué</option><option disabled>Helio (sin plan de tramos)</option><option disabled>Sunny (sin plan de tramos)</option><option disabled>Litoral 900 (sin plan de tramos)</option><option disabled>Lomas 4 (sin plan de tramos)</option><option disabled>Lomas 5 (sin plan de tramos)</option></select>
-      </label>
       <div class="chip refresh" onclick="loadAll(true)">↻ Actualizar</div>
       <button class="dark-toggle-btn" onclick="toggleDark()" title="Modo oscuro" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all .2s">◑</button>
     </div>
   </div>
-  <div class="kpi-row kpi-4" id="pr-kpis"><div class="loading">Cargando datos...</div></div>
+  <div class="mk-filtros">
+    <span class="mk-lbl">Proyecto</span>
+    <select class="mk-btn" id="pr-proj" style="min-height:32px" onchange="_prResAt=null;_prDraft=null;renderPricing()"><option value="DOMINGO ORUE">Domingo Orué</option><option disabled>Helio (sin plan de tramos)</option><option disabled>Sunny (sin plan de tramos)</option><option disabled>Litoral 900 (sin plan de tramos)</option><option disabled>Lomas 4 (sin plan de tramos)</option><option disabled>Lomas 5 (sin plan de tramos)</option></select>
+    <div class="ddb-sep"></div>
+    <span id="pr-hd-info" style="font-size:12.5px;color:var(--ink-3)"></span>
+  </div>
+  <div class="mk-kpis" id="pr-kpis"><div class="loading">Cargando datos...</div></div>
   <div class="tab-bar" id="pr-tab-bar">
     <button class="tab-btn active" onclick="setPrTab('resumen',this)">Resumen</button>
     <button class="tab-btn" onclick="setPrTab('ventas',this)">Ventas</button>
@@ -8144,29 +8208,36 @@ function renderPricing(){
   if(_prErr && _prTab==='config'){ kp.innerHTML = ''; _prRenderConfig(el); return; }
   if(_prErr){
     kp.innerHTML = '';
-    el.innerHTML = `<div class="card" style="padding:22px;color:var(--ink-3);font-size:13px">${_escapeHtml(_prErr)}</div>`;
+    el.innerHTML = `<div class="mk-card mk-empty">${_escapeHtml(_prErr)}</div>`;
     if(sub) sub.textContent = '';
     return;
   }
   if(!_prRes){ kp.innerHTML = '<div class="loading">Calculando pricing...</div>'; if(_prTab==='config') _prRenderConfig(el); else el.innerHTML = ''; return; }
   const R = _prRes.resumen;
-  if(sub) sub.textContent = `Actualizado: ${_prRes.updated_at||'—'} · ${toTitle(_prRes.proyecto.toLowerCase())} · ${R.vendidas} ventas activas · plan de tramos en Pricing › Configuración`;
+  if(sub) sub.textContent = `Actualizado: ${_prRes.updated_at||'—'} · ${toTitle(_prRes.proyecto.toLowerCase())} · avance por tramos (método de tramos)`;
 
   // ── KPIs ──
   const sob = R.sobrerrecaudacion_plan;
   const tAct = _prRes.tramos.find(t=>t.tramo===R.tramo_actual) || {};
   const ritmoDesv = R.ritmo_plan_actual ? R.ritmo_3m/R.ritmo_plan_actual-1 : null;
-  kp.innerHTML =
-     kpi('Sobrerrecaudación proyectada', `<span style="color:${_prSigno(sob)}">${_prM(sob)}</span>`,
-         `Subiendo según el plan · sin subir: <b style="color:${_prSigno(R.sobrerrecaudacion_lista)}">${_prM(R.sobrerrecaudacion_lista)}</b>`)
-    +kpi('Tramo actual', `T${R.tramo_actual} <span class="unit">· ${Math.max(0,R.cupo_usado-R.tramo_desde+1)} / ${R.tramo_hasta-R.tramo_desde+1}</span>`,
-         `${_escapeHtml(R.tramo_etapa)} · ${R.motivo_tramo==='obra'?'<b>por avance de obra</b>':'por cupo vendido'}`
-         +` · obra: ${R.tramo_obra?'T'+R.tramo_obra:'<b style="color:var(--warn)">sin definir</b>'} · cupo: T${R.tramo_cupo}`
-         +` · quedan ${R.tramo_quedan} para el T${R.tramo_siguiente} o hasta que avance la obra`)
-    +kpi('S/ m² vendido en el tramo', tAct.pm2_real ? fN(Math.round(tAct.pm2_real)) : '—',
-         `Plan ${fN(R.pm2_tramo_actual)} · <b style="color:${_prSigno(tAct.desv_pm2)}">${_prP(tAct.desv_pm2)}</b> · lista hoy ${_prP(R.desfase_lista)}`)
-    +kpi('Ritmo (últimos 3 meses)', `${R.ritmo_3m.toFixed(1)} <span class="unit">/ mes</span>`,
-         `Plan del tramo ${fN(R.ritmo_plan_actual)} · <b style="color:${_prSigno(ritmoDesv)}">${_prP(ritmoDesv,0)}</b> · ${R.vendidas} vs ${Math.round(R.perfil_a_hoy)} según plan`);
+  const usados = Math.max(0,R.cupo_usado-R.tramo_desde+1), ancho = R.tramo_hasta-R.tramo_desde+1;
+  const dTxt = (v,dec=1,eq) => v==null ? '' : `<span class="mk-d ${eq?'eq':v>=0?'up':'down'}">${v>=0?'▲':'▼'} ${Math.abs(v*100).toFixed(dec)}%</span> `;
+  const info = document.getElementById('pr-hd-info');
+  if(info) info.innerHTML = `${R.vendidas} ventas activas · ${R.separaciones} separaciones · plan de tramos en <b>Configuración</b>`;
+  kp.innerHTML = `
+    <div class="mk-kpi hero"><div class="k-l">Sobrerrecaudación proyectada</div>
+      <div class="k-v">${_prM(sob)}</div>
+      <div class="k-s">subiendo según el plan · sin subir más: <b style="color:#fde68a">${_prM(R.sobrerrecaudacion_lista)}</b></div></div>
+    <div class="mk-kpi"><div class="k-l">Tramo actual</div>
+      <div class="k-v">T${R.tramo_actual} <span style="font-size:15px;font-weight:700;color:var(--ink-3)">${usados} / ${ancho}</span></div>
+      <span class="mk-trk" style="height:8px"><i style="width:${ancho?Math.min(100,usados/ancho*100):0}%;background:var(--mk-gold)"></i></span>
+      <div class="k-s">${_escapeHtml(R.tramo_etapa)} · ${R.motivo_tramo==='obra'?'por avance de obra':'por cupo vendido'} · quedan <b>${R.tramo_quedan}</b> para el T${R.tramo_siguiente}${R.tramo_obra?'':' · <b style="color:var(--mk-gold-ink)">obra sin definir</b>'}</div></div>
+    <div class="mk-kpi"><div class="k-l">S/ m² vendido en el tramo</div>
+      <div class="k-v">${tAct.pm2_real ? fN(Math.round(tAct.pm2_real)) : '—'}</div>
+      <div class="k-s">${dTxt(tAct.desv_pm2)}vs. plan ${fN(R.pm2_tramo_actual)} · lista hoy ${_prP(R.desfase_lista)}</div></div>
+    <div class="mk-kpi"><div class="k-l">Ritmo · últimos 3 meses</div>
+      <div class="k-v">${R.ritmo_3m.toFixed(1)} <span style="font-size:15px;font-weight:700;color:var(--ink-3)">/ mes</span></div>
+      <div class="k-s">${dTxt(ritmoDesv,0)}vs. plan ${fN(R.ritmo_plan_actual)} · ${R.vendidas} vendidas contra ${Math.round(R.perfil_a_hoy)} del plan</div></div>`;
 
   if(_prTab==='ventas') return _prRenderTabla(el, 'ventas');
   if(_prTab==='stock') return _prRenderTabla(el, 'stock');
@@ -8177,93 +8248,115 @@ function renderPricing(){
 // ── Pestaña Resumen ─────────────────────────────────────────────────────────
 function _prRenderResumen(el){
   const R = _prRes.resumen;
-  const _th = 'padding:10px 12px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);border-bottom:2px solid var(--line);background:var(--panel);white-space:nowrap';
-  const _td = 'padding:9px 12px;text-align:center;font-size:12px;border-bottom:1px solid var(--line-2);white-space:nowrap';
 
   // Alertas
-  const COLA = {rojo:'var(--bad)', amarillo:'var(--warn)'};
+  const COLA = {rojo:'var(--mk-bad)', amarillo:'var(--mk-gold)'};
   const alertas = _prRes.alertas.length
-    ? _prRes.alertas.map((a,k)=>`<div class="pr-alerta"><i style="background:${COLA[a.nivel]||'var(--ink-4)'}"></i><span>${_escapeHtml(a.texto)}${(a.ventas||[]).length?` <a class="pr-ver" onclick="_prAbrirAlerta(${k})">Ver ${a.ventas.length===1?'la venta':'las '+a.ventas.length+' ventas'} →</a>`:''}</span></div>`).join('')
-    : `<div class="pr-alerta"><i style="background:var(--ok)"></i><span>Sin alertas: el precio y el ritmo están dentro de lo esperado.</span></div>`;
+    ? _prRes.alertas.map((a,k)=>`<li class="pr-al ${a.nivel==='rojo'?'r':'a'}"><span class="pr-al-ic" style="background:${COLA[a.nivel]||'var(--ink-4)'}">!</span>
+        <span>${_escapeHtml(a.texto)}${(a.ventas||[]).length?` <button type="button" class="mk-link" onclick="_prAbrirAlerta(${k})">Ver ${a.ventas.length===1?'la venta':'las '+a.ventas.length+' ventas'} →</button>`:''}</span></li>`).join('')
+    : `<li class="pr-al ok"><span class="pr-al-ic" style="background:var(--mk-ok)">✓</span><span>Sin alertas: el precio y el ritmo están dentro de lo esperado.</span></li>`;
+  const nRojo = _prRes.alertas.filter(a=>a.nivel==='rojo').length, nAm = _prRes.alertas.length-nRojo;
 
-  // Recaudación
-  const filaRec = (lbl, porVender, proy, dif, nota) => `<tr>
-      <td style="${_td};text-align:left;font-weight:600;color:var(--ink)">${lbl}<div style="font-weight:400;font-size:10.5px;color:var(--ink-4);white-space:normal">${nota}</div></td>
-      <td style="${_td}">${_prS(R.vendido_monto)}</td><td style="${_td}">${_prS(porVender)}</td>
-      <td style="${_td};font-weight:600">${_prS(proy)}</td><td style="${_td}">${_prS(R.requerida)}</td>
-      <td style="${_td};font-weight:700"><span style="color:${_prSigno(dif)}">${dif<0?'−':'+'}${_prS(Math.abs(dif))}</span></td></tr>`;
-  const rec = filaRec('Subiendo según el plan', R.proyectada_plan-R.vendido_monto, R.proyectada_plan, R.sobrerrecaudacion_plan,
-                      `Lo que falta, al S/ m² promedio de los turnos que quedan (${fN(Math.round(R.pm2_esperado_restante))})`)
-            + filaRec('Sin subir más (lista de hoy)', R.proyectada_lista-R.vendido_monto, R.proyectada_lista, R.sobrerrecaudacion_lista,
-                      `Lo que falta, a la lista de Evolta menos ${(R.dscto_esperado*100).toFixed(0)}%`);
+  // Recaudación: dos escenarios contra lo requerido
+  const req = R.requerida||0;
+  const esc = (lbl, proy, dif, nota)=>{
+    const p = req ? Math.min(1.15, proy/req) : 0, pv = req ? Math.min(1, R.vendido_monto/req) : 0;
+    return `<div class="pr-esc">
+      <div class="pr-esc-hd"><b>${lbl}</b><span class="mk-d ${dif>=0?'up':'down'}">${dif<0?'−':'+'}${_prM(Math.abs(dif)).replace('−','')}</span></div>
+      <div class="pr-esc-bar"><i class="v" style="width:${(pv*100/1.15).toFixed(1)}%"></i><i class="p" style="width:${(Math.max(0,p-pv)*100/1.15).toFixed(1)}%"></i><em style="left:${(100/1.15).toFixed(1)}%"></em></div>
+      <div class="pr-esc-n"><span>Proyectada <b>${_prM(proy)}</b></span><span>${req?Math.round(proy/req*100)+'% de lo requerido':''}</span></div>
+      <small>${nota}</small></div>`;
+  };
+  const recaud = `<section class="mk-card">
+    <div class="mk-card-hd"><div><h3>Recaudación de departamentos</h3><p>Vendido + lo que falta vender, contra lo requerido</p></div></div>
+    <div class="pr-rec-top">
+      <div><small>Requerida</small><b>${_prM(req)}</b></div>
+      <div><small>Vendido</small><b>${_prM(R.vendido_monto)}</b></div>
+      <div><small>Por vender</small><b>${_prM(R.proyectada_plan-R.vendido_monto)}</b></div>
+    </div>
+    ${esc('Subiendo según el plan', R.proyectada_plan, R.sobrerrecaudacion_plan, `Lo que falta, al S/ m² promedio de los tramos que quedan (${fN(Math.round(R.pm2_esperado_restante))})`)}
+    ${esc('Sin subir más (lista de hoy)', R.proyectada_lista, R.sobrerrecaudacion_lista, `Lo que falta, a la lista de Evolta menos ${(R.dscto_esperado*100).toFixed(0)}%`)}
+    <div class="pr-esc-lg"><span><i style="background:var(--brand)"></i>Vendido</span><span><i style="background:color-mix(in srgb,var(--brand) 30%,transparent)"></i>Por vender</span><span><i style="background:var(--ink)"></i>Requerido</span></div>
+  </section>`;
 
-  // Tramos
-  const filasT = _prRes.tramos.map(t=>{
-    const act = t.tramo===R.tramo_actual;
+  // Escalera de tramos + detalle
+  const pasos = _prRes.tramos.map(t=>{
+    const act = t.tramo===R.tramo_actual, cerr = String(t.estado).startsWith('Cerrado');
+    const cls = cerr ? 'done' : act ? 'act' : '';
     const pctAv = Math.round(t.avance*100);
-    const col = t.estado==='Cerrado' ? 'var(--ok)' : act ? '#F4A228' : 'var(--line)';
-    const estado = t.estado==='Cerrado' ? '<span class="pill g">Cerrado</span>'
-      : t.estado==='Cerrado por obra' ? `<span class="pill" style="background:var(--line-2);color:var(--ink-2)" title="La obra avanzó antes de llenar el cupo: quedaron ${t.ancho-t.cupo_usado} sin vender a este precio">Cerrado por obra</span>`
-      : act ? '<span class="pill w">En curso</span>' : '<span class="pill" style="background:var(--line-2);color:var(--ink-3)">Pendiente</span>';
-    const vs = _prRes.ventas.filter(v=>v.tramo===t.tramo);
-    return `<tr class="${act?'pr-act':''}">
-      <td style="${_td};font-weight:700">T${t.tramo}</td>
-      <td style="${_td};text-align:left">${_escapeHtml(t.etapa)}</td>
-      <td style="${_td};color:var(--ink-3)">${t.desde}–${t.hasta}</td>
-      <td style="${_td};min-width:150px"><div class="pr-bar"><i style="width:${pctAv}%;background:${col}"></i></div>
-        <div ${vs.length?`onclick="_prAbrirTramo(${t.tramo})" class="fl-cross-clk" title="Ver las ventas del tramo"`:''} style="font-size:10.5px;color:var(--ink-3);margin-top:3px">${t.cupo_usado} / ${t.ancho} (${pctAv}%)</div></td>
-      <td style="${_td}">${fN(t.pm2_plan)}</td>
-      <td style="${_td};font-weight:600">${t.pm2_real?fN(Math.round(t.pm2_real)):'—'}</td>
-      <td style="${_td};font-weight:700"><span style="color:${_prSigno(t.desv_pm2)}">${_prP(t.desv_pm2)}</span></td>
-      <td style="${_td};font-weight:600"><span style="color:${t.vendidas?_prSigno(t.dif_objetivo):'var(--ink-4)'}">${t.vendidas?_prM(t.dif_objetivo):'—'}</span></td>
-      <td style="${_td}">${fN(t.ritmo_plan)}</td>
-      <td style="${_td}">${t.ritmo_real!=null?t.ritmo_real.toFixed(1):'—'}</td>
-      <td style="${_td};color:var(--ink-3);font-size:11px">${t.inicio?_prFecha(t.inicio):''}${t.fin?' → '+_prFecha(t.fin):''}</td>
-      <td style="${_td}">${estado}</td></tr>`;
+    const vs = _prRes.ventas.some(v=>v.tramo===t.tramo);
+    return `<button type="button" class="pr-step ${cls}" style="flex:1 1 0" ${vs?`onclick="_prAbrirTramo(${t.tramo})" title="Ver las ventas del tramo"`:'disabled'}>
+      <span class="pr-step-hd"><b>T${t.tramo}</b><span>${_escapeHtml(t.etapa)}</span></span>
+      <span class="mk-trk"><i style="width:${pctAv}%"></i></span>
+      <span class="pr-step-n">${t.cupo_usado}/${t.ancho}<small>S/ ${fN(t.pm2_plan)} m²</small></span>
+    </button>`;
   }).join('');
+  const estadoPill = t => {
+    const act = t.tramo===R.tramo_actual;
+    if(t.estado==='Cerrado') return '<span class="mk-pill ok">Cerrado</span>';
+    if(t.estado==='Cerrado por obra') return `<span class="mk-pill base" title="La obra avanzó antes de llenar el cupo: quedaron ${t.ancho-t.cupo_usado} sin vender a este precio">Cerrado por obra</span>`;
+    return act ? '<span class="mk-pill warn">En curso</span>' : '<span class="mk-pill base">Pendiente</span>';
+  };
+  const filasT = _prRes.tramos.map(t=>{
+    const act = t.tramo===R.tramo_actual, vs = _prRes.ventas.some(v=>v.tramo===t.tramo);
+    return `<tr class="${act?'pr-act':''}">
+      <td><b>T${t.tramo}</b> · ${_escapeHtml(t.etapa)}</td>
+      <td>${t.desde}–${t.hasta}</td>
+      <td ${vs?`class="fl-cross-clk" onclick="_prAbrirTramo(${t.tramo})" title="Ver las ventas del tramo"`:''}><b>${t.cupo_usado}</b> / ${t.ancho}<small>${Math.round(t.avance*100)}%</small></td>
+      <td>${fN(t.pm2_plan)}</td>
+      <td><b>${t.pm2_real?fN(Math.round(t.pm2_real)):'—'}</b></td>
+      <td><b style="color:${_prSigno(t.desv_pm2)}">${_prP(t.desv_pm2)}</b></td>
+      <td><b style="color:${t.vendidas?_prSigno(t.dif_objetivo):'var(--ink-4)'}">${t.vendidas?_prM(t.dif_objetivo):'—'}</b></td>
+      <td>${fN(t.ritmo_plan)}</td>
+      <td>${t.ritmo_real!=null?t.ritmo_real.toFixed(1):'—'}</td>
+      <td>${t.inicio?_prFecha(t.inicio):'—'}${t.fin?'<small>→ '+_prFecha(t.fin)+'</small>':''}</td>
+      <td>${estadoPill(t)}</td></tr>`;
+  }).join('');
+  const tramos = `<section class="mk-card" style="margin-bottom:16px">
+    <div class="mk-card-hd"><div><h3>Avance por tramo</h3><p>El tramo lo define el orden de venta (o el avance de obra, lo que pase primero) · clic en un tramo para ver sus ventas</p></div>
+      <div class="pr-hoy">Hoy: <b>T${R.tramo_actual}</b> ${R.motivo_tramo==='obra'?'por avance de obra':'por cupo vendido'} · quedan <b>${R.tramo_quedan}</b> para el T${R.tramo_siguiente}</div></div>
+    <div class="pr-steps">${pasos}</div>
+    <div class="mk-tbl-wrap"><table class="mk-tbl lines mk-eq pr-tt">
+      <colgroup><col style="width:17%"><col><col><col><col><col><col><col><col><col style="width:10%"><col style="width:10%"></colgroup>
+      <thead><tr><th>Tramo</th><th>Ventas n°</th><th>Avance</th><th>S/ m² plan</th><th>S/ m² real</th><th>Desv.</th><th>Dif. S/</th><th>Ritmo plan</th><th>Ritmo real</th><th>Fechas</th><th>Estado</th></tr></thead>
+      <tbody>${filasT}</tbody></table></div>
+    <p class="pr-pie">S/ m² ponderado por área · Dif. = lo vendido − el precio objetivo de esos depas en su tramo · ritmo en ventas por mes</p>
+  </section>`;
 
   // Tipologías
   const filasD = _prRes.tipologias.map(d=>`<tr>
-      <td style="${_td};font-weight:700">${d.dorm}D</td>
-      <td style="${_td}">${d.area_prom.toFixed(1)} m²</td>
-      <td style="${_td}">${d.total}</td>
-      <td style="${_td};font-weight:600">${d.vendidas}</td>
-      <td style="${_td}">${d.stock}</td>
-      <td style="${_td};min-width:110px"><div class="pr-bar"><i style="width:${Math.round(d.avance*100)}%;background:var(--brand)"></i></div><div style="font-size:10.5px;color:var(--ink-3);margin-top:3px">${Math.round(d.avance*100)}%</div></td>
-      <td style="${_td}">${_prS(d.ticket_real)}</td>
-      <td style="${_td};font-weight:600">${d.pm2_real?fN(Math.round(d.pm2_real)):'—'}</td>
-      <td style="${_td}">${fN(Math.round(d.pm2_lista_final_hoy))}</td></tr>`).join('');
-
-  const card = (titulo, subt, cuerpo, extra='') => `<div class="card" style="margin-bottom:16px">
-      <div class="card-hd"><div><h3>${titulo}</h3><p>${subt}</p></div>${extra}</div>${cuerpo}</div>`;
+      <td><b>${d.dorm}D</b></td><td>${d.area_prom.toFixed(1)} m²</td><td>${d.total}</td><td><b>${d.vendidas}</b></td><td>${d.stock}</td>
+      <td><div class="mk-prog"><span class="mk-trk"><i style="width:${Math.round(d.avance*100)}%"></i></span><span>${Math.round(d.avance*100)}%</span></div></td>
+      <td>${_prS(d.ticket_real)}</td><td><b>${d.pm2_real?fN(Math.round(d.pm2_real)):'—'}</b></td><td>${fN(Math.round(d.pm2_lista_final_hoy))}</td></tr>`).join('');
+  const tipos = `<section class="mk-card mk-main">
+    <div class="mk-card-hd"><div><h3>Por tipología</h3><p>Ticket vendido ${_prS(R.ticket_real||0)} contra ${_prS(R.ticket_plan)} del plan · S/ m² lista hoy = lista de Evolta menos ${(R.dscto_esperado*100).toFixed(0)}%</p></div></div>
+    <div class="mk-tbl-wrap"><table class="mk-tbl lines mk-eq pr-tip">
+      <colgroup><col style="width:9%"><col><col><col><col><col style="width:16%"><col><col><col></colgroup>
+      <thead><tr><th>Tipo</th><th>Área prom.</th><th>Total</th><th>Vendidas</th><th>Stock</th><th>Avance</th><th>Ticket vendido</th><th>S/ m² vendido</th><th>S/ m² lista hoy</th></tr></thead>
+      <tbody>${filasD}</tbody></table></div></section>`;
+  const nota = `<section class="mk-card">
+    <div class="mk-card-hd"><div><h3>Cómo se calcula</h3><p>Método de tramos</p></div></div>
+    <ul class="mk-ins pr-ins">
+      <li><span>1</span><span>Las ventas activas se ordenan por fecha y hora (desempate: correlativo); la venta n° k cae en el tramo cuyo rango la contiene.</span></li>
+      <li><span>2</span><span>Precio objetivo de cada depa = área × S/ m² del tramo × factor del depa (su S/ m² de lista frente al promedio, ${fN(Math.round(R.factor_lista))}).</span></li>
+      <li><span>3</span><span>Lo que falta vender se valora al S/ m² promedio de los tramos que quedan.</span></li>
+      <li><span>4</span><span>Descuento esperado ${(R.dscto_esperado*100).toFixed(0)}% · real ${R.dscto_prom!=null?(R.dscto_prom*100).toFixed(1)+'%':'—'} (${R.ventas_sobre_dscto} ventas por encima) · separaciones ${_prRes.params.cupo_cuenta_separaciones?'sí':'no'} ocupan cupo (${R.separaciones} hoy).</span></li>
+      <li><span>5</span><span>El tramo sube por lo que pase primero: se llena el cupo o avanza la obra (se elige en Configuración). Hoy: ${R.tramo_obra?'tramo '+R.tramo_obra:'sin definir'}.</span></li>
+    </ul></section>`;
 
   el.innerHTML =
-     card('Alertas', 'Se recalculan con cada actualización del Sheet', `<div class="pr-alertas">${alertas}</div>`)
-    +card('Recaudación de departamentos', 'Vendido a precio real + lo que falta vender · contra la recaudación requerida (Configuración)',
-        `<div style="overflow-x:auto"><table class="tbl" style="width:100%"><thead><tr>
-          <th style="${_th};text-align:left">Escenario</th><th style="${_th}">Vendido</th><th style="${_th}">Por vender</th><th style="${_th}">Proyectada</th><th style="${_th}">Requerida</th><th style="${_th}">Diferencia</th>
-        </tr></thead><tbody>${rec}</tbody></table></div>`)
-    +card('Avance por tramo', 'El tramo lo define el orden de venta · S/ m² ponderado por área · Dif. = vendido − precio objetivo de esos depas en su tramo · clic en el avance para ver las ventas',
-        `<div style="overflow-x:auto"><table class="tbl" style="width:100%"><thead><tr>
-          <th style="${_th}">Tramo</th><th style="${_th};text-align:left">Etapa</th><th style="${_th}">Ventas n°</th><th style="${_th}">Avance</th>
-          <th style="${_th}">S/ m² plan</th><th style="${_th}">S/ m² real</th><th style="${_th}">Desv.</th><th style="${_th}">Dif. S/</th>
-          <th style="${_th}">Ritmo plan</th><th style="${_th}">Ritmo real</th><th style="${_th}">Fechas</th><th style="${_th}">Estado</th>
-        </tr></thead><tbody>${filasT}</tbody></table></div>`)
-    +`<div class="pr-grid2">
-        ${card('S/ m² de cada venta contra el plan', 'Cada punto es una venta · la línea es el S/ m² del tramo que le tocaba', '<div style="height:280px;padding:8px 16px 16px"><canvas id="pr-chart"></canvas></div>')}
-        ${card('Ventas por mes contra el plan', `Plan anclado a la primera venta (${_prFecha(R.inicio_plan)}) · barras = ventas del mes, líneas = acumulado`, '<div style="height:280px;padding:8px 16px 16px"><canvas id="pr-chart2"></canvas></div>')}
+     `<div class="mk-row2">
+        <section class="mk-card mk-main"><div class="mk-card-hd"><div><h3>Alertas</h3><p>Se recalculan con cada actualización del Sheet</p></div>
+          <div style="display:flex;gap:6px">${nRojo?`<span class="mk-pill" style="background:var(--bad-soft);color:var(--mk-bad)">${nRojo} roja${nRojo>1?'s':''}</span>`:''}${nAm?`<span class="mk-pill warn">${nAm} amarilla${nAm>1?'s':''}</span>`:''}</div></div>
+          <ul class="pr-als">${alertas}</ul></section>
+        <div class="mk-side">${recaud}</div>
       </div>`
-    +card('Por tipología', `Ticket vendido S/ ${fN(Math.round(R.ticket_real||0))} contra S/ ${fN(Math.round(R.ticket_plan))} del plan · S/ m² lista hoy = lista de Evolta menos ${(R.dscto_esperado*100).toFixed(0)}%`,
-        `<div style="overflow-x:auto"><table class="tbl" style="width:100%"><thead><tr>
-          <th style="${_th}">Tipo</th><th style="${_th}">Área prom.</th><th style="${_th}">Total</th><th style="${_th}">Vendidas</th><th style="${_th}">Stock</th>
-          <th style="${_th}">Avance</th><th style="${_th}">Ticket vendido</th><th style="${_th}">S/ m² vendido</th><th style="${_th}">S/ m² lista hoy</th>
-        </tr></thead><tbody>${filasD}</tbody></table></div>`)
-    +`<div class="pr-nota"><b>Cómo se calcula.</b> Las ventas activas se ordenan por fecha y hora (desempate: correlativo) y la venta n° k cae en el tramo cuyo rango la contiene.
-       Cada depa tiene un precio objetivo por tramo = área × S/ m² del tramo × factor del depa (su S/ m² de lista frente al promedio del proyecto, ${fN(Math.round(R.factor_lista))}).
-       Como no se sabe qué depa saldrá primero, lo que falta vender se valora al S/ m² promedio de los turnos que quedan. Descuento esperado: ${(R.dscto_esperado*100).toFixed(0)}% ·
-       descuento real promedio ${R.dscto_prom!=null?(R.dscto_prom*100).toFixed(1)+'%':'—'} (${R.ventas_sobre_dscto} ventas por encima) ·
-       separaciones ${_prRes.params.cupo_cuenta_separaciones?'sí':'no'} ocupan cupo (${R.separaciones} hoy).<br>
-       <b>Tramo por obra.</b> El tramo sube por lo que pase primero: que se llene el cupo de ventas o que avance la obra. El avance de obra se elige en la pestaña Configuración; cada cambio queda registrado con su fecha. Hoy: ${R.tramo_obra?'tramo '+R.tramo_obra:'sin definir'}.</div>`;
+    + tramos
+    + `<div class="pr-grid2" style="margin-bottom:16px">
+        <section class="mk-card"><div class="mk-card-hd"><div><h3>S/ m² de cada venta contra el plan</h3><p>Cada punto es una venta · la escalera es el S/ m² del tramo que le tocaba · en rojo, bajo el plan</p></div></div><div style="height:290px;padding:4px 16px 16px"><canvas id="pr-chart"></canvas></div></section>
+        <section class="mk-card"><div class="mk-card-hd"><div><h3>Ventas por mes contra el plan</h3><p>Plan desde la primera venta (${_prFecha(R.inicio_plan)}) · barras = ventas del mes, líneas = acumulado</p></div></div><div style="height:290px;padding:4px 16px 16px"><canvas id="pr-chart2"></canvas></div></section>
+      </div>`
+    + `<div class="mk-row2">${tipos}<div class="mk-side">${nota}</div></div>`;
   _prGraficos();
 }
 
@@ -8274,8 +8367,8 @@ function _prGraficos(){
   const dk = document.documentElement.classList.contains('dark');
   const gridC = dk?'rgba(51,65,85,.5)':'#F3F4F6', tickC = dk?'#94a3b8':'#6B7280';
   const ff = "'Plus Jakarta Sans',sans-serif";
-  const TEAL = '#0D7377', GOLD = '#F4A228', NAVY = dk?'#cbd5e1':'#0A1628';
-  const font = {family:ff,size:10};
+  const TEAL = '#2563eb', GOLD = '#F4A228', NAVY = dk?'#cbd5e1':'#0A1628';
+  const font = {family:ff,size:11};
   const R = _prRes.resumen;
 
   // 1) S/ m² por venta + escalera del plan
@@ -8292,7 +8385,7 @@ function _prGraficos(){
          backgroundColor:pts.map(v=>v.pm2>=v.pm2_plan?TEAL:'#dc2626'), borderColor:dk?'#0f172a':'#fff', borderWidth:1.2, pointRadius:4.5, pointHoverRadius:7, order:1},
         {type:'line', label:'Plan', data:esc, borderColor:GOLD, borderWidth:2.5, pointRadius:0, fill:false, stepped:false, order:2},
       ]},
-      options:{responsive:true, maintainAspectRatio:false,
+      options:{responsive:true, maintainAspectRatio:false, animation:false,
         plugins:{legend:{display:false}, datalabels:{display:false},
           tooltip:{filter:c=>c.datasetIndex===0, titleFont:font, bodyFont:font, callbacks:{
             title:c=>{const v=c[0].raw.v; return `Venta #${v.orden} · Edif. ${v.edificio} · ${v.nro} (${v.modelo})`;},
@@ -8316,8 +8409,8 @@ function _prGraficos(){
           {type:'line', label:'Acumulado real', data:ms.map(m=>m.real_acum), borderColor:NAVY, backgroundColor:NAVY, borderWidth:2, pointRadius:2.5, yAxisID:'y2', order:1},
           {type:'line', label:'Acumulado plan', data:ms.map(m=>+m.plan_acum.toFixed(1)), borderColor:GOLD, backgroundColor:GOLD, borderDash:[5,4], borderWidth:2, pointRadius:0, yAxisID:'y2', order:2},
         ]},
-      options:{responsive:true, maintainAspectRatio:false,
-        plugins:{datalabels:{display:false}, legend:{position:'bottom', labels:{boxWidth:10, font, color:tickC}},
+      options:{responsive:true, maintainAspectRatio:false, animation:false,
+        plugins:{datalabels:{display:false}, legend:{position:'bottom', labels:{boxWidth:10, usePointStyle:true, pointStyle:'rectRounded', font, color:tickC}},
           tooltip:{titleFont:font, bodyFont:font}},
         scales:{x:{grid:{display:false}, ticks:{font,color:tickC}},
           y:{position:'left', title:{display:true,text:'Ventas del mes',color:tickC,font}, grid:{color:gridC}, ticks:{precision:0,font,color:tickC}},
@@ -8354,7 +8447,7 @@ async function _prCargarCfg(){
 
 async function _prRenderConfig(el){
   if(!_prDraft){ el.innerHTML = '<div class="loading">Cargando configuración...</div>'; await _prCargarCfg(); if(_prTab!=='config') return; }
-  if(!_prDraft){ el.innerHTML = `<div class="card" style="padding:22px;color:var(--ink-3)">${_escapeHtml(_prCfgMsg)}</div>`; return; }
+  if(!_prDraft){ el.innerHTML = `<div class="mk-card mk-empty">${_escapeHtml(_prCfgMsg)}</div>`; return; }
   const d = _prDraft, c = _prCfgSrv.config;
   const inp = (val, on, extra='') => `<input class="pr-inp" value="${_escapeHtml(val)}" oninput="${on}" ${extra}>`;
   const num = (k, extra='') => inp(d[k], `_prDraft.${k}=this.value;_prCfgResumen()`, `type="number" ${extra}`);
@@ -8374,10 +8467,10 @@ async function _prRenderConfig(el){
   const campo = (lbl, html, ayuda='') => `<label class="pr-campo"><span>${lbl}</span>${html}${ayuda?`<small>${ayuda}</small>`:''}</label>`;
 
   el.innerHTML = `
-    ${_prCfgSrv.persistente ? '' : `<div class="card pr-aviso">Este servidor guarda la configuración en un archivo local. En Railway hay que conectar un volumen y definir <code>PRICING_CONFIG_PATH</code>; si no, cada despliegue vuelve a los valores de partida.</div>`}
+    ${_prCfgSrv.persistente ? '' : `<div class="mk-card pr-aviso">Este servidor guarda la configuración en un archivo local. En Railway hay que conectar un volumen y definir <code>PRICING_CONFIG_PATH</code>; si no, cada despliegue vuelve a los valores de partida.</div>`}
     <div class="pr-grid2">
-      <div class="card" style="margin-bottom:16px">
-        <div class="card-hd"><div><h3>Avance de obra</h3><p>El tramo sube por lo que pase primero: que avance la obra o que se llene el cupo de ventas</p></div></div>
+      <div class="mk-card" style="margin-bottom:16px">
+        <div class="mk-card-hd"><div><h3>Avance de obra</h3><p>El tramo sube por lo que pase primero: que avance la obra o que se llene el cupo de ventas</p></div></div>
         <div style="padding:14px 18px 18px">
           ${campo('¿En qué fase está la obra hoy?', `<select class="pr-inp" onchange="_prDraft.tramo_obra=this.value"><option value="">Sin definir (solo por cupo)</option>${obraOpts}</select>`,
                   'Al guardar un cambio queda registrado con la fecha de hoy.')}
@@ -8385,8 +8478,8 @@ async function _prRenderConfig(el){
           <ul class="pr-lista">${hist}</ul>
         </div>
       </div>
-      <div class="card" style="margin-bottom:16px">
-        <div class="card-hd"><div><h3>Metas y parámetros</h3><p>Lo que antes estaba arriba en la pestaña PRECIOS</p></div></div>
+      <div class="mk-card" style="margin-bottom:16px">
+        <div class="mk-card-hd"><div><h3>Metas y parámetros</h3><p>Lo que antes estaba arriba en la pestaña PRECIOS</p></div></div>
         <div class="pr-campos">
           ${campo('Recaudación requerida (S/)', num('requerida','min="0" step="1000"'), 'Solo departamentos')}
           ${campo('Ticket promedio del plan (S/)', num('ticket_plan','min="0" step="100"'))}
@@ -8398,15 +8491,15 @@ async function _prRenderConfig(el){
         </div>
       </div>
     </div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-hd"><div><h3>Plan de tramos</h3><p id="pr-cfg-resumen"></p></div>
-        <button class="chip" style="padding:6px 14px;font-weight:700" onclick="_prDraft.tramos.push({etapa:'Tramo '+(_prDraft.tramos.length+1),unidades:10,velocidad:0,meses:0,pm2:(_prDraft.tramos.at(-1)||{}).pm2||0});_prRenderConfig(document.getElementById('pr-content'))">+ Agregar tramo</button></div>
-      <div style="overflow-x:auto;padding:0 18px 16px"><table class="tbl pr-cfg-tbl" style="width:100%;min-width:720px">
+    <div class="mk-card" style="margin-bottom:16px">
+      <div class="mk-card-hd"><div><h3>Plan de tramos</h3><p id="pr-cfg-resumen"></p></div>
+        <button class="mk-btn" onclick="_prDraft.tramos.push({etapa:'Tramo '+(_prDraft.tramos.length+1),unidades:10,velocidad:0,meses:0,pm2:(_prDraft.tramos.at(-1)||{}).pm2||0});_prRenderConfig(document.getElementById('pr-content'))">+ Agregar tramo</button></div>
+      <div style="overflow-x:auto;padding:0 18px 16px"><table class="mk-tbl lines pr-cfg-tbl" style="width:100%;min-width:720px">
         <thead><tr><th>Tramo</th><th style="text-align:left">Etapa</th><th>Unidades</th><th>Ventas n°</th><th>S/ por m²</th><th>Ritmo / mes</th><th>Meses</th><th></th></tr></thead>
         <tbody>${filas}</tbody></table></div>
     </div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-hd"><div><h3>Umbrales de alerta</h3><p>Cuándo se encienden las alertas del Resumen</p></div></div>
+    <div class="mk-card" style="margin-bottom:16px">
+      <div class="mk-card-hd"><div><h3>Umbrales de alerta</h3><p>Cuándo se encienden las alertas del Resumen</p></div></div>
       <div class="pr-campos">
         ${campo('Avisar cuando el tramo llegue al (% del cupo)', num('a_cupo','min="0" max="100" step="1"'))}
         ${campo('Rojo si la lista de Evolta queda bajo el tramo por más de (%)', num('a_lista','min="0" max="100" step="0.1"'), 'Debe ser menor que el salto entre tramos (T2→T3 es 1.8%)')}
@@ -8415,14 +8508,14 @@ async function _prRenderConfig(el){
         ${campo('Amarillo si el ticket está más de (% bajo el plan)', num('a_ticket','min="0" max="100" step="1"'))}
       </div>
     </div>
-    <div class="card pr-guardar">
+    <div class="mk-card pr-guardar">
       ${_prCfgSrv.requiere_clave ? `<label class="pr-campo" style="margin:0;max-width:220px"><span>Clave para guardar</span><input class="pr-inp" type="password" autocomplete="off" value="${_escapeHtml(_prClaveGet())}" oninput="_prClaveSet(this.value)"></label>` : ''}
-      <button class="chip" style="padding:9px 20px;font-weight:700;background:#0D7377;color:#fff;border-color:#0D7377" onclick="_prGuardarCfg()">Guardar cambios</button>
-      <button class="chip" style="padding:9px 16px;font-weight:600" onclick="_prDraft=null;_prCfgMsg='';_prCfgNota='';_prRenderConfig(document.getElementById('pr-content'))">Descartar</button>
+      <button class="mk-btn pri" onclick="_prGuardarCfg()">Guardar cambios</button>
+      <button class="mk-btn" onclick="_prDraft=null;_prCfgMsg='';_prCfgNota='';_prRenderConfig(document.getElementById('pr-content'))">Descartar</button>
       <span id="pr-cfg-msg" style="font-size:12.5px;color:${_prCfgNota?'var(--ok)':'var(--ink-3)'}">${_prCfgNota ? _escapeHtml(_prCfgNota) : c.actualizado?'Última modificación: '+_escapeHtml(c.actualizado):'Valores de partida (copiados de la pestaña PRECIOS)'}</span>
     </div>
     <div class="card" style="margin-bottom:20px">
-      <div class="card-hd"><div><h3>Últimos cambios</h3><p>Qué se modificó y cuándo</p></div></div>
+      <div class="mk-card-hd"><div><h3>Últimos cambios</h3><p>Qué se modificó y cuándo</p></div></div>
       <ul class="pr-lista" style="padding:4px 18px 16px 34px">${cambios}</ul>
     </div>`;
   _prCfgResumen();
@@ -8528,9 +8621,9 @@ function _prCols(tipo){
     {label:'Lista del día', get:v=>_prS(v.lista_dia), sv:v=>v.lista_dia},
     {label:'Dscto.', get:v=>{ if(v.dscto==null) return '—'; const mx=_prRes.params.dscto_maximo??0.1, ex=v.dscto>mx+0.0005;
        return `<span style="color:${v.dscto>_prRes.resumen.dscto_esperado+0.0005?'var(--bad)':'inherit'};${ex?'font-weight:800':''}" title="${ex?'Sobre el máximo permitido':''}">${(v.dscto*100).toFixed(1)}%${ex?' ⚠':''}</span>`; }, sv:v=>v.dscto??-1},
-    {label:'Canal', get:v=>_escapeHtml(v.canal||''), sv:v=>v.canal||''},
-    {label:'Asesor', get:v=>_escapeHtml(v.asesor||''), sv:v=>v.asesor||''},
-    {label:'Correlativo', get:v=>_escapeHtml(v.correlativo), sv:v=>v.correlativo},
+    {label:'Canal', get:v=>`<span class="pr-wr">${_escapeHtml(_mkT(v.canal||''))}</span>`, sv:v=>v.canal||''},
+    {label:'Asesor', get:v=>`<span class="pr-wr">${_escapeHtml(_mkT(v.asesor||''))}</span>`, sv:v=>v.asesor||''},
+    {label:'Correl.', get:v=>_escapeHtml(String(v.correlativo||'').replace(/^\D+/,'')), sv:v=>v.correlativo},
   ];
   const R = _prRes.resumen, T = _prRes.tramos.map(t=>t.tramo);
   const sugA = u => _prOpt.rec ? u.lista_sug_act_rec : u.lista_sug_act;
@@ -8572,35 +8665,35 @@ function _prBarraPrecios(){
   const subir = pv.filter(u=>u.lista_hoy < sug(u)*(1-0.0025));
   const sw = (k, lbl, tip) => `<button type="button" class="pr-sw" aria-pressed="${_prOpt[k]}" onclick="_prSetOpt('${k}')" title="${tip}"><i></i>${lbl}</button>`;
   const d = (R.dscto_esperado*100).toFixed(0);
-  return `<div class="pr-precios-hd">
+  return `<div class="pr-precios-hd mk-fuga" style="flex-direction:column;align-items:flex-start;gap:4px;margin:4px 20px 6px">
       <div><b>Tramo actual T${R.tramo_actual}</b> (${R.motivo_tramo==='obra'?'por avance de obra':'por cupo vendido'}) · S/ ${fN(R.pm2_tramo_actual)}/m² · el T${R.tramo_siguiente} (S/ ${fN(R.pm2_tramo_siguiente)}/m²) llega cuando avance la obra o en ${R.tramo_quedan} ventas</div>
       <div>${subir.length
         ? `<span style="color:var(--bad);font-weight:700">${subir.length} depas</span> tienen la lista de Evolta por debajo de la sugerida del T${R.tramo_actual}`
         : `<span style="color:var(--ok);font-weight:700">La lista de Evolta ya está al nivel del T${R.tramo_actual}</span>`}${R.recuperacion_pct>0.0005?` · para llegar a la recaudación requerida falta sumar <b>+${(R.recuperacion_pct*100).toFixed(1)}%</b>`:''}</div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 18px 0">
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:6px 20px 0">
       ${sw('solo','Solo disponibles y bloqueados','Oculta separaciones y pagando sin minuta: su precio ya está pactado')}
       ${R.recuperacion_pct>0.0005?sw('rec',`Incluir recuperación (+${(R.recuperacion_pct*100).toFixed(1)}%)`,'Suma a la lista sugerida el % que falta para llegar a la recaudación requerida'):''}
       ${sw('tramos','Ver precio final de cada tramo','Muestra el precio final (sin inflar) del depa en cada tramo y el esperado')}
     </div>
-    <div class="pr-nota" style="margin:10px 18px 0">Lista sugerida = precio objetivo del depa en el tramo (área × S/ m² del tramo × factor del depa) ÷ (1 − ${d}%), redondeada a S/ ${fN(_prRes.params.redondeo_lista)}: es el precio a cargar en Evolta para que, con el ${d}% de descuento normal, la venta salga al precio del tramo.
+    <div class="pr-nota" style="margin:8px 20px 0">Lista sugerida = precio objetivo del depa en el tramo (área × S/ m² del tramo × factor del depa) ÷ (1 − ${d}%), redondeada a S/ ${fN(_prRes.params.redondeo_lista)}: es el precio a cargar en Evolta para que, con el ${d}% de descuento normal, la venta salga al precio del tramo.
       Cambio en <span style="color:var(--bad);font-weight:700">rojo</span> = hay que subir la lista; en <span style="color:var(--ok);font-weight:700">verde</span> = la lista ya está por encima.</div>`;
 }
 function _prRenderTabla(el, tipo){
   const esV = tipo==='ventas';
-  el.innerHTML = `<div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><div><h3>${esV?'Ventas activas en orden':'Precios por depa'}</h3>
+  el.innerHTML = `<section class="mk-card" style="margin-bottom:16px">
+    <div class="mk-card-hd"><div><h3>${esV?'Ventas activas en orden':'Precios por depa'}</h3>
       <p>${esV?'Cada venta contra el precio objetivo de su tramo (área × S/ m² del tramo × factor del depa) · el descuento en rojo pasa del esperado'
               :'La lista que debería tener cada depa en Evolta en el tramo actual y en el siguiente, frente a la lista de hoy'}</p></div>
-      <button onclick="_exportarTablaExcel('#pr-tabla','${esV?'pricing_ventas_orue':'precios_por_depa_orue'}')" style="background:var(--bg);border:1px solid var(--line);color:var(--ink-2);font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer">⬇ Excel</button></div>
+      <button type="button" class="mk-btn" onclick="_exportarTablaExcel('#pr-tabla','${esV?'pricing_ventas_orue':'precios_por_depa_orue'}','${esV?'Pricing · ventas activas':'Pricing · precios por depa'}')">↓ Excel</button></div>
     ${esV?'':_prBarraPrecios()}
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 18px 0">
-      <span id="pr-cnt" style="font-size:11.5px;color:var(--ink-3)"></span>
-      <input type="text" class="sp-search" style="margin-left:auto" placeholder="Buscar depa, modelo, canal..." value="${_escapeHtml(_prBusq[tipo])}" oninput="_prBusq['${tipo}']=normStr(this.value||'').trim();_prPintarTabla('${tipo}')">
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 20px 12px">
+      <input type="text" class="mk-search" style="max-width:360px;padding-top:7px;padding-bottom:7px" placeholder="Buscar depa, modelo, canal, asesor..." value="${_escapeHtml(_prBusq[tipo])}" oninput="_prBusq['${tipo}']=normStr(this.value||'').trim();_prPintarTabla('${tipo}')">
+      <span id="pr-cnt" style="font-size:12px;color:var(--ink-3);margin-left:auto"></span>
     </div>
-    <div class="cob-mes-tablewrap" style="margin:12px 18px 18px;max-height:640px">
-      <table class="tbl" id="pr-tabla" style="width:100%"><thead style="position:sticky;top:0;background:var(--panel);z-index:2"><tr id="pr-thead"></tr></thead><tbody id="pr-tbody"></tbody></table>
-    </div></div>`;
+    <div class="pr-tblwrap">
+      <table class="mk-tbl lines pr-dt" id="pr-tabla"><thead><tr id="pr-thead"></tr></thead><tbody id="pr-tbody"></tbody></table>
+    </div></section>`;
   _prPintarTabla(tipo);
 }
 function _prOrdenar(tipo, i){
@@ -8619,10 +8712,10 @@ function _prPintarTabla(tipo){
     const f = cols[s.i].sv;
     filas.sort((a,b)=>{ const x=f(a), y=f(b); const c=(typeof x==='number'&&typeof y==='number')?x-y:String(x).localeCompare(String(y),undefined,{numeric:true}); return s.dir==='asc'?c:-c; });
   } else if(tipo==='ventas') filas.sort((a,b)=>b.orden-a.orden);
-  document.getElementById('pr-thead').innerHTML = cols.map((c,i)=>`<th style="text-align:center;cursor:pointer;user-select:none;white-space:nowrap" onclick="_prOrdenar('${tipo}',${i})">${c.label}${s.i===i?(s.dir==='asc'?' ↑':' ↓'):''}</th>`).join('');
-  tb.innerHTML = filas.map(r=>`<tr>${cols.map(c=>`<td style="text-align:center;white-space:nowrap">${c.get(r)}</td>`).join('')}</tr>`).join('')
+  document.getElementById('pr-thead').innerHTML = cols.map((c,i)=>`<th style="cursor:pointer;user-select:none" onclick="_prOrdenar('${tipo}',${i})" title="Ordenar">${c.label}${s.i===i?(s.dir==='asc'?' ↑':' ↓'):''}</th>`).join('');
+  tb.innerHTML = filas.map(r=>`<tr>${cols.map(c=>`<td style="text-align:center">${c.get(r)}</td>`).join('')}</tr>`).join('')
     || `<tr><td colspan="${cols.length}" style="text-align:center;color:var(--ink-4);padding:20px">Sin resultados</td></tr>`;
-  const cnt = document.getElementById('pr-cnt'); if(cnt) cnt.textContent = fN(filas.length)+' de '+fN(base.length);
+  const cnt = document.getElementById('pr-cnt'); if(cnt) cnt.textContent = fN(filas.length)+' de '+fN(base.length)+(tipo==='ventas'?' ventas':' depas')+' · clic en una cabecera para ordenar';
 }
 
 
