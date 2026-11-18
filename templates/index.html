@@ -1644,7 +1644,13 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
     <div class="ddb-sep"></div>
     <input type="text" id="mkt-mercado-buscar" class="mk-search mkt-buscar" style="flex:1 1 200px;max-width:300px;padding-top:7px;padding-bottom:7px" placeholder="Buscar proyecto o inmobiliaria" oninput="_mercadoBuscar(this.value)">
     <button type="button" class="mk-btn" style="min-height:32px;margin-left:auto" onclick="_mkLimpiar()" title="Quitar todos los filtros">✕ Limpiar</button>
-    <button type="button" class="mk-btn pri" style="min-height:32px" onclick="competenciaDomingoOrue()" title="Elige la competencia predeterminada de Domingo Orue">◎ Comp. D. Orue</button>
+    <div style="position:relative">
+      <button type="button" class="mk-btn pri msel-btn" style="min-height:32px" onclick="mselToggle('comp')" title="Elige la competencia predeterminada de uno de nuestros proyectos">◎ <span id="msel-comp-label">Competencia</span> <span style="font-size:10px;opacity:.8">▾</span></button>
+      <div class="msel-panel" id="msel-comp-panel" style="display:none;min-width:210px;left:auto;right:0">
+        <div class="msel-item" onclick="_mkCompetencia('helio')">Helio Santa Beatriz</div>
+        <div class="msel-item" onclick="_mkCompetencia('dorue')">Domingo Orue 915</div>
+      </div>
+    </div>
     <div class="mercado-chips" id="mk-chips" style="flex-basis:100%;margin:0"></div>
   </div>
   <div class="tab-bar" id="mercado-tab-bar">
@@ -10285,6 +10291,13 @@ function mselBulk(domKey, marcar){
 }
 const _MSEL_DOMS = [['distrito','distrito'],['inmobiliaria','inmobiliaria'],['etapa','etapa'],['proyecto','proyecto'],['dorm','dorm']];
 function _mselLabelsRapido(){
+  const cl = document.getElementById('msel-comp-label');
+  if(cl){
+    const c = _mkCompAct && MK_COMPETENCIAS[_mkCompAct];
+    const sigue = c && _mselGet('proyecto').size===c.proyectos.length && !_mselGet('distrito').size && !_mselGet('inmobiliaria').size && !_mselGet('etapa').size;
+    if(!sigue) _mkCompAct = null;
+    cl.textContent = sigue ? 'Comp. '+(_mkCompAct==='helio'?'Helio':'D. Orue') : 'Competencia';
+  }
   _mselUpdateLabel('distrito', _mselGet('distrito'), 'Todos los distritos');
   _mselUpdateLabel('inmobiliaria', _mselGet('inmobiliaria'), 'Todas las inmobiliarias', _mkT);
   _mselUpdateLabel('etapa', _mselGet('etapa'), 'Todas las etapas');
@@ -10440,25 +10453,46 @@ function _mkLimpiar(){
   _mkRender();
 }
 
-// Competencia predeterminada de Domingo Orue: un clic deja elegidos estos proyectos
-// (y Domingo Orue mismo) y quita los demás filtros para que se vean todos.
-const COMPETENCIA_DORUE = ['Capulí','OPEN MARSANO','Torre Marsano 28','Element','DOMINGO ORUE 915','DORUE ETAPA 2','Las Begonias','TORRE GERMANIA'];
-function competenciaDomingoOrue(){
-  const data = D.mercado||[];
+// Competencias predeterminadas: un clic deja elegidos esos proyectos (incluido el
+// nuestro) y quita los demás filtros para que se vean todos.
+// Cada proyecto = nombre + inmobiliaria (hay nombres parecidos o repetidos).
+const MK_COMPETENCIAS = {
+  helio: {nombre:'Helio Santa Beatriz', proyectos:[
+    'HELIO SANTA BEATRIZ||PADOVA',
+    'Tulipán||ABRIL GRUPO INMOBILIARIO',
+    'CENTRIUM - SANTA BEATRIZ||GRUPO MG',
+    'Jardines de Santa Beatriz - Etapa II||TM GESTION INMOBILIARIA',
+    'Nueva Metrópolis||INVENT INMOBILIARIA',
+    'MONTERO ROSAS 1080||V&V GRUPO INMOBILIARIO',
+    'Cool Living||PROMSAL',
+    'EZENA 4||PROYEC INMOBILIARIA']},
+  dorue: {nombre:'Domingo Orue 915', proyectos:[
+    'DOMINGO ORUE 915||PADOVA',
+    'Capulí||ABRIL GRUPO INMOBILIARIO',
+    'OPEN MARSANO||TALE INMOBILIARIA',
+    'Torre Marsano 28||AMMA INMOBILIARIA',
+    'Element||EDIFICA',
+    'DORUE ETAPA 2||DESARROLLADORA',
+    'Las Begonias||ABRIL GRUPO INMOBILIARIO',
+    'TORRE GERMANIA||V&V GRUPO INMOBILIARIO']},
+};
+function _mkCompetencia(id){
+  const c = MK_COMPETENCIAS[id], data = D.mercado||[];
+  document.querySelectorAll('.msel-panel').forEach(p=>p.style.display='none'); _mselOpenKey = null;
+  if(!c) return;
   if(!data.length){ alert('Los datos de mercado aún están cargando.'); return; }
   const tab = _mkTab;
   _mkLimpiar();
-  const porNombre = new Map();
-  data.forEach(r=>{ const n=normStr(r.proyecto||'').trim(); if(!porNombre.has(n)) porNombre.set(n, []); porNombre.get(n).push(_mkK(r)); });
+  const porK = new Map(data.map(r=>[_mkNormK(_mkK(r)), _mkK(r)]));
   const faltan = [];
-  COMPETENCIA_DORUE.forEach(n=>{
-    const ks = porNombre.get(normStr(n).trim());
-    if(ks) ks.forEach(k=>_mselGet('proyecto').add(k)); else faltan.push(n);
-  });
+  c.proyectos.forEach(k=>{ const real = porK.get(_mkNormK(k)); if(real) _mselGet('proyecto').add(real); else faltan.push(k); });
+  _mkCompAct = id;
   _mkTab = tab;
   _mkRender();
-  if(faltan.length) console.warn('Competencia Domingo Orue: no se encontraron en el estudio de mercado →', faltan);
+  if(faltan.length) console.warn('Competencia '+c.nombre+': no se encontraron en el estudio de mercado →', faltan);
 }
+let _mkCompAct = null;
+function competenciaDomingoOrue(){ _mkCompetencia('dorue'); }
 // Desde Resumen: ver un proyecto en el mapa (queda elegido y con su cuadro abierto)
 function _mkIrAMapa(k){
   _mkPopAdd(k);
@@ -10756,7 +10790,7 @@ function renderMercadoPrecios(){
   const hayFiltro = _mselGet('distrito').size || _mselGet('inmobiliaria').size || _mselGet('etapa').size;
   if(_mselGet('proyecto').size || hayFiltro) proyectos = f.proys.map(_mkK).sort();
   else proyectos = [];
-  if(sub) sub.textContent = proyectos.length ? `${fN(proyectos.length)} proyecto${proyectos.length===1?'':'s'} · ventas de ${_mkPeriodoTxt()}` : 'Elige proyectos arriba (o usa Comp. D. Orue) para comparar';
+  if(sub) sub.textContent = proyectos.length ? `${fN(proyectos.length)} proyecto${proyectos.length===1?'':'s'} · ventas de ${_mkPeriodoTxt()}` : 'Elige proyectos arriba (o una Competencia) para comparar';
 
   if(!proyectos.length){
     wrap.innerHTML = '<div style="padding:44px 20px;text-align:center;color:var(--ink-4);font-size:13px">Elige uno o más proyectos (o filtra por distrito / inmobiliaria / etapa) para comparar precios.</div>';
