@@ -4210,13 +4210,13 @@ function _flRenderFunnelTab(A,B,C,lblA,lblB){
       const hint=i===0?fN(d.leadsDNI)+' con DNI':FL_HINTS[i];
       return conn+`<button type="button" class="mk-fs" data-w="${c.w}" data-i="${i}" aria-pressed="false" onclick="_flFunPick('${c.w}',${i})"><span><span class="mk-hf-n">${e.name}</span><span class="mk-hf-h">${hint}</span></span><span class="bar"><b style="width:${w}%;background:${bg}"></b></span><span class="n">${fN(n)}</span></button>`;
     }).join('');
-    return `<div class="mk-fcol ${c.cls}"><div class="mk-fcol-hd"><span class="mk-tag">${_flEsc(c.t)}</span><small>${fN(d.leadsTotal)} leads · ${fN(d.ventasN)} ventas · ${_flRate(d.ventasN,d.leadsTotal).toFixed(1)}%</small></div>${st}</div>`;
+    // La etiqueta con el rango solo hace falta cuando hay varias columnas (comparación / cohorte)
+    const tag = cols.length>1 ? `<span class="mk-tag">${_flEsc(c.t)}</span>` : '<span></span>';
+    return `<div class="mk-fcol ${c.cls}"><div class="mk-fcol-hd">${tag}<small>${fN(d.leadsTotal)} leads · ${fN(d.ventasN)} ventas · ${_flRate(d.ventasN,d.leadsTotal).toFixed(1)}%</small></div>${st}</div>`;
   };
-  const g=_flRate(A.ventasN,A.leadsTotal);
   document.getElementById('fl-content').innerHTML=`<div class="mk-row2 mk-fun" style="margin-top:4px">
     <section class="mk-card mk-main">
-      <div class="mk-card-hd"><div><h3 style="font-size:18px">Funnel de conversión</h3><p>Elige una etapa para ver su detalle a la derecha.</p></div>
-        <div style="display:flex;align-items:baseline;gap:8px"><span class="mk-lbl">Tasa global</span><span style="font-size:26px;font-weight:800;color:var(--brand)">${g.toFixed(1)}%</span></div></div>
+      <div class="mk-card-hd"><div><h3 style="font-size:18px">Funnel de conversión</h3><p>Elige una etapa para ver su detalle a la derecha.</p></div></div>
       <div class="mk-fcols${cols.length>1?' narrow':''}" style="grid-template-columns:repeat(auto-fit,minmax(${cols.length>1?'290px':'360px'},1fr))">${cols.map(col).join('')}</div>
       ${C?'<p style="margin:0 16px 16px;padding:10px 14px;background:var(--mk-inset);border:1px solid var(--line);border-radius:10px;font-size:12px;color:var(--ink-3)">Cohorte: solo los leads registrados en el período y lo que hicieron después (en cualquier mes) en el mismo proyecto. Cruce por DNI o correo.</p>':''}
     </section>
