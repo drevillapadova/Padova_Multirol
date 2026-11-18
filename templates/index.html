@@ -9664,20 +9664,27 @@ async function _exportarTablaExcel(tableSelector, nombreArchivo, titulo, subtitu
   }
   if(typeof ExcelJS==='undefined'){ _exportarTablaExcelSimple(table, nombreArchivo); return; }
   try{
-    const FONT='Plus Jakarta Sans';
-    const INK='FF0F172A', INK2='FF334155', INK3='FF64748B', LINE='FFE5E7EB', LINE2='FFEEF0F3';
-    const BRAND='FF3B82F6', BRAND_SOFT='FFE9F1FE', ZEBRA='FFF8FAFC', BLANCO='FFFFFFFF';
+    // Formato estándar de TODAS las descargas (tablas y popups): letra normal de Excel
+    // (Calibri 11), encabezado azul oscuro con letra blanca, alineación igual a la tabla en pantalla, bordes finos grises, filas de total
+    // en gris claro, montos / % / números / fechas como valores de Excel.
+    const FONT='Calibri';
+    const INK='FF000000', INK3='FF595959', LINE='FFBFBFBF';
+    const HEAD='FF1F3864', HEAD_INK='FFFFFFFF', TOTAL='FFF2F2F2';
     const borde=(color,grosor='thin')=>({style:grosor, color:{argb:color}});
+    const bordes={top:borde(LINE),left:borde(LINE),bottom:borde(LINE),right:borde(LINE)};
     const relleno=argb=>({type:'pattern', pattern:'solid', fgColor:{argb}});
     const limpia=el=>String(el.innerText||el.textContent||'').replace(/\s+/g,' ').replace(/\s*[↑↓▾▼]+\s*$/,'').trim();
+    // encabezados con su texto real (en pantalla algunos se ven en MAYÚSCULAS solo por estilo)
+    const limpiaHead=el=>String(el.textContent||'').replace(/\s+/g,' ').replace(/\s*[↑↓▾▼]+\s*/g,' ').trim();
 
     const filas=[...table.rows].filter(tr=>!tr.classList.contains('xl-skip') && (tr.offsetParent!==null || tr.getClientRects().length));
     if(!filas.length){ alert('No hay datos para exportar todavía.'); return; }
     const nCols=Math.max(...filas.map(tr=>[...tr.cells].reduce((a,c)=>a+(c.colSpan||1),0)));
     const headRows=filas.filter(tr=>tr.parentElement.tagName==='THEAD');
     const nHead=headRows.length||1;
-    const hdrs=[...(filas[nHead-1].cells)].map(c=>limpia(c).toLowerCase());
-    const colTexto=hdrs.map(h=>/dni|n°|nro|n\.|dpto|tel|cel|c[oó]d|ruc|doc|a[ñn]o|mes/.test(h));
+    const hdrs=[...(filas[nHead-1].cells)].map(c=>limpiaHead(c).toLowerCase());
+    // columnas que siempre van como texto (documentos, teléfonos, N° de unidad, año)
+    const colTexto=hdrs.map(h=>/\bdni\b|n°|\bnro\b|\bn\.|dpto|inmueble|tel[eé]f|celular|c[oó]digo|\bruc\b|documento|^a[ñn]o$/.test(h));
 
     const wb=new ExcelJS.Workbook();
     wb.creator='Padova SAC';
@@ -9688,27 +9695,24 @@ async function _exportarTablaExcel(tableSelector, nombreArchivo, titulo, subtitu
     ws.mergeCells(1,1,1,nCols);
     const t=ws.getCell(1,1);
     t.value=tit;
-    t.font={name:FONT,size:16,bold:true,color:{argb:INK}};
+    t.font={name:FONT,size:14,bold:true,color:{argb:INK}};
     t.alignment={vertical:'middle',horizontal:'left'};
-    ws.getRow(1).height=28;
+    ws.getRow(1).height=22;
     ws.mergeCells(2,1,2,nCols);
     const sub=ws.getCell(2,1);
     sub.value=(subtitulo?subtitulo+' · ':'')+'Descargado el '+new Date().toLocaleDateString('es-PE');
-    sub.font={name:FONT,size:10,color:{argb:INK3}};
-    ws.getRow(3).height=6;
+    sub.font={name:FONT,size:10,italic:true,color:{argb:INK3}};
 
     const base=4;
     const anchos=new Array(nCols).fill(10);
-    let zebra=0;
     filas.forEach((tr,i)=>{
       const rowXl=ws.getRow(base+i);
       const esHead=tr.parentElement.tagName==='THEAD';
       const primero=limpia(tr.cells[0]||tr);
       const esTotal=!esHead && (tr.parentElement.tagName==='TFOOT' || /^total\b|^general$/i.test(primero));
-      if(!esHead && !esTotal) zebra++;
       let col=1;
       [...tr.cells].forEach((td,j)=>{
-        const texto=limpia(td);
+        const texto=esHead?limpiaHead(td):limpia(td);
         const c=rowXl.getCell(col);
         let valor=texto, fmt=null, num=false;
         if(!esHead && texto && !colTexto[j]){
@@ -9723,36 +9727,39 @@ async function _exportarTablaExcel(tableSelector, nombreArchivo, titulo, subtitu
             valor=parseInt(texto,10); fmt='#,##0'; num=true;
           } else if(/^-?\d+\.\d+$/.test(texto)){
             valor=parseFloat(texto); fmt='#,##0.0#'; num=true;
+          } else if((m=texto.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/))){
+            valor=new Date(Date.UTC(+m[3], +m[2]-1, +m[1])); fmt='dd/mm/yyyy'; num=true;
+          } else if((m=texto.match(/^(\d+(?:\.\d+)?) m²$/))){
+            valor=parseFloat(m[1]); fmt=m[1].includes('.')?'0.0 "m²"':'0 "m²"'; num=true;
+          } else if((m=texto.match(/^(\d{4})-(\d{2})-(\d{2})$/))){
+            valor=new Date(Date.UTC(+m[1], +m[2]-1, +m[3])); fmt='dd/mm/yyyy'; num=true;
           }
         }
         c.value=valor;
         if(fmt) c.numFmt=fmt;
-        const alinea=td.style.textAlign||getComputedStyle(td).textAlign;
-        const horiz=esHead?(j===0?'left':'center'):num?'right':(alinea==='center'?'center':'left');
-        c.alignment={vertical:'middle',horizontal:esHead&&alinea==='left'?'left':horiz,wrapText:false,indent:(!num&&horiz==='left')?1:0};
+        // misma alineación que la tabla del dashboard (izquierda / centro / derecha)
+        const al=(td.style.textAlign||getComputedStyle(td).textAlign||'').replace('start','left').replace('end','right');
+        const horiz=['left','center','right'].includes(al) ? al : (num?'right':'left');
+        c.alignment={vertical:'middle',horizontal:horiz,wrapText:esHead};
+        c.border=bordes;
         if(esHead){
-          c.font={name:FONT,size:11,bold:true,color:{argb:INK}};
-          c.fill=relleno(BRAND_SOFT);
-          c.border={bottom:borde(BRAND,'medium')};
+          c.font={name:FONT,size:11,bold:true,color:{argb:HEAD_INK}};
+          c.fill=relleno(HEAD);
         } else if(esTotal){
-          c.font={name:FONT,size:11,bold:true,color:{argb:BRAND}};
-          c.fill=relleno(BRAND_SOFT);
-          c.border={top:borde(BRAND,'thin'),bottom:borde(LINE2)};
+          c.font={name:FONT,size:11,bold:true,color:{argb:INK}};
+          c.fill=relleno(TOTAL);
         } else {
-          const nego=getComputedStyle(td).fontWeight>=600;
-          c.font={name:FONT,size:11,bold:nego,color:{argb:INK2}};
-          c.fill=relleno(zebra%2===0?ZEBRA:BLANCO);
-          c.border={bottom:borde(LINE2)};
+          c.font={name:FONT,size:11,color:{argb:INK}};
         }
-        const largo=String(texto).length+(num?2:0);
+        const largo=esHead?Math.min(String(texto).length,22):String(texto).length+(num?2:0);
         const cs=td.colSpan||1;
         if(cs>1) ws.mergeCells(base+i,col,base+i,col+cs-1);
         else anchos[col-1]=Math.max(anchos[col-1], Math.min(largo,48));
         col+=cs;
       });
-      rowXl.height=esHead?26:21;
+      if(esHead) rowXl.height=30;
     });
-    anchos.forEach((w,j)=>{ ws.getColumn(j+1).width=Math.min(Math.max(w+4,11),52); });
+    anchos.forEach((w,j)=>{ ws.getColumn(j+1).width=Math.min(Math.max(w+3,10),50); });
     ws.views=[{state:'frozen',ySplit:base+nHead-1,showGridLines:false}];
     if(nHead===1 && filas.length>1) ws.autoFilter={from:{row:base,column:1},to:{row:base,column:nCols}};
     ws.pageSetup={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0};
