@@ -2487,7 +2487,7 @@ let _dirTabModo = 'ventas'; // 'ventas' | 'sep'
 // Ancho (px) de cada columna: el mismo en ventas y separaciones para que se vean iguales
 const _DIR_TAB_PROY_PCT = 10; // % del ancho para Proyecto: el mismo en ventas y separaciones
 // Peso de cada columna (≈ px que necesita su contenido); se reparten el 90% restante
-const _DIR_TAB_PESO = {'Cliente':145,'DNI':92,'Inmueble':66,'Torre':62,'Canal':98,'Contacto':82,'Precio':92,'Moneda':64,'m²':50,'Crédito':90,'Entidad':94,'Estado':92,'F. Venta':86,'F. Separación':92};
+const _DIR_TAB_PESO = {'Cliente':124,'DNI':100,'Inmueble':62,'Torre':56,'Canal':88,'Contacto':76,'Precio':124,'Moneda':60,'m²':50,'Crédito':84,'Entidad':88,'Estado':88,'F. Venta':86,'F. Separación':92};
 const _DIR_TAB_TEXTO = ['Proyecto','Cliente','Canal','Contacto','Crédito','Entidad','Estado']; // pueden bajar de línea
 const _dirTabFechaIso = r => _dirTabModo==='sep' ? _flIsoFecha(r.FechaSepDefinitiva) : _flIsoFecha(r.FechaVenta||r.FechaEntrega_Minuta);
 const _dirTabColsBase = [
@@ -2498,7 +2498,7 @@ const _dirTabColsBase = [
   {label:'Torre',      align:'center', get:r=>r._torre!==undefined?r._torre:_torreDe(r), soloTorre:true},
   {label:'Canal',      align:'center', get:r=>_flCanal(r)},
   {label:'Contacto',   align:'center', get:r=>_flTitleCase(String(r.FormaContacto||'').trim())||'—'},
-  {label:'Precio',     align:'center', get:r=>{ const n=Number(r.PrecioVenta||r.PrecioVentaSoles||0); return n?_comMoneda(r)+' '+Math.round(n).toLocaleString('en-US'):'—'; },
+  {label:'Precio',     align:'center', get:r=>{ const n=Number(r.PrecioVenta||r.PrecioVentaSoles||0); return n?_comMoneda(r)+' '+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—'; },
                                         sort:r=>Number(r.PrecioVentaSoles||r.PrecioVenta||0)},
   {label:'Moneda',     align:'center', get:r=>String(r.TipoMoneda||'').toUpperCase().includes('DOLAR')?'Dólares':'Soles'},
   {label:'m²',        align:'center', get:r=>r._m2?r._m2.toFixed(1):'—', sort:r=>r._m2||0},
@@ -2522,9 +2522,18 @@ function _dirSepComoVenta(r){
     _m2: _m2Efectivo(r)||0,
   });
 }
-function _renderDirTablaDetalle(vGlob, modo){
+// Buscador: si en el período no aparece nadie, se cuenta en todas las fechas y se ofrece buscar ahí
+let _dirTabHist = null, _dirTabHistRows = null;
+function _dirTabBuscarTodo(){
+  const d=document.getElementById('dir-date-desde'), h=document.getElementById('dir-date-hasta');
+  if(d) d.value=''; if(h) h.value='';
+  renderDirector();
+  setTimeout(()=>{ const i=document.getElementById('dir-tab-search'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } },0);
+}
+function _renderDirTablaDetalle(vGlob, modo, hist){
   const wrap = document.getElementById('dir-content');
   if(!wrap) return;
+  _dirTabHist = hist||null; _dirTabHistRows = null;
   _dirTabModo = modo==='sep' ? 'sep' : 'ventas';
   _dirTabCols = _dirTabColsDe(_dirTabModo);
   const nro = x=>String(x||'').trim().replace(/\.0+$/,'');
@@ -2542,7 +2551,7 @@ function _renderDirTablaDetalle(vGlob, modo){
     <div class="mk-card-hd"><div><h3>${_dirTabModo==='sep'?'Detalle de separaciones':'Detalle de ventas'}</h3><p id="dir-tab-hint"></p></div>
       <button type="button" class="mk-btn" onclick="_exportarTablaExcel('#dir-detalle-tabla','${_dirTabModo==='sep'?'comercial_detalle_separaciones':'resumen_comercial_detalle'}')">↓ Excel</button></div>
     <div style="padding:4px 20px 14px">
-      <input type="text" class="mk-search" id="dir-tab-search" placeholder="Buscar en la tabla: cliente, DNI, proyecto, inmueble, canal, entidad${_dirTabModo==='sep'?', estado':''}..." value="${_escapeHtml(_dirTabBusq)}" oninput="_dirTabBuscar(this.value)">
+      <input type="text" class="mk-search" id="dir-tab-search" placeholder="Buscar: cliente, DNI, N° de inmueble (ej. 202), proyecto, canal, entidad${_dirTabModo==='sep'?', estado':''}..." value="${_escapeHtml(_dirTabBusq)}" oninput="_dirTabBuscar(this.value)">
     </div>
     <div style="overflow-y:auto;overflow-x:hidden;max-height:70vh;border-top:1px solid var(--line-2)">
       <table class="tbl" id="dir-detalle-tabla" style="width:100%;table-layout:fixed">
@@ -2557,6 +2566,19 @@ function _renderDirTablaDetalle(vGlob, modo){
   _dirTabPintar();
 }
 function _dirTabBuscar(v){ _dirTabBusq = v; _dirTabPintar(); }
+// Coincidencia del buscador del Detalle de ventas / separaciones:
+//  · solo números de hasta 4 dígitos (202, 1504) → N° de inmueble exacto
+//  · 5 o más dígitos → DNI (contiene)
+//  · texto → cliente, proyecto, canal, contacto, crédito, entidad, estado, torre…
+//    (sin fechas, precios ni m²: si no, "202" coincidía con todo lo de 2026)
+const _DIR_BUSQ_FUERA = ['F. Venta','F. Separación','Precio','m²','Moneda'];
+function _dirTabCoincide(r, cols, q){
+  if(/^\d+$/.test(q)){
+    if(q.length<=4){ const c=cols.find(c=>c.label==='Inmueble'); return !!c && normStr(String(c.get(r))).replace(/\.0+$/,'')===q; }
+    const c=cols.find(c=>c.label==='DNI'); return !!c && normStr(String(c.get(r))).includes(q);
+  }
+  return normStr(cols.filter(c=>!_DIR_BUSQ_FUERA.includes(c.label)).map(c=>c.get(r)).join(' ')).includes(q);
+}
 function _dirTabOrdenar(i){
   if(!_dirTabSort || _dirTabSort.idx!==i) _dirTabSort = {idx:i, dir:'asc'};
   else if(_dirTabSort.dir==='asc') _dirTabSort.dir='desc';
@@ -2568,7 +2590,7 @@ function _dirTabPintar(){
   const q = normStr(_dirTabBusq).trim();
   if(!_dirTabCtx) _dirTabCtx = {state:{get filas(){return _dirTabRows;}, get cols(){return _dirTabColsAct||_dirTabCols;}}, get filtros(){return _dirTabFilt;}, render:_dirTabPintar};
   let rows = _flFilasFiltradas(_dirTabRows, (_dirTabColsAct||_dirTabCols), undefined, _dirTabFilt);
-  if(q) rows = rows.filter(r=>normStr((_dirTabColsAct||_dirTabCols).map(c=>c.get(r)).join(' ')).includes(q));
+  if(q) rows = rows.filter(r=>_dirTabCoincide(r, (_dirTabColsAct||_dirTabCols), q));
   if(_dirTabSort){
     const c=(_dirTabColsAct||_dirTabCols)[_dirTabSort.idx], f=c.sort||c.get, d=_dirTabSort.dir==='desc'?-1:1;
     rows.sort((a,b)=>{ const va=f(a), vb=f(b);
@@ -2590,7 +2612,18 @@ function _dirTabPintar(){
   }
   tb.innerHTML = rows.map(r=>`<tr>${_colsV.map(c=>{ const v=_escapeHtml(String(c.get(r))); const txt=_DIR_TAB_TEXTO.includes(c.label);
     return `<td style="text-align:${c.align};${txt?'overflow-wrap:break-word':'white-space:nowrap;overflow:hidden;text-overflow:ellipsis'}"${txt?'':` title="${v}"`}>${v}</td>`; }).join('')}</tr>`).join('')
-    || `<tr><td colspan="${(_dirTabColsAct||_dirTabCols).length}" style="text-align:center;color:var(--ink-4);padding:20px">Sin registros</td></tr>`;
+    || (()=>{
+      const nCol=(_dirTabColsAct||_dirTabCols).length;
+      let msg = q ? `No hay ${_dirTabModo==='sep'?'separaciones':'ventas'} que coincidan con “${_escapeHtml(_dirTabBusq.trim())}” en ${_escapeHtml(_rangeLabel('dir',''))}` : 'Sin registros';
+      if(q && _dirTabHist){
+        // mismas columnas sobre todas las fechas (se arma una sola vez)
+        if(!_dirTabHistRows) _dirTabHistRows = _dirTabModo==='sep' ? _dirTabHist.map(_dirSepComoVenta) : _dirTabHist;
+        const n = _dirTabHistRows.filter(r=>_dirTabCoincide(r, (_dirTabColsAct||_dirTabCols), q)).length;
+        const fechasActivas = (document.getElementById('dir-date-desde')?.value||document.getElementById('dir-date-hasta')?.value);
+        if(n && fechasActivas) msg += `.<br><b>${fN(n)}</b> en otras fechas · <button type="button" class="mk-link" onclick="_dirTabBuscarTodo()">Buscar en todo el histórico →</button>`;
+      }
+      return `<tr><td colspan="${nCol}" style="text-align:center;color:var(--ink-3);padding:22px;white-space:normal;line-height:1.6">${msg}</td></tr>`;
+    })();
   // Fila de total según lo filtrado. El precio se suma por moneda, con el mismo monto que
   // muestra la columna Precio (así el total cuadra con lo que se ve). Si lo filtrado mezcla
   // soles y dólares salen dos totales; bajo "Moneda" va el equivalente total en soles.
@@ -2600,7 +2633,7 @@ function _dirTabPintar(){
     rows.forEach(r=>{ tot[_comMoneda(r)] += Number(r.PrecioVenta||r.PrecioVentaSoles||0); });
     const totSoles=rows.reduce((a,r)=>a+Number(r.PrecioVentaSoles||r.PrecioVenta||0),0);
     const hayUSD=rows.some(r=>_comMoneda(r)==='$');
-    const fm=n=>Math.round(n).toLocaleString('en-US');
+    const fm=n=>Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
     const precioTxt=[tot['S/']?'S/ '+fm(tot['S/']):'', tot['$']?'$ '+fm(tot['$']):''].filter(Boolean).join('  ·  ')||'—';
     // m²: promedio de las unidades con área (sumar m² de departamentos, depósitos y estacionamientos no dice nada)
     const conM2=rows.filter(r=>r._m2>0);
@@ -2622,7 +2655,9 @@ function _dirTabPintar(){
 
 // ── Pestaña Buscador de clientes del Resumen comercial: búsqueda + ficha ──────────
 let _dirDetSearch = '', _dirDetSel = null, _dirDetVentas = [];
-const _dirDetKey = r => String(r.CorrelativoOC||'').trim() || (String(r.Proyecto||'')+'|'+String(r.NroInmueble||'')+'|'+String(r.NroDocumentoTitular||''));
+// El N° de venta (CorrelativoOC, "Venta Nro. 000022") se repite entre proyectos y clientes: la llave
+// es Proyecto + N° de venta (así una operación con varias unidades sigue siendo una sola).
+const _dirDetKey = r => String(r.CorrelativoOC||'').trim() ? (String(r.Proyecto||'').trim()+'|'+String(r.CorrelativoOC||'').trim()) : (String(r.Proyecto||'')+'|'+String(r.NroInmueble||'')+'|'+String(r.NroDocumentoTitular||''));
 
 function _renderDirDetalle(vGlob){
   _dirDetVentas = vGlob;
@@ -3068,16 +3103,16 @@ function renderDirector(){
     return;
   }
   if(_dirTab==='detalle'){
-    _renderDirTablaDetalle(v, 'ventas'); // v = ventas del período (filtro Desde/Hasta) + proyecto + tipo
+    _renderDirTablaDetalle(v, 'ventas', vGlob); // v = ventas del período (filtro Desde/Hasta) + proyecto + tipo; vGlob = todas las fechas (para el buscador)
     return;
   }
   if(_dirTab==='separaciones'){
     // Mismas separaciones que el popup de Marketing (Stock, una por cliente/unidad),
     // filtradas por proyecto, tipo y fecha de separación dentro del período.
     const _sD=document.getElementById('dir-date-desde')?.value||'', _sH=document.getElementById('dir-date-hasta')?.value||'';
-    const seps=_flSeparacionesUnicas(D.stock||[]).filter(r=>_projOk(projArr,r.Proyecto) && _matchTipo(r,_tipo)
-      && (!(_sD||_sH) || _matchDateRange(r.FechaSepDefinitiva, _sD, _sH)));
-    _renderDirTablaDetalle(seps.map(_dirSepComoVenta), 'sep');
+    const sepsTodas=_flSeparacionesUnicas(D.stock||[]).filter(r=>_projOk(projArr,r.Proyecto) && _matchTipo(r,_tipo));
+    const seps=sepsTodas.filter(r=>!(_sD||_sH) || _matchDateRange(r.FechaSepDefinitiva, _sD, _sH));
+    _renderDirTablaDetalle(seps.map(_dirSepComoVenta), 'sep', sepsTodas);
     return;
   }
 
