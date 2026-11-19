@@ -2384,9 +2384,8 @@ function filtrarVentasRango(prefix,sfx=''){
   if(projArr.length) v=v.filter(r=>_projOk(projArr,r.Proyecto));
   if(_tipo) v=v.filter(r=>_matchTipo(r,_tipo));
   if(dateD||dateH){
-    const desde=dateD?dateD.slice(0,7):'2000-01';
-    const hasta=dateH?dateH.slice(0,7):'2099-12';
-    v=v.filter(r=>{const ym=_fechaYM(r.FechaVenta||r.FechaEntrega_Minuta||'');return ym&&ym>=desde&&ym<=hasta;});
+    // Por día (antes solo por año-mes: "hasta 15/11" dejaba pasar todo noviembre)
+    v=v.filter(r=>_matchDateRange(r.FechaVenta||r.FechaEntrega_Minuta||'',dateD,dateH));
   }
   return v;
 }
@@ -2855,7 +2854,7 @@ function renderDirector(){
   const vB=_dirComp?(D.ventas||[]).filter(r=>{
     if(!_projOk(projArr,r.Proyecto))return false;
     if(_tipo&&!_matchTipo(r,_tipo))return false;
-    if(_dDB||_dHB){const ym=_fechaYM(r.FechaVenta||r.FechaEntrega_Minuta||'');if(!ym)return false;if(_dDB&&ym<_dDB.slice(0,7))return false;if(_dHB&&ym>_dHB.slice(0,7))return false;}
+    if((_dDB||_dHB)&&!_matchDateRange(r.FechaVenta||r.FechaEntrega_Minuta||'',_dDB,_dHB))return false;
     return true;
   }):[];
 
