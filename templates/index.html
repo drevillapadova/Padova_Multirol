@@ -371,6 +371,19 @@ html.dark .pr-sw i{background:#475569}
 .pr-esc-lg{display:flex;gap:14px;padding:6px 20px 16px;font-size:11px;color:var(--ink-3)}
 .pr-esc-lg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .pr-hoy{font-size:12.5px;color:var(--ink-3);padding-top:4px}
+.pr-desg{margin:0 20px;padding:2px 0 0}
+.pr-car-nav{margin:0 20px 6px;width:fit-content}
+.pr-car{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.pr-car::-webkit-scrollbar{display:none}
+.pr-car-s{flex:0 0 100%;min-width:0;scroll-snap-align:start}
+.pr-car-s .pr-esc{border-top:none;padding-top:6px}
+#panel-pricing .pr-row1{align-items:stretch}
+#panel-pricing .pr-row1>.mk-main{display:flex;flex-direction:column}
+#panel-pricing .pr-row1 .pr-als{flex:1;justify-content:center}
+.pr-desg-r{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:6px 0;border-top:1px solid var(--line-2);font-size:12px;color:var(--ink-2)}
+.pr-desg-r b{white-space:nowrap;font-size:13px}
+.pr-desg-r.tot{font-weight:700;color:var(--ink)}
+.pr-desg p{margin:8px 0 0;font-size:11.5px;line-height:1.5;color:var(--ink-3)}
 .pr-hoy b{color:var(--ink)}
 .pr-steps{display:flex;gap:8px;padding:4px 20px 14px;overflow-x:auto}
 .pr-step{min-width:118px;display:flex;flex-direction:column;gap:7px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--mk-inset);text-align:left;font-family:inherit;color:var(--ink);cursor:pointer}
@@ -1436,6 +1449,8 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
   .pr-rec-top{grid-template-columns:repeat(3,minmax(0,1fr));padding:2px 14px 10px}
   .pr-rec-top b{font-size:14px}
   .pr-esc,.pr-esc-lg{padding-left:14px;padding-right:14px}
+  .pr-desg,.pr-car-nav{margin-left:14px;margin-right:14px}
+  .pr-car-nav{max-width:calc(100% - 28px)}
   .pr-als{padding:2px 14px 14px}
   .pr-al{padding:10px 12px;font-size:12.5px}
   .pr-hoy{font-size:11.5px}
@@ -8430,6 +8445,10 @@ function renderPricing(){
 }
 
 // ── Pestaña Resumen ─────────────────────────────────────────────────────────
+let _prCarIdx = 0;
+function _prCarIr(k){ const c=document.getElementById('pr-car'); if(!c) return; _prCarIdx=k; c.scrollTo({left:k*c.clientWidth, behavior:'smooth'}); _prCarNav(); }
+function _prCarScroll(c){ const k=Math.round(c.scrollLeft/(c.clientWidth||1)); if(k!==_prCarIdx){ _prCarIdx=k; _prCarNav(); } }
+function _prCarNav(){ document.querySelectorAll('#pr-car-nav button').forEach((b,i)=>b.classList.toggle('on', i===_prCarIdx)); }
 function _prRenderResumen(el){
   const R = _prRes.resumen;
 
@@ -8451,15 +8470,28 @@ function _prRenderResumen(el){
       <div class="pr-esc-n"><span>Proyectada <b>${_prM(proy)}</b></span><span>${req?Math.round(proy/req*100)+'% de lo requerido':''}</span></div>
       <small>${nota}</small></div>`;
   };
-  const recaud = `<section class="mk-card">
+  // Recaudación en carrusel: 3 vistas (subiendo según el plan / sin subir más / por qué falta)
+  const difV = R.dif_objetivo_total||0, planTot = R.proyectada_plan - difV, difPlan = planTot - req;
+  const fS = v => `<b style="color:${_prSigno(v)}">${v<0?'−':'+'}${_prM(Math.abs(v)).replace('−','')}</b>`;
+  const desg = `<div class="pr-desg">
+      <div class="pr-desg-r"><span>Plan de tramos (objetivo de cada depa): junta <b>${_prM(planTot)}</b> vs ${_prM(req)}</span>${fS(difPlan)}</div>
+      <div class="pr-desg-r"><span>Lo vendido vs su objetivo (${R.vendidas} ventas)</span>${fS(difV)}</div>
+      <div class="pr-desg-r tot"><span>Diferencia proyectada</span>${fS(R.sobrerrecaudacion_plan)}</div>
+      <p>${Math.abs(difPlan) > Math.abs(difV) ? 'Viene casi todo del <b>plan mismo</b>: los S/ m² de los tramos no alcanzan, aunque todo se venda a su precio.' : 'Viene sobre todo de <b>cómo se está vendiendo</b> frente al objetivo.'}${R.recuperacion_pct>0.0005?` Se cubre subiendo <b>+${(R.recuperacion_pct*100).toFixed(1)}%</b> lo que queda.`:''}</p></div>`;
+  const slides = [
+    {t:'Según el plan', h:esc('Subiendo según el plan', R.proyectada_plan, R.sobrerrecaudacion_plan, `Lo que falta, al S/ m² promedio de los tramos que quedan (${fN(Math.round(R.pm2_esperado_restante))})`)},
+    {t:'Sin subir más', h:esc('Sin subir más (lista de hoy)', R.proyectada_lista, R.sobrerrecaudacion_lista, `Lo que falta, a la lista de Evolta menos ${(R.dscto_esperado*100).toFixed(0)}%`)},
+    {t:`¿Por qué ${R.sobrerrecaudacion_plan<0?'falta':'sobra'}?`, h:desg},
+  ];
+  const recaud = `<section class="mk-card pr-rec">
     <div class="mk-card-hd"><div><h3>Recaudación de departamentos</h3><p>Vendido + lo que falta vender, contra lo requerido</p></div></div>
     <div class="pr-rec-top">
       <div><small>Requerida</small><b>${_prM(req)}</b></div>
       <div><small>Vendido</small><b>${_prM(R.vendido_monto)}</b></div>
       <div><small>Por vender</small><b>${_prM(R.proyectada_plan-R.vendido_monto)}</b></div>
     </div>
-    ${esc('Subiendo según el plan', R.proyectada_plan, R.sobrerrecaudacion_plan, `Lo que falta, al S/ m² promedio de los tramos que quedan (${fN(Math.round(R.pm2_esperado_restante))})`)}
-    ${esc('Sin subir más (lista de hoy)', R.proyectada_lista, R.sobrerrecaudacion_lista, `Lo que falta, a la lista de Evolta menos ${(R.dscto_esperado*100).toFixed(0)}%`)}
+    <div class="mk-seg pr-car-nav" id="pr-car-nav">${slides.map((x,k)=>`<button type="button" class="${k===_prCarIdx?'on':''}" onclick="_prCarIr(${k})">${x.t}</button>`).join('')}</div>
+    <div class="pr-car" id="pr-car" onscroll="_prCarScroll(this)">${slides.map(x=>`<div class="pr-car-s">${x.h}</div>`).join('')}</div>
     <div class="pr-esc-lg"><span><i style="background:var(--brand)"></i>Vendido</span><span><i style="background:color-mix(in srgb,var(--brand) 30%,transparent)"></i>Por vender</span><span><i style="background:var(--ink)"></i>Requerido</span></div>
   </section>`;
 
@@ -8529,7 +8561,7 @@ function _prRenderResumen(el){
     </ul></section>`;
 
   el.innerHTML =
-     `<div class="mk-row2">
+     `<div class="mk-row2 pr-row1">
         <section class="mk-card mk-main"><div class="mk-card-hd"><div><h3>Alertas</h3><p>Se recalculan con cada actualización del Sheet</p></div>
           <div style="display:flex;gap:6px">${nRojo?`<span class="mk-pill" style="background:var(--bad-soft);color:var(--mk-bad)">${nRojo} roja${nRojo>1?'s':''}</span>`:''}${nAm?`<span class="mk-pill warn">${nAm} amarilla${nAm>1?'s':''}</span>`:''}</div></div>
           <ul class="pr-als">${alertas}</ul></section>
@@ -8542,6 +8574,7 @@ function _prRenderResumen(el){
       </div>`
     + `<div class="mk-row2">${tipos}<div class="mk-side">${nota}</div></div>`;
   _prGraficos();
+  { const c=document.getElementById('pr-car'); if(c && _prCarIdx) c.scrollLeft = _prCarIdx*c.clientWidth; }
 }
 
 const _prFecha = iso => { if(!iso) return ''; const [y,m,d]=iso.slice(0,10).split('-'); return `${d}/${m}/${y.slice(2)}`; };
@@ -8828,7 +8861,16 @@ function _prCols(tipo){
     {label:'Dorm.', get:u=>u.dorm, sv:u=>u.dorm},
     {label:'Estado', get:u=>toTitle(u.estado.toLowerCase()), sv:u=>u.estado},
     {label:'m²', get:u=>u.area.toFixed(1), sv:u=>u.area},
+    // S/ m² que debería salir este depa en el tramo actual (su objetivo final, ya sin el inflado de lista)
+    {label:`S/ m² objetivo T${R.tramo_actual}`, get:u=>{ const o=(u.precio_tramo||{})[R.tramo_actual]; return o&&u.area?fN(Math.round(o/u.area)):'—'; }, sv:u=>{ const o=(u.precio_tramo||{})[R.tramo_actual]; return o&&u.area?o/u.area:0; }},
+    // S/ m² al que saldría hoy: lista de Evolta menos el descuento esperado
+    {label:'S/ m² lista hoy', get:u=>{ if(!u.final_hoy||!u.area) return '—'; const o=(u.precio_tramo||{})[R.tramo_actual], v=u.final_hoy/u.area, d=o?u.final_hoy/o-1:null;
+       const col = d==null||Math.abs(d)<0.0025 ? 'inherit' : d<0 ? 'var(--bad)' : 'var(--ok)';
+       return `<span style="color:${col};font-weight:${d!=null&&d<-0.0025?700:400}" title="${d==null?'':(d>=0?'Cumple: ':'No cumple: ')+_prP(d)+' vs objetivo'}">${fN(Math.round(v))}</span>`; },
+     sv:u=>u.final_hoy&&u.area?u.final_hoy/u.area:0},
     {label:'Lista Evolta hoy', get:u=>_prS(u.lista_hoy), sv:u=>u.lista_hoy},
+    // precio final al que debería venderse en el tramo actual (área × S/ m² objetivo); la lista sugerida es esto ÷ (1 − dscto)
+    {label:`Precio final objetivo T${R.tramo_actual}`, get:u=>_prS((u.precio_tramo||{})[R.tramo_actual]), sv:u=>(u.precio_tramo||{})[R.tramo_actual]||0},
     {label:`Lista sugerida T${R.tramo_actual}`, get:u=>`<b>${_prS(sugA(u))}</b>`, sv:u=>sugA(u)},
     {label:`Cambio T${R.tramo_actual}`, get:u=>cambio(sugA(u),u), sv:u=>u.lista_hoy?sugA(u)/u.lista_hoy:0},
   ];
@@ -8861,7 +8903,8 @@ function _prBarraPrecios(){
       ${sw('tramos','Ver precio final de cada tramo','Muestra el precio final (sin inflar) del depa en cada tramo y el esperado')}
     </div>
     <div class="pr-nota" style="margin:8px 20px 0">Lista sugerida = precio objetivo del depa en el tramo (área × S/ m² del tramo × factor del depa) ÷ (1 − ${d}%), redondeada a S/ ${fN(_prRes.params.redondeo_lista)}: es el precio a cargar en Evolta para que, con el ${d}% de descuento normal, la venta salga al precio del tramo.
-      Cambio en <span style="color:var(--bad);font-weight:700">rojo</span> = hay que subir la lista; en <span style="color:var(--ok);font-weight:700">verde</span> = la lista ya está por encima.</div>`;
+      Cambio en <span style="color:var(--bad);font-weight:700">rojo</span> = hay que subir la lista; en <span style="color:var(--ok);font-weight:700">verde</span> = la lista ya está por encima.
+      <b>S/ m² objetivo</b> = lo que debería salir el depa en el T${R.tramo_actual} (el promedio del tramo es ${fN(R.pm2_tramo_actual)}; cada depa varía según su ubicación) · <b>S/ m² lista hoy</b> = lista de Evolta menos ${d}%, en rojo si no llega al objetivo.</div>`;
 }
 function _prRenderTabla(el, tipo){
   const esV = tipo==='ventas';
