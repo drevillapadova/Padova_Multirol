@@ -402,6 +402,21 @@ html.dark .pr-sw i{background:#475569}
 .pr-tt tr.pr-act td{background:var(--mk-gold-soft)}
 .pr-tt td small{display:inline;margin-left:4px}
 .mk-tbl.mk-eq.pr-tip,.mk-tbl.mk-eq.pr-tt{min-width:0}
+#panel-asesores .ase-kpis{grid-template-columns:repeat(6,minmax(0,1fr))}
+#panel-asesores .ase-kpis4{grid-template-columns:repeat(4,minmax(0,1fr))}
+#panel-asesores .ase-kpis3{grid-template-columns:repeat(3,minmax(0,1fr))}
+#panel-asesores .mk-kpi .k-v{font-size:30px;line-height:34px}
+.mk-kpi.ase-clk{cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.mk-kpi.ase-clk:hover{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+.mk-kpi.hero.ase-clk:hover{box-shadow:0 0 0 3px color-mix(in srgb,var(--mk-hero) 30%,transparent)}
+#panel-asesores .ase-tbl{border-spacing:0}
+#panel-asesores .ase-tbl th{position:sticky;top:0;background:var(--panel);z-index:1;white-space:normal;line-height:1.25;vertical-align:bottom;padding:8px 6px;letter-spacing:.04em}
+#panel-asesores .ase-tbl td{white-space:normal;padding:8px 6px}
+#panel-asesores .ase-tbl td:first-child{white-space:nowrap}
+.ase-tbl tbody tr:hover td{background:var(--brand-soft)}
+.ase-tbl .findet-clic{color:var(--brand);font-weight:800;text-decoration:underline;text-underline-offset:3px;text-decoration-color:color-mix(in srgb,var(--brand) 40%,transparent)}
+.ase-tw{max-height:70vh;overflow:auto}
+@media (max-width:1300px){ #panel-asesores .ase-kpis{grid-template-columns:repeat(3,minmax(0,1fr))} }
 .pr-pie{margin:0;padding:0 20px 16px;font-size:11.5px;color:var(--ink-4)}
 .pr-ins li{font-size:12.5px}
 .pr-tblwrap{overflow:auto;max-height:640px;border-top:1px solid var(--line-2);margin:0 0 6px}
@@ -1736,7 +1751,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
 </div>
 
 <!-- ═══════════ GESTIÓN DE ASESORES ═══════════ -->
-<div class="panel" id="panel-asesores">
+<div class="panel mk-panel" id="panel-asesores">
   <div class="topbar">
     <div>
       <div class="crumbs">Dashboard <span>›</span><b>Gestión de asesores</b></div>
@@ -1758,28 +1773,26 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
       <button class="dark-toggle-btn" onclick="toggleDark()" title="Modo oscuro" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink-3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all .2s">◑</button>
     </div>
   </div>
-  <div class="dir-date-bar" id="ase-date-bar" style="flex-wrap:wrap;row-gap:6px">
-    <span style="font-size:11px;color:var(--ink-3);font-weight:700;letter-spacing:.06em;text-transform:uppercase" title="Fecha de registro del lead">Período</span>
-    <div style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:3px 10px">
-      <span style="font-size:10px;color:var(--ink-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Desde</span>
-      <input type="date" id="ase-desde" onchange="renderAsesores()" style="border:none;background:transparent;font-size:12.5px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;outline:none;padding:2px 0">
-      <span style="color:var(--ink-4);font-size:13px">→</span>
-      <span style="font-size:10px;color:var(--ink-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Hasta</span>
-      <input type="date" id="ase-hasta" onchange="renderAsesores()" style="border:none;background:transparent;font-size:12.5px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;outline:none;padding:2px 0">
+  <div class="mk-filtros" id="ase-date-bar">
+    <span class="mk-lbl" title="Fecha de registro del lead">Período</span>
+    <div class="mk-dates">
+      <span>Desde</span><input type="date" id="ase-desde" onchange="renderAsesores()">
+      <span>→</span>
+      <span>Hasta</span><input type="date" id="ase-hasta" onchange="renderAsesores()">
+      <button type="button" class="mk-x" title="Limpiar fechas" onclick="document.getElementById('ase-desde').value='';document.getElementById('ase-hasta').value='';renderAsesores()">✕</button>
     </div>
-    <button onclick="document.getElementById('ase-desde').value='';document.getElementById('ase-hasta').value='';renderAsesores()" title="Limpiar fechas" style="background:transparent;border:none;color:var(--ink-4);font-size:14px;cursor:pointer;padding:0 4px;line-height:1">✕</button>
     <div class="ddb-sep"></div>
+    <span class="mk-lbl">Asesor</span>
     <div style="position:relative">
-      <div class="msel-btn" onclick="aseMsToggle('ases')" style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:3px 10px;cursor:pointer">
-        <span style="font-size:10px;color:var(--ink-4);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Asesor</span>
-        <span id="ase-ases-label" style="font-size:12.5px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;padding:2px 0">Todos los asesores</span> <span style="font-size:10px;color:var(--ink-4)">▾</span>
-      </div>
+      <button type="button" class="chip-sel msel-btn" style="border:1px solid var(--line);min-height:32px" onclick="aseMsToggle('ases')">
+        <span class="mk-fi">◉</span><span id="ase-ases-label">Todos los asesores</span> <span class="mk-fv">▾</span>
+      </button>
       <div class="msel-panel" id="ase-ases-panel" style="display:none;min-width:240px">
         <div class="msel-tools"><button type="button" onclick="aseMsTodos('ases')">Todos</button><button type="button" onclick="aseMsLimpiar('ases')">Limpiar</button></div>
         <div id="ase-ases-list"></div>
       </div>
     </div>
-    <button type="button" class="chip-sel" style="cursor:pointer;align-self:center;margin-left:auto;font-weight:600;color:var(--brand)" onclick="aseInformePDF()" title="Descarga un PDF con las citas sin acción posterior (con detalle) y el resumen de tareas vencidas, según el período y filtros elegidos">⬇ Informe PDF</button>
+    <button type="button" class="mk-btn pri" style="min-height:32px;margin-left:auto" onclick="aseInformePDF()" title="Descarga un PDF con las citas sin acción posterior (con detalle) y el resumen de tareas vencidas, según el período y filtros elegidos">↓ Informe PDF</button>
   </div>
   <div class="tab-bar">
     <button class="tab-btn active" onclick="setAseTab('resumen',this)">Resumen por asesor</button>
@@ -9108,9 +9121,9 @@ function _aseTbl(id, cols, rows, vacio, limite){
     const esTexto = typeof (rows[0] ? c.v(rows[0]) : 0)==='string';
     return `<th style="cursor:pointer;user-select:none" title="Ordenar" onclick="aseSortBy('${id}',${i},${esTexto})">${c.h}${flecha}</th>`;
   }).join('');
-  const tr = data.map(r=>'<tr>'+cols.map(c=>`<td${c.c?` class="${c.c}"`:''}>${c.f(r)}</td>`).join('')+'</tr>').join('')
-    || `<tr><td colspan="${cols.length}" style="text-align:center;color:var(--ink-4)">${vacio}</td></tr>`;
-  return `<div style="overflow-x:auto"><table class="tbl"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>`;
+  const tr = data.map(r=>'<tr>'+cols.map(c=>`<td>${c.f(r)}</td>`).join('')+'</tr>').join('')
+    || `<tr><td colspan="${cols.length}" class="mk-empty">${vacio}</td></tr>`;
+  return `<div class="mk-tbl-wrap ase-tw"><table class="mk-tbl lines ase-tbl"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>`;
 }
 
 // Detalle (popup) de las citas sin seguimiento: i = índice del asesor en window._aseArr, o -1 para todos.
@@ -9532,6 +9545,14 @@ function aseAbrirAudit(i, motivo){
 }
 
 const _aseTblTop = (id, cols, rows, vacio) => _aseTbl(id, cols, rows, vacio, 500);
+// Indicador con el mismo estilo de Marketing / Comercial. o = {hero, clic, malo}
+function _aseK(lbl, val, sub, o){
+  o = o||{};
+  return `<div class="mk-kpi${o.hero?' hero':''}${o.clic?' ase-clk':''}"${o.clic?` onclick="${o.clic}" title="Ver detalle"`:''}>
+    <div class="k-l">${o.malo&&!o.hero?'<span class="mk-dot" style="background:var(--mk-bad)"></span>':''}${lbl}</div>
+    <div class="k-v"${o.malo&&!o.hero?' style="color:var(--mk-bad)"':''}>${val}</div>
+    <div class="k-s">${sub||''}</div></div>`;
+}
 function renderAsesores(){
   const cont=document.getElementById('ase-content'); if(!cont)return;
   if(!(D.prospectos||[]).length){cont.innerHTML='<div class="loading">Sin datos de prospectos</div>';return;}
@@ -9552,16 +9573,16 @@ function renderAsesores(){
   const sub=document.getElementById('ase-sub');
   if(sub)sub.textContent=arr.length+' asesores · '+fN(sum('activos'))+' leads activos · actualizado '+(D.updatedAt||'—');
 
-  const kpis=`<div class="kpi-row kpi-6">
-    ${kpi('Leads activos',fN(sum('activos')),'asignados a asesores')}
-    ${kpi('Toques totales',fN(sum('toques')),'prom. '+(sum('activos')?(sum('toques')/sum('activos')).toFixed(1):'0')+' por lead')}
-    ${kpi('Leads sin ningún toque',fN(sum('sinToque')),'sin acción registrada')}
-    ${kpi('Tareas vencidas',fN(sum('vencidas')),(sum('activos')?(sum('vencidas')/sum('activos')*100).toFixed(0):0)+'% de los activos')}
-    ${_kpiClic(kpi('Citas sin seguimiento',fN(sum('citasVenc')),fN(sum('citasSinAcc'))+' sin acción posterior · clic para ver detalle'),'aseAbrirCitas(-1,false)')}
-    ${kpi('T. respuesta (mediana)',_aseFmtMin(_aseMediana(allTr)),'min. hábiles')}
+  const kpis=`<div class="mk-kpis ase-kpis">
+    ${_aseK('Leads activos',fN(sum('activos')),'asignados a '+arr.length+' asesores',{hero:true})}
+    ${_aseK('Toques totales',fN(sum('toques')),'prom. '+(sum('activos')?(sum('toques')/sum('activos')).toFixed(1):'0')+' por lead')}
+    ${_aseK('Leads sin ningún toque',fN(sum('sinToque')),(sum('activos')?(sum('sinToque')/sum('activos')*100).toFixed(0):0)+'% de los activos',{malo:sum('sinToque')>0})}
+    ${_aseK('Tareas vencidas',fN(sum('vencidas')),(sum('activos')?(sum('vencidas')/sum('activos')*100).toFixed(0):0)+'% de los activos',{malo:sum('vencidas')>0})}
+    ${_aseK('Citas sin seguimiento',fN(sum('citasVenc')),fN(sum('citasSinAcc'))+' sin acción posterior · <span class="mk-link">ver detalle</span>',{clic:'aseAbrirCitas(-1,false)',malo:sum('citasVenc')>0})}
+    ${_aseK('T. respuesta',_aseFmtMin(_aseMediana(allTr)),'mediana · minutos hábiles')}
   </div>`;
 
-  const rojo=v=>v>0?'color:#ef4444;font-weight:700':'';
+  const rojo=v=>v>0?'color:var(--mk-bad);font-weight:800':'';
   const filtroTxt=_aseAses.size?' · <b>'+_aseSelTxt()+'</b>':'';
   let body='';
   const clic = (n, i, soloSinAcc) => n ? `<span class="findet-clic" onclick="aseAbrirCitas(${i},${soloSinAcc})">${fN(n)}</span>` : fN(n);
@@ -9579,7 +9600,7 @@ function renderAsesores(){
       {h:'…sin acción posterior', v:o=>o.citasSinAcc, f:o=>`<span style="${rojo(o.citasSinAcc)}">${clic(o.citasSinAcc,arr.indexOf(o),true)}</span>`, c:'r'},
       {h:'T. respuesta', v:o=>o.medTR, f:o=>_aseFmtMin(o.medTR), c:'r'},
     ];
-    body=`<div class="card"><div class="card-hd"><div><h3>Desempeño por asesor</h3><p>Leads activos al día de hoy · filtros de asesor y fecha de registro arriba${filtroTxt} · <b style="color:var(--brand)">clic en un número de citas para ver el detalle</b> · clic en una cabecera para ordenar</p></div></div>
+    body=`<div class="mk-card" style="margin-bottom:16px"><div class="mk-card-hd"><div><h3>Desempeño por asesor</h3><p>Leads activos al día de hoy · filtros de asesor y fecha de registro arriba${filtroTxt} · clic en un número de citas para ver el detalle · clic en una cabecera para ordenar</p></div></div>
       ${_aseTbl('resumen',cols,arr,'Sin datos')}</div>`;
   } else if(_aseTab==='tareas'){
     const f=arr.flatMap(o=>o.tareas);
@@ -9590,26 +9611,26 @@ function renderAsesores(){
       {h:'Sub-estado', v:t=>String(t.r.SubEstado||''), f:t=>t.r.SubEstado||''},
       {h:'Tarea', v:t=>String(t.r.Titulo_TareaNueva||''), f:t=>t.r.Titulo_TareaNueva||''},
       {h:'Venció', v:t=>t.fT, f:t=>_aseFmtF(t.fT), c:'r'},
-      {h:'Atraso', v:t=>t.atraso, f:t=>`<span style="color:#ef4444;font-weight:700">${t.atraso!=null?t.atraso+' d':'—'}</span>`, c:'r'},
+      {h:'Atraso', v:t=>t.atraso, f:t=>`<span style="color:var(--mk-bad);font-weight:800">${t.atraso!=null?t.atraso+' d':'—'}</span>`, c:'r'},
       {h:'Toques', v:t=>t.ca||0, f:t=>t.ca||0, c:'r'},
       {h:'Última acción', v:t=>_aseFechaMs(t.r.Fecha_UltimaAccion), f:t=>_aseFmtF(_aseFechaMs(t.r.Fecha_UltimaAccion)), c:'r'},
     ];
     // Sin orden elegido: de la más antigua a la más reciente
     const base=_aseSortSt.tareas ? f : f.slice().sort((a,b)=>(a.fT??Infinity)-(b.fT??Infinity));
-    body=`<div class="card"><div class="card-hd"><div><h3>Tareas vencidas</h3><p>${fN(f.length)} tareas${f.length>500?' · se muestran 500':''} · clic en una cabecera para ordenar${filtroTxt}</p></div></div>
+    body=`<div class="mk-card" style="margin-bottom:16px"><div class="mk-card-hd"><div><h3>Tareas vencidas</h3><p>${fN(f.length)} tareas${f.length>500?' · se muestran 500':''} · clic en una cabecera para ordenar${filtroTxt}</p></div></div>
       ${_aseTblTop('tareas',cols,base,'Sin tareas vencidas')}</div>`;
   } else if(_aseTab==='auditoria'){
     const A=_aseAudit(arr); window._aseAud=A;
     const pctF=v=>v==null?'—':v.toFixed(0)+'%';
     const clicA=(n,i,m)=>n?`<span class="findet-clic" onclick="aseAbrirAudit(${i},${m?`'${m}'`:'null'})">${fN(n)}</span>`:'0';
-    const kp=`<div class="kpi-row kpi-4">
-      ${_kpiClic(kpi('Leads GRAVE vencidos',fN(A.graves),'abiertos sin atención · clic para ver detalle'),"aseAbrirAudit(-1,null)")}
-      ${kpi('Citas vigentes',fN(A.vigAll.length),fN(A.hoy)+' hoy · '+fN(A.manana)+' mañana')}
-      ${kpi('Citas sin gestión previa',fN(A.sinGestion),'sin gestión en las 72 h previas')}
-      ${kpi('Efectividad de citas',A.pctEq==null?'—':A.pctEq.toFixed(0)+'%',fN(A.efP)+' de '+fN(A.citasP)+' citas propias')}
+    const kp=`<div class="mk-kpis ase-kpis4">
+      ${_aseK('Leads GRAVE vencidos',fN(A.graves),'abiertos sin atención · <span class="mk-link" style="color:#fde68a">ver detalle</span>',{hero:true,clic:"aseAbrirAudit(-1,null)"})}
+      ${_aseK('Citas vigentes',fN(A.vigAll.length),fN(A.hoy)+' hoy · '+fN(A.manana)+' mañana')}
+      ${_aseK('Citas sin gestión previa',fN(A.sinGestion),'sin gestión en las 72 h previas',{malo:A.sinGestion>0})}
+      ${_aseK('Efectividad de citas',A.pctEq==null?'—':A.pctEq.toFixed(0)+'%',fN(A.efP)+' de '+fN(A.citasP)+' citas propias')}
     </div>`;
-    const decidir=`<div class="card" style="margin-bottom:16px;border-left:4px solid #dc2626"><div class="card-hd"><div><h3>Para decidir hoy</h3><p>Generado con las cifras de abajo · al día de hoy${filtroTxt}</p></div></div>
-      <ul style="margin:0;padding:4px 20px 14px 36px;font-size:13px;line-height:1.8;color:var(--ink-2)">${A.bullets.map(t=>`<li>${t}</li>`).join('')||'<li>Sin alertas con los filtros actuales.</li>'}</ul></div>`;
+    const decidir=`<div class="mk-card" style="margin-bottom:16px"><div class="mk-card-hd"><div><h3>Para decidir hoy</h3><p>Generado con las cifras de abajo · al día de hoy${filtroTxt}</p></div></div>
+      <ul class="pr-als">${A.bullets.map(t=>`<li class="pr-al a"><span class="pr-al-ic" style="background:var(--mk-gold)">!</span><span>${t}</span></li>`).join('')||'<li class="pr-al"><span class="pr-al-ic" style="background:var(--mk-ok)">✓</span><span>Sin alertas con los filtros actuales.</span></li>'}</ul></div>`;
     const colsG=[
       {h:'Asesor', v:f=>f.asesor, f:f=>`<b>${f.asesor}</b>`},
       {h:'Leads abiertos', v:f=>f.activos, f:f=>fN(f.activos), c:'r'},
@@ -9642,21 +9663,21 @@ function renderAsesores(){
       {h:'Efectivas Mantra', v:f=>f.M.ef, f:f=>fN(f.M.ef), c:'r'},
     ];
     body=kp+decidir+
-      `<div class="card" style="margin-bottom:16px"><div class="card-hd"><div><h3>Leads GRAVE vencidos por asesor</h3><p>Leads abiertos sin ningún toque, que visitaron sin seguimiento o que no asistieron a su cita y nadie los recontactó · horario oficial lun–sáb 10:00–18:00 · «Mantra sin retomar» = Mantra (IA) ya lo contactó y el asesor aún no lo toca (no suma en GRAVE) · <b style="color:var(--brand)">clic en un número para ver los leads</b></p></div></div>
+      `<div class="mk-card" style="margin-bottom:16px"><div class="mk-card-hd"><div><h3>Leads GRAVE vencidos por asesor</h3><p>Leads abiertos sin ningún toque, que visitaron sin seguimiento o que no asistieron a su cita y nadie los recontactó · horario oficial lun–sáb 10:00–18:00 · «Mantra sin retomar» = Mantra (IA) ya lo contactó y el asesor aún no lo toca (no suma en GRAVE) · clic en un número para ver los leads</p></div></div>
       ${_aseTbl('auditG',colsG,A.filas,'Sin datos')}</div>`+
-      `<div class="card" style="margin-bottom:16px"><div class="card-hd"><div><h3>Citas vigentes y su gestión</h3><p>Citas de hoy en adelante de leads abiertos · el estado mira si hubo alguna gestión en las 72 h previas a la cita (según la última acción registrada)${A.vigAll.length>500?' · se muestran 500':''}</p></div></div>
+      `<div class="mk-card" style="margin-bottom:16px"><div class="mk-card-hd"><div><h3>Citas vigentes y su gestión</h3><p>Citas de hoy en adelante de leads abiertos · el estado mira si hubo alguna gestión en las 72 h previas a la cita (según la última acción registrada)${A.vigAll.length>500?' · se muestran 500':''}</p></div></div>
       ${_aseTblTop('vig',colsV,vigBase,'Sin citas vigentes')}</div>`+
-      `<div class="card"><div class="card-hd"><div><h3>Efectividad de citas</h3><p>Citas con visita ÷ citas del asesor (incluye las que aún no llegan a su fecha, por eso puede subir) · las de Mantra (IA) van aparte · * muestra insuficiente (menos de 5 citas)</p></div></div>
+      `<div class="mk-card" style="margin-bottom:16px"><div class="mk-card-hd"><div><h3>Efectividad de citas</h3><p>Citas con visita ÷ citas del asesor (incluye las que aún no llegan a su fecha, por eso puede subir) · las de Mantra (IA) van aparte · * muestra insuficiente (menos de 5 citas)</p></div></div>
       ${_aseTbl('auditE',colsE,A.filas.filter(f=>f.P.citas||f.M.citas),'Sin citas')}</div>`;
   } else if(_aseTab==='tiempos'){
     const T=_aseTiempos(arr); window._aseT=T;
     const dd = st => st ? (st.med%1?st.med.toFixed(1):st.med)+' d' : '—';
     const celda = (st,k,i) => st ? `<span class="findet-clic" onclick="aseAbrirTiempos(${i},'${k}')"><b>${dd(st)}</b></span><div style="font-size:10.5px;color:var(--ink-4)">prom. ${st.prom.toFixed(1)} d · ${fN(st.n)} casos</div>` : '<span style="color:var(--ink-4)">—</span>';
     const g=T.general;
-    const kp=`<div class="kpi-row kpi-3">
-      ${_kpiClic(kpi('Lead › Visita',dd(g.lv),g.lv?'mediana · '+fN(g.lv.n)+' casos · clic para ver detalle':'sin casos'),"aseAbrirTiempos(-1,'lv')")}
-      ${_kpiClic(kpi('Visita › Minuta',dd(g.vm),g.vm?'mediana · '+fN(g.vm.n)+' casos · clic para ver detalle':'sin casos'),"aseAbrirTiempos(-1,'vm')")}
-      ${_kpiClic(kpi('Lead › Minuta',dd(g.lm),g.lm?'mediana · '+fN(g.lm.n)+' casos · clic para ver detalle':'sin casos'),"aseAbrirTiempos(-1,'lm')")}
+    const kp=`<div class="mk-kpis ase-kpis3">
+      ${_aseK('Lead › Minuta',dd(g.lm),g.lm?'mediana · '+fN(g.lm.n)+' casos · <span class="mk-link" style="color:#fde68a">ver detalle</span>':'sin casos',{hero:true,clic:"aseAbrirTiempos(-1,'lm')"})}
+      ${_aseK('Lead › Visita',dd(g.lv),g.lv?'mediana · '+fN(g.lv.n)+' casos · <span class="mk-link">ver detalle</span>':'sin casos',{clic:"aseAbrirTiempos(-1,'lv')"})}
+      ${_aseK('Visita › Minuta',dd(g.vm),g.vm?'mediana · '+fN(g.vm.n)+' casos · <span class="mk-link">ver detalle</span>':'sin casos',{clic:"aseAbrirTiempos(-1,'vm')"})}
     </div>`;
     const cols=[
       {h:'Asesor', v:o=>o.asesor, f:o=>`<b>${o.asesor}</b>`},
@@ -9665,7 +9686,7 @@ function renderAsesores(){
       {h:'Visita › Minuta', v:o=>o.vm?o.vm.med:null, f:o=>celda(o.vm,'vm',T.filas.indexOf(o)), c:'r'},
       {h:'Lead › Minuta', v:o=>o.lm?o.lm.med:null, f:o=>celda(o.lm,'lm',T.filas.indexOf(o)), c:'r'},
     ];
-    body=kp+`<div class="card"><div class="card-hd"><div><h3>Tiempos de conversión por asesor</h3><p>Mediana de días (en grande), promedio y casos debajo · leads registrados en el período · Minuta = fecha de venta · cruce por DNI o correo en el mismo proyecto, solo avances posteriores al registro · <b style="color:var(--brand)">clic en una mediana para ver el detalle</b> · clic en una cabecera para ordenar${filtroTxt}</p></div></div>
+    body=kp+`<div class="mk-card" style="margin-bottom:16px"><div class="mk-card-hd"><div><h3>Tiempos de conversión por asesor</h3><p>Mediana de días (en grande), promedio y casos debajo · leads registrados en el período · Minuta = fecha de venta · cruce por DNI o correo en el mismo proyecto, solo avances posteriores al registro · clic en una mediana para ver el detalle · clic en una cabecera para ordenar${filtroTxt}</p></div></div>
       ${_aseTbl('tiempos',cols,T.filas,'Sin datos')}</div>`;
   } else {
     const f=arr.flatMap(o=>o.citas);
@@ -9675,12 +9696,12 @@ function renderAsesores(){
       {h:'Proyecto', v:c=>String(c.r.Proyecto||''), f:c=>c.r.Proyecto||''},
       {h:'Sub-estado', v:c=>String(c.r.SubEstado||''), f:c=>c.r.SubEstado||''},
       {h:'Fecha cita', v:c=>c.fC, f:c=>_aseFmtDia(c.fC), c:'r'},
-      {h:'Días vencida', v:c=>c.diasVenc, f:c=>`<span style="color:#ef4444;font-weight:700">${c.diasVenc} d</span>`, c:'r'},
+      {h:'Días vencida', v:c=>c.diasVenc, f:c=>`<span style="color:var(--mk-bad);font-weight:800">${c.diasVenc} d</span>`, c:'r'},
       {h:'Última acción', v:c=>c.fU, f:c=>_aseFmtF(c.fU), c:'r'},
-      {h:'Seguimiento', v:c=>c.sinAcc?0:1, f:c=>c.sinAcc?'<span style="color:#ef4444;font-weight:700">Sin acción posterior</span>':'Con acción posterior'},
+      {h:'Seguimiento', v:c=>c.sinAcc?0:1, f:c=>c.sinAcc?'<span style="color:var(--mk-bad);font-weight:800">Sin acción posterior</span>':'Con acción posterior'},
     ];
     const base=_aseSortSt.citas ? f : f.slice().sort((a,b)=>(b.sinAcc-a.sinAcc)||(b.diasVenc-a.diasVenc));
-    body=`<div class="card"><div class="card-hd"><div><h3>Citas sin seguimiento</h3><p>Cita ya vencida y sin visita registrada (cruce con Visitas por DNI/correo + proyecto)${f.length>500?' · se muestran 500':''} · clic en una cabecera para ordenar${filtroTxt}</p></div></div>
+    body=`<div class="mk-card" style="margin-bottom:16px"><div class="mk-card-hd"><div><h3>Citas sin seguimiento</h3><p>Cita ya vencida y sin visita registrada (cruce con Visitas por DNI/correo + proyecto)${f.length>500?' · se muestran 500':''} · clic en una cabecera para ordenar${filtroTxt}</p></div></div>
       ${_aseTblTop('citas',cols,base,'Sin citas pendientes de seguimiento')}</div>`;
   }
   cont.innerHTML=kpis+body;
