@@ -2487,7 +2487,7 @@ let _dirTabModo = 'ventas'; // 'ventas' | 'sep'
 // Ancho (px) de cada columna: el mismo en ventas y separaciones para que se vean iguales
 const _DIR_TAB_PROY_PCT = 10; // % del ancho para Proyecto: el mismo en ventas y separaciones
 // Peso de cada columna (≈ px que necesita su contenido); se reparten el 90% restante
-const _DIR_TAB_PESO = {'Cliente':145,'DNI':92,'Inmueble':66,'Torre':50,'Canal':98,'Contacto':82,'Precio':92,'Moneda':64,'m²':50,'Crédito':90,'Entidad':94,'Estado':92,'F. Venta':86,'F. Separación':92};
+const _DIR_TAB_PESO = {'Cliente':145,'DNI':92,'Inmueble':66,'Torre':62,'Canal':98,'Contacto':82,'Precio':92,'Moneda':64,'m²':50,'Crédito':90,'Entidad':94,'Estado':92,'F. Venta':86,'F. Separación':92};
 const _DIR_TAB_TEXTO = ['Proyecto','Cliente','Canal','Contacto','Crédito','Entidad','Estado']; // pueden bajar de línea
 const _dirTabFechaIso = r => _dirTabModo==='sep' ? _flIsoFecha(r.FechaSepDefinitiva) : _flIsoFecha(r.FechaVenta||r.FechaEntrega_Minuta);
 const _dirTabColsBase = [
@@ -7499,26 +7499,30 @@ function _torreFmt(proy, ed){
   if(!ed) return '—';
   return proy==='SUNNY' ? 'EDI '+ed : proy==='DOMINGO ORUE' ? 'T'+ed : '—';
 }
+  // Carabayllo (Lomas 4 y 5): el Stock trae "TORRE G - EDIFICIO 27" → "G-27" (estacionamientos/depósitos sin torre)
+  if(/^LOMAS DE CARABAYLLO/.test(proy)){ const m=String(ed).match(/TORRE\s+(\S+)\s*-\s*EDIFICIO\s+(\d+)/i); return m ? m[1].toUpperCase()+'-'+m[2] : '—'; }
 // La columna Torre solo se muestra si en las filas hay Sunny o Domingo Orué
-const _proyConTorre = r => /^(SUNNY|DOMINGO ORUE)$/.test(String(r&&r.Proyecto||'').trim().toUpperCase());
+const _proyConTorre = r => /^(SUNNY|DOMINGO ORUE|LOMAS DE CARABAYLLO)/.test(String(r&&r.Proyecto||'').trim().toUpperCase());
+// ¿El Edificio del Stock es una torre válida? Sunny/Orué: número; Carabayllo: "TORRE G - EDIFICIO 27"
+const _edTorreOk = ed => /^\d+$/.test(ed) || /^TORRE\s+\S+\s*-\s*EDIFICIO\s+\d+/i.test(ed);
 const _colsConTorre = (cols, filas) => (cols||[]).some(c=>c.soloTorre) && !(filas||[]).some(_proyConTorre)
   ? cols.filter(c=>!c.soloTorre) : cols;
 function _torreDe(r){
   if(r && r.Edificio!==undefined && !('NroDocumentoTitular' in r)){
     const ed = String(r.Edificio||'').trim();
-    return /^\d+$/.test(ed) ? _torreFmt(r.Proyecto, ed) : '—';
+    return _edTorreOk(ed) ? _torreFmt(r.Proyecto, ed) : '—';
   }
   return _torreDeVenta(r);
 }
 function _torreDeVenta(r){
   const proy = String(r.Proyecto||'').trim().toUpperCase();
-  const rot = proy==='SUNNY' ? 'Edificio' : proy==='DOMINGO ORUE' ? 'Torre' : '';
+  const rot = proy==='SUNNY' ? 'Edificio' : proy==='DOMINGO ORUE' ? 'Torre' : /^LOMAS DE CARABAYLLO/.test(proy) ? 'Torre' : '';
   if(!rot) return '—';
   if(_torreIdxSrc!==D.stock){ _torreIdx=null; _torreIdxSrc=D.stock; }
   if(!_torreIdx){
     _torreIdx = {dni:{}, nro:{}};
     (D.stock||[]).forEach(x=>{
-      const ed = String(x.Edificio||'').trim(); if(!/^\d+$/.test(ed)) return;
+      const ed = String(x.Edificio||'').trim(); if(!_edTorreOk(ed)) return;
       const nro = String(x.NroInmuebleActual||x.NroInmueble||'').trim().replace(/\.0+$/,'');
       const dni = String(x.NroDocumento||'').trim();
       if(dni) _torreIdx.dni[_m2Key(x.Proyecto, nro, dni)] = ed;
