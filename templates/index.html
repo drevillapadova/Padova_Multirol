@@ -1328,6 +1328,152 @@ html.dark table td{color:#f1f5f9!important;border-color:#334155!important}
 html.dark table tr{background:transparent!important}
 html.dark table.tbl tfoot td{background:#253347!important;color:#f1f5f9!important}
 html.dark table.tbl tbody tr:hover td{background:#253347!important}
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE (tablet y celular) — solo pantallas angostas; en escritorio no cambia nada
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width:900px){
+  /* filas de dos columnas → una sola */
+  .mk-row2{flex-direction:column;gap:12px}
+  .mk-fun .mk-card-hd p{display:none}
+  .mk-main,.mk-side{flex:1 1 auto!important;max-width:none!important;width:100%}
+  .pr-grid2{grid-template-columns:1fr}
+  .mk-ml-card{max-width:none!important}
+  /* pestañas: una sola fila que se desliza */
+  .tab-bar,#fl-tab-bar{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-bottom:14px}
+  .tab-bar::-webkit-scrollbar{display:none}
+  .tab-bar .tab-btn{flex:none;white-space:nowrap}
+}
+@media (max-width:768px){
+  /* barra superior: deja de ser fija (no tapa la pantalla al bajar) y deja sitio al botón del menú */
+  .topbar{position:static;margin:-16px -14px 14px;padding:12px 14px 12px 60px;min-height:48px;box-shadow:none}
+  .panel{margin-top:0}
+  .hamburger{top:10px;left:10px}
+  .sidebar{padding-top:52px!important}
+  /* menú contraído en escritorio: en celular no aplica (si no, el contenido queda en una columna de 52 px) */
+  .app.sb-collapsed{grid-template-columns:1fr}
+  .app.sb-collapsed .sidebar{padding:52px 14px 20px;overflow-y:auto}
+  .app.sb-collapsed .nav-group{display:block}
+  .app.sb-collapsed .nav-lbl{display:inline}
+  .app.sb-collapsed .brand{flex-direction:row;justify-content:flex-start;gap:10px;padding:6px 10px 18px}
+  .app.sb-collapsed .nav-item{justify-content:flex-start;padding:8px 10px}
+  .topbar .crumbs{display:none}
+  .topbar .page-title{font-size:18px;line-height:24px}
+  .topbar .page-sub{font-size:11.5px;line-height:16px}
+  .topbar .toolbar{gap:8px;margin-left:-46px;width:calc(100% + 46px)}
+  .topbar .toolbar .chip,.topbar .toolbar .chip-sel{min-height:34px}
+  /* filtros: compactos, dos por fila */
+  .mk-filtros{padding:12px;gap:8px;margin:0 0 12px;border-radius:12px}
+  .mk-filtros>div[style*="position:relative"]{flex:1 1 calc(50% - 6px);min-width:0;max-width:calc(50% - 4px)}
+  .mk-filtros>div[style*="position:relative"]:last-of-type:nth-of-type(odd){max-width:none}
+  .mk-filtros .msel-btn{width:100%;justify-content:space-between;overflow:hidden;white-space:nowrap}
+  .mk-filtros .msel-btn>span[id$="-label"]{overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1;text-align:left}
+  .mk-filtros .ddb-sep{display:none}
+  .mk-filtros .mk-search{max-width:none!important;flex:1 1 100%!important}
+  .mk-filtros .mk-btn{min-height:34px}
+  .mk-dates{flex-wrap:wrap;width:100%;box-sizing:border-box}
+  .mk-dates input{flex:1;min-width:0}
+  .mk-seg{max-width:100%;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+  .mk-seg::-webkit-scrollbar{display:none}
+  .mk-seg button{flex:none}
+  .dir-date-bar{padding:10px 12px}
+  .dir-date-bar>div{flex-wrap:wrap;max-width:100%;box-sizing:border-box}
+  .dir-date-bar input[type=date],.mk-dates input[type=date]{min-width:0;flex:1 1 110px}
+  .msel-panel{max-width:calc(100vw - 28px);min-width:0!important}
+  /* indicadores: dos por fila, el principal ocupa toda la fila */
+  .mk-kpis,#panel-pricing .mk-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px;margin-bottom:12px}
+  .mk-kpi{padding:12px 14px;gap:5px;border-radius:12px}
+  .mk-kpi.hero{grid-column:1/-1}
+  .mk-kpi.hero ~ .mk-kpi:last-child:nth-child(even){grid-column:1/-1}
+  .mk-kpi .k-l{font-size:10px;letter-spacing:.05em}
+  .mk-kpi .k-v,#panel-pricing .mk-kpi .k-v{font-size:22px;line-height:26px}
+  .mk-kpi.hero .k-v,#panel-pricing .mk-kpi.hero .k-v{font-size:30px;line-height:34px}
+  .mk-kpi .k-s{font-size:11px;line-height:15px}
+  .kpi-row{gap:10px}
+  .kpi-6,.kpi-5,.kpi-4,.kpi-3,.kpi-2{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .kpi{padding:12px 14px}
+  .kpi .val{font-size:20px}
+  /* tarjetas */
+  .mk-card{border-radius:12px}
+  .mk-card-hd{padding:14px 14px 8px}
+  .mk-card-hd h3{font-size:15px}
+  .mk-card-hd p{font-size:11.5px}
+  .mk-tiles{padding:4px 14px 14px;grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .mk-bars,.mk-ins{padding-left:14px;padding-right:14px}
+  .mk-legend{padding:10px 14px 12px}
+  /* tablas: se deslizan de lado dentro de su tarjeta, más compactas */
+  .mk-tbl-wrap{padding:0 6px 10px;-webkit-overflow-scrolling:touch}
+  .mk-tbl{font-size:11.5px}
+  .mk-tbl th{font-size:9.5px;padding:7px 6px}
+  .mk-tbl td{padding:7px 6px}
+  .mk-tbl.mk-eq{min-width:620px}
+  .mk-tbl.mk-eq.pr-tip,.mk-tbl.mk-eq.pr-tt{min-width:640px}
+  table.tbl thead th,table.tbl tbody td{padding:7px 8px}
+  /* popups a pantalla casi completa */
+  .cob-overlay{padding:8px}
+  .cob-mes-modal{padding:16px 14px;max-width:100%;width:100%;max-height:94vh;border-radius:14px}
+  .cob-mes-title{font-size:16px;margin-bottom:12px}
+  .cob-mes-kpis{gap:8px;margin-bottom:12px}
+  .cob-mes-kpi{padding:10px 12px}
+  .cob-mes-kpi .k-val{font-size:16px}
+  .sp-modal{padding:20px 16px}
+  /* Marketing */
+  .mk-fun .mk-fcols{grid-template-columns:1fr!important}
+  /* Comercial: tipologías de a dos */
+  #panel-director .mk-tiles{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  /* Estudio de Mercado */
+  .mk-rk{grid-template-columns:20px minmax(0,1fr) 58px 76px;gap:8px;padding:8px 6px}
+  .mk-rk .mk-trk{display:none}
+  .mk-rk-list{padding:0 6px 10px}
+  .mk-map{height:62vh;min-height:340px}
+  .mk-ml{position:static!important;max-height:60vh}
+  .mk-ml-card{min-height:0}
+  .mk-ml-it{padding:9px 12px;grid-template-columns:10px minmax(0,1fr) 46px 70px;gap:8px}
+  .mk-pdv-g b{font-size:14px}
+  #mk-chips{max-height:120px;overflow:auto}
+  /* Pricing */
+  .pr-steps{padding:4px 14px 12px}
+  .pr-step{min-width:112px;flex:none!important}
+  .pr-rec-top{grid-template-columns:repeat(3,minmax(0,1fr));padding:2px 14px 10px}
+  .pr-rec-top b{font-size:14px}
+  .pr-esc,.pr-esc-lg{padding-left:14px;padding-right:14px}
+  .pr-als{padding:2px 14px 14px}
+  .pr-al{padding:10px 12px;font-size:12.5px}
+  .pr-hoy{font-size:11.5px}
+  .pr-pie{padding:0 14px 12px}
+  #panel-pricing .pr-tblwrap{max-height:70vh}
+  #panel-pricing .pr-dt{min-width:900px}
+  .pr-campos{grid-template-columns:1fr;padding:12px 14px 14px}
+  .pr-guardar{position:static}
+  /* Comparador de precios (Mercado): columna de etiquetas más angosta */
+  .precios-tabla td.precios-rowlbl,.precios-tabla th.precios-rowlbl{white-space:normal;min-width:118px;max-width:130px;font-size:9.5px;line-height:1.25;padding:6px 8px}
+  .precios-tabla td,.precios-tabla thead th{padding:6px 10px;font-size:11.5px}
+  .precios-tabla td span[style*="margin:-7px -16px"]{margin:-6px -10px!important;padding:6px 10px!important}
+  /* Carruseles: tarjetas que en celular se deslizan de lado en vez de apilarse
+     (tipologías, resumen y financiamiento de Adm., Padova/Mirano y etapas en Mercado) */
+  .mk-typ-grid,#adm-kpis.mk-grp-row,.adm-fin,.mk-pdv-list,#mercado-sub-resumen .mk-tiles,#panel-admventas .mk-tiles{
+    display:flex!important;flex-direction:row!important;flex-wrap:nowrap;grid-template-columns:none!important;
+    overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;gap:10px!important;scroll-padding-left:14px}
+  .mk-typ-grid::-webkit-scrollbar,#adm-kpis.mk-grp-row::-webkit-scrollbar,.adm-fin::-webkit-scrollbar,.mk-pdv-list::-webkit-scrollbar,#mercado-sub-resumen .mk-tiles::-webkit-scrollbar{display:none}
+  .mk-typ-grid>*,#adm-kpis.mk-grp-row>*,.adm-fin>*,.mk-pdv-list>*{flex:0 0 82%;scroll-snap-align:start;min-width:0}
+  #mercado-sub-resumen .mk-tiles>*{flex:0 0 46%;scroll-snap-align:start;min-width:0}
+  #panel-admventas .mk-tiles>*{flex:0 0 62%;scroll-snap-align:start;min-width:0}
+  #panel-admventas .mk-tiles::-webkit-scrollbar{display:none}
+  #adm-kpis.mk-grp-row>*{flex-basis:90%}
+  #panel-admventas .mk-tiles .t-v{white-space:nowrap}
+  .mk-typ-grid,.adm-fin,.mk-pdv-list,#mercado-sub-resumen .mk-tiles{padding-left:14px!important;padding-right:14px!important}
+  #adm-kpis.mk-grp-row{margin-left:-10px;margin-right:-10px;padding:0 10px 2px;scroll-padding-left:10px}
+  /* Stock: mapa por pisos se desliza de lado */
+  #sp-content{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+@media (max-width:480px){
+  .panel{padding:12px 10px 28px}
+  .topbar{margin:-12px -10px 12px;padding:10px 10px 10px 58px}
+  .mk-kpi .k-v,#panel-pricing .mk-kpi .k-v{font-size:20px;line-height:24px}
+  .mk-kpi.hero .k-v,#panel-pricing .mk-kpi.hero .k-v{font-size:28px;line-height:32px}
+  .tab-bar .tab-btn{padding:8px 12px}
+  .pr-rec-top{grid-template-columns:1fr 1fr}
+}
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
@@ -10714,7 +10860,7 @@ function _mkRenderResumen(){
       </div></div>`; }).join('');
   const padova = `<section class="mk-card">
     <div class="mk-card-hd"><div><h3>Padova y Mirano frente al mercado</h3><p>Datos de nuestra base (Ventas y Stock) · % vs. el promedio de los proyectos filtrados</p></div></div>
-    <div style="padding:0 16px 14px;display:flex;flex-direction:column;gap:10px">${pdvHtml||'<div class="mk-empty">Sin proyectos Padova o Mirano en el estudio</div>'}</div>
+    <div class="mk-pdv-list" style="padding:0 16px 14px;display:flex;flex-direction:column;gap:10px">${pdvHtml||'<div class="mk-empty">Sin proyectos Padova o Mirano en el estudio</div>'}</div>
   </section>`;
 
   // Por distrito
