@@ -7497,10 +7497,10 @@ let _torreIdx = null, _torreIdxSrc = null;
 function _torreFmt(proy, ed){
   proy = String(proy||'').trim().toUpperCase();
   if(!ed) return '—';
-  return proy==='SUNNY' ? 'EDI '+ed : proy==='DOMINGO ORUE' ? 'T'+ed : '—';
-}
   // Carabayllo (Lomas 4 y 5): el Stock trae "TORRE G - EDIFICIO 27" → "G-27" (estacionamientos/depósitos sin torre)
   if(/^LOMAS DE CARABAYLLO/.test(proy)){ const m=String(ed).match(/TORRE\s+(\S+)\s*-\s*EDIFICIO\s+(\d+)/i); return m ? m[1].toUpperCase()+'-'+m[2] : '—'; }
+  return proy==='SUNNY' ? 'EDI '+ed : proy==='DOMINGO ORUE' ? 'T'+ed : '—';
+}
 // La columna Torre solo se muestra si en las filas hay Sunny o Domingo Orué
 const _proyConTorre = r => /^(SUNNY|DOMINGO ORUE|LOMAS DE CARABAYLLO)/.test(String(r&&r.Proyecto||'').trim().toUpperCase());
 // ¿El Edificio del Stock es una torre válida? Sunny/Orué: número; Carabayllo: "TORRE G - EDIFICIO 27"
