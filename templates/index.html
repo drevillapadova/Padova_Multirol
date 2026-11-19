@@ -7196,7 +7196,7 @@ function openCalc(nro, precio){
   pctInp.value = '';
   calcDesc('precio');
   document.getElementById('sp-overlay').classList.add('open');
-  setTimeout(()=>pctInp.focus(), 80);
+  setTimeout(()=>document.getElementById('sp-calc-input').focus(), 80);
 }
 
 function closeCalc(){
@@ -11500,8 +11500,8 @@ loadAll();
     <div class="sp-modal-lbl">Precio actual</div>
     <div class="sp-modal-curr" id="sp-calc-curr">S/ 0.00</div>
     <div class="sp-calc-grid">
-      <label><span class="sp-modal-lbl">Descuento %</span><input type="number" id="sp-calc-pct" step="0.01" min="0" max="100" placeholder="Ej. 5" oninput="calcDesc('pct')"></label>
       <label><span class="sp-modal-lbl">Precio final S/</span><input type="number" id="sp-calc-input" step="0.01" min="0" placeholder="Ej. 300000" oninput="calcDesc('precio')"></label>
+      <label><span class="sp-modal-lbl">Descuento %</span><input type="number" id="sp-calc-pct" step="0.01" min="0" max="100" placeholder="Ej. 5" oninput="calcDesc('pct')"></label>
     </div>
     <div class="sp-calc-rap"><span>Rápido</span><button type="button" onclick="calcSetPct(1)">1%</button><button type="button" onclick="calcSetPct(2)">2%</button><button type="button" onclick="calcSetPct(3)">3%</button><button type="button" onclick="calcSetPct(5)">5%</button><button type="button" onclick="calcSetPct(7)">7%</button><button type="button" onclick="calcSetPct(10)">10%</button></div>
     <div class="sp-res-grid" style="grid-template-columns:1fr">
