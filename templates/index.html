@@ -1058,6 +1058,11 @@ html.dark .sp-e-DEV{--e-bg:#253347;--e-bd:#475569;--e-fg:#94a3b8}
 .sp-piso{display:grid;align-items:stretch;gap:5px;margin-bottom:5px}
 .sp-piso>em{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-4);display:flex;align-items:center;justify-content:flex-end;padding-right:6px}
 .sp-piso-u.wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:5px}
+.sp-piso-filas{align-items:start;padding:8px 0;border-top:1px solid var(--line-2);margin-bottom:0}
+.sp-piso-filas:first-child{border-top:none;padding-top:0}
+.sp-piso-filas>em{flex-direction:column;align-items:flex-end;justify-content:flex-start;padding-top:8px;gap:2px}
+.sp-piso-filas>em small{font-size:10px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink-4)}
+.sp-piso-filas .sp-piso-u.wrap{grid-template-columns:repeat(auto-fill,minmax(76px,1fr))}
 .sp-est{display:inline-flex;align-items:center;min-height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:700;background:var(--e-bg);border:1px solid var(--e-bd);color:var(--e-fg);white-space:nowrap}
 #sp-inv-tabla{table-layout:fixed;width:100%}
 #sp-inv-tabla thead th,#sp-inv-tabla tbody td{padding:9px 6px;font-size:12px}
@@ -8443,8 +8448,14 @@ function _spRenderMapa(us, projs, tipo, cnt){
     const nCols = porSufijo ? Math.max(...urT.map(suf)) : Math.max(1,...pisos.map(p=>porPiso[p].length));
     const minTile = 64; // si no entran ni a este ancho, recién ahí aparece el scroll
     const grid=`grid-template-columns:52px repeat(${nCols},minmax(${minTile}px,1fr))`;
+    // Pisos con muchas unidades (estacionamientos, depósitos): en varias filas dentro del
+    // mismo piso, en vez de una sola fila larga con scroll horizontal.
+    const MAX_COLS = 16;
+    const enFilas = nCols > MAX_COLS;
     const cuerpo=hayPisos
-      ? pisos.map(p=>`<div class="sp-piso" style="${grid}"><em>${p>0?'Piso '+p:'—'}</em>${ord(porPiso[p]).map((r,i)=>tarjeta(r).replace('<div class="sp-u', `<div style="grid-column:${(porSufijo?suf(r):i+1)+1}" class="sp-u`)).join('')}</div>`).join('')
+      ? pisos.map(p=> enFilas
+          ? `<div class="sp-piso sp-piso-filas" style="grid-template-columns:52px minmax(0,1fr)"><em>${p>0?'Piso '+p:'—'}<small>${fN(porPiso[p].length)}</small></em><div class="sp-piso-u wrap">${ord(porPiso[p]).map(tarjeta).join('')}</div></div>`
+          : `<div class="sp-piso" style="${grid}"><em>${p>0?'Piso '+p:'—'}</em>${ord(porPiso[p]).map((r,i)=>tarjeta(r).replace('<div class="sp-u', `<div style="grid-column:${(porSufijo?suf(r):i+1)+1}" class="sp-u`)).join('')}</div>`).join('')
       : `<div class="sp-piso-u wrap">${ord(urT).map(tarjeta).join('')}</div>`;
     return `<section class="mk-card" style="margin-bottom:16px">
       <div class="mk-card-hd"><div><h3>${_flEsc(_flProjShort(pj))}</h3><p>${conTorres?_flEsc(lblT(sel))+' · ':''}${fN(urT.length)} unidades · clic en una unidad para calcular un descuento</p></div></div>
