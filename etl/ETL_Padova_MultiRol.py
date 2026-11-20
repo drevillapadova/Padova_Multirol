@@ -327,6 +327,7 @@ COLS_PROSPECTOS = [
     'Responsable','Responsable_Anterior','Motivo_Cerrado_Actual',
     'TiempoRespuesta_min','LeadUnicoxMesProyecto',
     'FechaCitado','Descrip_UltimaAccion','EstadoSentinel',
+    'utm_campaign','utm_term',
 ]
 
 COLS_VISITAS = [
