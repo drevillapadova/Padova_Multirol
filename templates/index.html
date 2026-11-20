@@ -8303,15 +8303,54 @@ function _spRenderInventario(us, projs){
     </tr>`).join('');
   const T=k=>filas.reduce((a,x)=>a+x[k],0);
   const todasLista=filas.flatMap(x=>x.lista);
+  // ── Vista por modelo (X01, X02…): proyecto + torre + modelo ──
+  const gm={};
+  us.forEach(r=>{
+    const pj=String(r.Proyecto||'').trim(), torre=_spTorreLbl(r), mod=String(r.Modelo||'').trim().toUpperCase()||'—', k=_spEst(r);
+    const key=pj+'|'+torre+'|'+mod;
+    const x=gm[key]||(gm[key]={key, pj, torre, mod, dorm:{}, DIS:0, BLO:0, SEP:0, VEN:0, tot:0, lista:[], area:[]});
+    x.tot++;
+    const d=String(r.NroDormitorios||'').trim(); if(/^\d+$/.test(d)&&d!=='0') x.dorm[d]=(x.dorm[d]||0)+1;
+    if(_spN(r.AreaTechada)>0) x.area.push(_spN(r.AreaTechada)+_spN(r.AreaLibre));
+    if(k==='DIS'){ x.DIS++; if(_spN(r.PrecioLista)>0) x.lista.push(_spN(r.PrecioLista)); }
+    else if(k==='BLO') x.BLO++;
+    else if(k==='SEP') x.SEP++;
+    else if(SP_VENDIDOS.includes(k)) x.VEN++;
+  });
+  const filasM=Object.values(gm).sort((a,b)=>a.pj.localeCompare(b.pj)||a.torre.localeCompare(b.torre,undefined,{numeric:true})||a.mod.localeCompare(b.mod,undefined,{numeric:true}));
+  const variosPj=new Set(filasM.map(x=>x.pj)).size>1, conTorre=filasM.some(x=>x.torre);
+  const dormDe=x=>{ const e=Object.entries(x.dorm).sort((a,b)=>b[1]-a[1])[0]; return e?e[0]+'D':'—'; };
+  const clkM=(x,est,n)=>n?`<span class="sp-est sp-e-${est}" style="cursor:pointer" onclick='_spInvFiltrarMod(${JSON.stringify(x.key)},${JSON.stringify((variosPj?_flProjShort(x.pj)+' ':'')+(x.torre?x.torre+' ':'')+x.mod)},"${est}")'>${fN(n)}</span>`:'<span class="mk-amt soft">0</span>';
+  const rango=a=>!a.length?'—':(Math.min(...a)===Math.max(...a)?_spSoles(a[0]):_spSoles(Math.min(...a))+' – '+_spSoles(Math.max(...a)));
+  const modRows=filasM.map(x=>`<tr>
+      ${variosPj?`<td style="font-weight:600">${_flEsc(_flProjShort(x.pj))}</td>`:''}
+      ${conTorre?`<td>${_flEsc(x.torre||'—')}</td>`:''}
+      <td style="font-weight:700">${_flEsc(x.mod)}</td><td>${dormDe(x)}</td>
+      <td>${x.area.length?prom(x.area).toFixed(1)+' m²':'—'}</td>
+      <td>${clkM(x,'DIS',x.DIS)}</td><td>${clkM(x,'BLO',x.BLO)}</td>
+      <td>${fN(x.SEP)}</td><td>${fN(x.VEN)}</td><td style="font-weight:700">${fN(x.tot)}</td>
+      <td>${rango(x.lista)}</td>
+      <td>${x.lista.length?_spSoles(prom(x.lista)):'—'}</td>
+    </tr>`).join('');
+  const nPre=(variosPj?1:0)+(conTorre?1:0);
+  const TM=k=>filasM.reduce((a,x)=>a+x[k],0);
+  const tablaModelo=`<div class="mk-tbl-wrap"><table class="mk-tbl lines mk-eq" id="sp-inv-modelo" style="min-width:860px">
+      <colgroup>${variosPj?'<col style="width:11%">':''}${conTorre?'<col style="width:8%">':''}<col style="width:8%"><col style="width:6%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:6%"><col style="width:18%"><col style="width:11%"></colgroup>
+      <thead><tr>${variosPj?'<th>Proyecto</th>':''}${conTorre?'<th>Torre</th>':''}<th>Modelo</th><th>Dorm.</th><th>Área prom.</th><th>Disponibles</th><th>Bloqueadas</th><th>Separadas</th><th>Vendidas</th><th>Total</th><th>Precio lista disponible (rango)</th><th>Precio lista prom.</th></tr></thead>
+      <tbody>${modRows||`<tr><td colspan="${10+nPre}" class="mk-empty">Sin unidades</td></tr>`}</tbody>
+      <tfoot><tr class="tot"><td>TOTAL · ${fN(filasM.length)} modelos</td>${'<td></td>'.repeat(nPre)}<td></td><td></td><td>${fN(TM('DIS'))}</td><td>${fN(TM('BLO'))}</td><td>${fN(TM('SEP'))}</td><td>${fN(TM('VEN'))}</td><td>${fN(TM('tot'))}</td><td>${rango(todasLista)}</td><td>${todasLista.length?_spSoles(prom(todasLista)):'—'}</td></tr></tfoot>
+    </table></div>`;
+  const seg=`<div class="mk-seg">${[['tipo','Por dormitorios'],['modelo','Por modelo']].map(([v,l])=>`<button type="button" class="${_spInvVista===v?'on':''}" onclick="_spInvVista='${v}';renderStockProy()">${l}</button>`).join('')}</div>`;
   el.innerHTML=`
   <section class="mk-card" style="margin:4px 0 16px">
-    <div class="mk-card-hd"><div><h3>Stock por tipología</h3><p>Qué queda disponible y bloqueado en cada tipo de unidad · precios de lista de lo disponible · clic en un número para ver esas unidades abajo</p></div></div>
-    <div class="mk-tbl-wrap"><table class="mk-tbl lines mk-eq" style="min-width:860px">
+    <div class="mk-card-hd"><div><h3>Stock por tipología</h3><p>${_spInvVista==='modelo'?'Cada modelo (X01, X02…) por torre':'Cada tipo de unidad'} · qué queda disponible y bloqueado · precios de lista de lo disponible · clic en un número para ver esas unidades abajo</p></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${seg}${_spInvVista==='modelo'?`<button type="button" class="mk-btn" style="min-height:32px" onclick="_exportarTablaExcel('#sp-inv-modelo','stock_por_modelo','Stock por modelo')">↓ Excel</button>`:''}</div></div>
+    ${_spInvVista==='modelo'?tablaModelo:`<div class="mk-tbl-wrap"><table class="mk-tbl lines mk-eq" style="min-width:860px">
       <colgroup><col style="width:15%"><col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:8%"><col style="width:19%"><col style="width:12%"><col style="width:10%"></colgroup>
       <thead><tr><th>Tipología</th><th>Disponibles</th><th>Bloqueadas</th><th>Separadas</th><th>Vendidas</th><th>Total</th><th>Precio lista disponible (rango)</th><th>Precio lista prom.</th><th>Área prom.</th></tr></thead>
       <tbody>${tipRows||'<tr><td colspan="9" class="mk-empty">Sin unidades</td></tr>'}</tbody>
       <tfoot><tr class="tot"><td>TOTAL</td><td>${fN(T('DIS'))}</td><td>${fN(T('BLO'))}</td><td>${fN(T('SEP'))}</td><td>${fN(T('VEN'))}</td><td>${fN(T('tot'))}</td><td>${todasLista.length?_spSoles(Math.min(...todasLista))+' – '+_spSoles(Math.max(...todasLista)):'—'}</td><td>${todasLista.length?_spSoles(prom(todasLista)):'—'}</td><td></td></tr></tfoot>
-    </table></div>
+    </table></div>`}
   </section>
   <section class="mk-card" style="margin-bottom:16px">
     <div class="mk-card-hd"><div><h3>Unidades</h3><p id="sp-inv-hint"></p></div>
@@ -8325,11 +8364,13 @@ function _spRenderInventario(us, projs){
       </table>
     </div>
   </section>`;
-  _spInvTipo='';
+  _spInvTipo=''; _spInvMod=null;
   _spInvPintar();
 }
-let _spInvTipo='';
-function _spInvFiltrar(tipo, est){ _spInvTipo=tipo; _spInvEst=new Set([est]); _spInvPintar(); document.getElementById('sp-inv-tabla')?.scrollIntoView({behavior:'smooth',block:'start'}); }
+let _spInvTipo='', _spInvMod=null, _spInvVista='tipo'; // _spInvMod = {key, lbl}: filtro por proyecto|torre|modelo
+function _spInvFiltrarMod(key, lbl, est){ _spInvTipo=''; _spInvMod={key, lbl}; _spInvEst=new Set([est]); _spInvPintar(); document.getElementById('sp-inv-tabla')?.scrollIntoView({behavior:'smooth',block:'start'}); }
+const _spModKey=r=>String(r.Proyecto||'').trim()+'|'+_spTorreLbl(r)+'|'+(String(r.Modelo||'').trim().toUpperCase()||'—');
+function _spInvFiltrar(tipo, est){ _spInvTipo=tipo; _spInvMod=null; _spInvEst=new Set([est]); _spInvPintar(); document.getElementById('sp-inv-tabla')?.scrollIntoView({behavior:'smooth',block:'start'}); }
 function _spInvToggleEst(k){ if(_spInvEst.has(k)) _spInvEst.delete(k); else _spInvEst.add(k); _spInvPintar(); }
 function _spInvOrdenar(i){ if(!_spInvSort||_spInvSort.i!==i) _spInvSort={i,dir:'asc'}; else if(_spInvSort.dir==='asc') _spInvSort.dir='desc'; else _spInvSort=null; _spInvPintar(); }
 const _SP_INV_COLS=[
@@ -8350,7 +8391,7 @@ const _SP_INV_COLS=[
 function _spInvPintar(){
   const tb=document.getElementById('sp-inv-tbody'); if(!tb) return;
   const q=normStr(_spSearch||'').trim();
-  const base=_spUnits.filter(r=>!_spInvTipo||_spTipoLbl(r)===_spInvTipo).filter(r=>!q||normStr([_spNro(r),r.Modelo,r.Nombres].join(' ')).includes(q));
+  const base=_spUnits.filter(r=>!_spInvTipo||_spTipoLbl(r)===_spInvTipo).filter(r=>!_spInvMod||_spModKey(r)===_spInvMod.key).filter(r=>!q||normStr([_spNro(r),r.Modelo,r.Nombres].join(' ')).includes(q));
   const cnt={}; base.forEach(r=>{ const k=_spEst(r); cnt[k]=(cnt[k]||0)+1; });
   let rows=base.filter(r=>!_spInvEst.size||_spInvEst.has(_spEst(r)));
   if(_spInvSort){ const c=_SP_INV_COLS[_spInvSort.i], f=c.s||c.g, d=_spInvSort.dir==='desc'?-1:1;
@@ -8358,6 +8399,7 @@ function _spInvPintar(){
   else rows.sort((a,b)=>String(a.Proyecto).localeCompare(String(b.Proyecto))||_spTorreLbl(a).localeCompare(_spTorreLbl(b))||_spNro(a).localeCompare(_spNro(b),undefined,{numeric:true}));
   document.getElementById('sp-inv-est').innerHTML=SP_ESTADOS.filter(e=>cnt[e.k]).map(e=>`<button type="button" class="sp-chip sp-e-${e.k}${_spInvEst.has(e.k)?' on':(_spInvEst.size?' off':'')}" onclick="_spInvToggleEst('${e.k}')"><span class="sw"></span>${e.lbl} <b>${fN(cnt[e.k])}</b></button>`).join('')
     +(_spInvTipo?`<button type="button" class="mk-link" style="margin-left:6px" onclick="_spInvTipo='';_spInvPintar()">Quitar filtro ${_flEsc(_spInvTipo)} ✕</button>`:'')
+    +(_spInvMod?`<button type="button" class="mk-link" style="margin-left:6px" onclick="_spInvMod=null;_spInvPintar()">Quitar filtro ${_flEsc(_spInvMod.lbl)} ✕</button>`:'')
     +`<button type="button" class="mk-link" style="margin-left:6px" onclick="_spInvEst=new Set();_spInvPintar()">Ver todos los estados</button>`;
   // Torre solo si alguna unidad la tiene (Helio/Litoral no)
   const COLS=_spUnits.some(r=>_spTorreLbl(r)) ? _SP_INV_COLS : _SP_INV_COLS.filter(c=>c.l!=='Torre');
@@ -8368,7 +8410,7 @@ function _spInvPintar(){
   const sumL=rows.reduce((a,r)=>a+_spN(r.PrecioLista),0);
   document.getElementById('sp-inv-tfoot').innerHTML=`<tr>${COLS.map(c=>`<td style="text-align:${c.a};font-weight:800;border-top:2px solid var(--line)">${c.l==='Proyecto'?'Total · '+fN(rows.length)+' und.':c.l==='Precio lista'?_spSoles(sumL):''}</td>`).join('')}</tr>`;
   const h=document.getElementById('sp-inv-hint');
-  if(h) h.textContent=`${fN(rows.length)} de ${fN(_spUnits.length)} unidades${_spInvTipo?' · '+_spInvTipo:''}${_spInvEst.size?' · '+[..._spInvEst].map(_spEstLbl).join(', '):''} · clic en una cabecera para ordenar`;
+  if(h) h.textContent=`${fN(rows.length)} de ${fN(_spUnits.length)} unidades${_spInvTipo?' · '+_spInvTipo:''}${_spInvMod?' · '+_spInvMod.lbl:''}${_spInvEst.size?' · '+[..._spInvEst].map(_spEstLbl).join(', '):''} · clic en una cabecera para ordenar`;
 }
 
 // ══════════════════════════════════════════════════════════════════════════
