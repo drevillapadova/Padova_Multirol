@@ -417,6 +417,26 @@ html.dark .pr-sw i{background:#475569}
 .ase-tbl .findet-clic{color:var(--brand);font-weight:800;text-decoration:underline;text-underline-offset:3px;text-decoration-color:color-mix(in srgb,var(--brand) 40%,transparent)}
 .ase-tw{max-height:70vh;overflow:auto}
 @media (max-width:1300px){ #panel-asesores .ase-kpis{grid-template-columns:repeat(3,minmax(0,1fr))} }
+/* ═══ MARKETING · Gestión de leads ═══ */
+#panel-funnelmkt .ges-kpis{grid-template-columns:repeat(6,minmax(0,1fr))}
+@media (max-width:1300px){ #panel-funnelmkt .ges-kpis{grid-template-columns:repeat(3,minmax(0,1fr))} }
+.ges-tbl{min-width:1060px}
+#panel-funnelmkt .ges-tbl th{white-space:normal;line-height:1.25;vertical-align:bottom;padding:8px 6px;letter-spacing:.04em}
+#panel-funnelmkt .ges-tbl td{padding:9px 6px;vertical-align:middle}
+.ges-tbl td small{display:block;font-size:10.5px;color:var(--ink-4);margin-top:3px;white-space:nowrap}
+.ges-bar{display:flex;height:9px;border-radius:999px;overflow:hidden;gap:2px;background:var(--mk-track)}
+.ges-bar i{display:block;height:100%}
+.ges-nom{border:none;background:none;padding:0;font:inherit;font-weight:700;color:var(--ink);cursor:pointer;text-align:left;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.ges-nom:hover{color:var(--brand);text-decoration:underline}
+.ges-otros .ges-nom{color:var(--ink-3)}
+.ges-mot{text-align:left!important;white-space:normal!important;font-size:12px;line-height:1.3}
+.ges-mal b{color:var(--mk-bad)}
+.mk-pill.ges-bad{background:var(--bad-soft);color:var(--mk-bad)}
+.mk-pill.ges-warn{background:var(--mk-gold-soft);color:var(--mk-gold-ink);border:1px solid var(--mk-gold-line)}
+.mk-pill.ges-ok{background:var(--ok-soft);color:var(--mk-ok)}
+.mk-pill.ges-base{background:var(--mk-inset);color:var(--ink-3);font-weight:600}
+.mk-pill.ges-mid{background:var(--brand-soft);color:var(--brand)}
+.ges-tbl .mk-pill{min-height:22px;padding:0 8px;font-size:11px}
 .pr-pie{margin:0;padding:0 20px 16px;font-size:11.5px;color:var(--ink-4)}
 .pr-ins li{font-size:12.5px}
 .pr-tblwrap{overflow:auto;max-height:640px;border-top:1px solid var(--line-2);margin:0 0 6px}
@@ -613,6 +633,10 @@ html.dark .pr-sw i{background:#475569}
 .sp-res-box .r-val{font-size:26px;font-weight:700;letter-spacing:-.02em;color:var(--ink-3);margin-top:8px;white-space:nowrap;display:flex;align-items:baseline;gap:4px}
 .sp-res-box .r-val .r-cur{font-size:14px;font-weight:600;opacity:.6}
 .sp-res-box.r-active .r-val{color:var(--bad)}
+.sp-res-box.r-active{cursor:copy;transition:border-color .15s,box-shadow .15s}
+.sp-res-box.r-active:hover{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+.sp-res-box.r-copiado{border-color:var(--mk-ok)!important;box-shadow:0 0 0 3px var(--ok-soft)!important}
+.sp-res-box.r-copiado .r-lbl{color:var(--mk-ok)}
 .sp-res-box.r-pct.r-active .r-val{color:var(--brand)}
 .sp-modal-btn{width:100%;padding:11px;border-radius:9px;background:var(--ink);color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
 .sp-modal-btn:hover{opacity:.85}
@@ -1742,6 +1766,7 @@ html.dark table.tbl tbody tr:hover td{background:#253347!important}
     <button class="tab-btn active" data-tab="funnel" onclick="setFlTab('funnel',this)">Funnel</button>
     <button class="tab-btn" data-tab="evolucion" onclick="setFlTab('evolucion',this)">Evolución</button>
     <button class="tab-btn" data-tab="calidad" onclick="setFlTab('calidad',this)">Canales y calidad</button>
+    <button class="tab-btn" data-tab="gestion" onclick="setFlTab('gestion',this)">Gestión de leads</button>
     <button class="tab-btn" data-tab="metaads" onclick="setFlTab('metaads',this)">Meta Ads</button>
     <button class="tab-btn" data-tab="conversion" onclick="setFlTab('conversion',this)">Conversión</button>
     <button class="tab-btn" data-tab="cruce" onclick="setFlTab('cruce',this)">Tabla Cruce</button>
@@ -4624,6 +4649,149 @@ function _flRenderCanales(D_, lblA){
     <div class="mk-tiles mk-tiles-row">${subE.map(([s,n])=>`<div class="mk-tile"><div class="t-l" title="${_flEsc(s)}">${_flEsc(s)}</div><div class="t-v">${fN(n)}</div><div class="t-s">${pct(n,totS)}</div></div>`).join('')||'<span style="font-size:12px;color:var(--ink-4)">Sin datos</span>'}</div></section>`;
 }
 
+// ══ TAB: GESTIÓN DE LEADS ═══════════════════════════════════════════════════
+// ¿Se están trabajando bien los leads? Para TODOS los canales (no solo Meta), por canal,
+// asesor o proyecto: estado de la tarea (vigente / vencida / cerrada), nivel de interés de los
+// activos, calificación Sentinel, sin toque, no responden, motivo de cierre, tiempo de
+// respuesta, visitas y separaciones del período, y un veredicto automático.
+let _flGesAgr = 'canal', _flGesTodos = false, _flGesPop = {};
+const _FL_GES_INT = ['INMEDIATO','ALTO','MEDIO'], _FL_GES_FRIO = ['BAJO','NULO'];
+const _flGesNoResp = r => {
+  const m = String(r.Motivo_Cerrado_Actual||'').trim().toLowerCase();
+  if(/no contesta|n[uú]mero no existe|n[uú]mero equivocado/.test(m)) return true;
+  return String(r.Estado||'').trim()==='Activo' && /no (respond|contest)/i.test(String(r.Descrip_UltimaAccion||''));
+};
+function _flGesKey(r, tipo, agr){
+  if(agr==='asesor'){ const a = tipo==='lead' ? r.Responsable : r.Vendedor; const s=String(a||'').trim(); return s&&s!=='nan'&&s!=='None' ? normStr(s) : 'sin asignar'; }
+  if(agr==='proyecto') return String(r.Proyecto||'').trim().toUpperCase().startsWith('LOMAS DE CARABAYLLO') ? String(r.Proyecto||'').trim().toUpperCase() : String(r.Proyecto||'').trim().toUpperCase()||'SIN PROYECTO';
+  return String(r.ComoSeEntero||'').trim().toUpperCase()||'SIN ESPECIFICAR';
+}
+function _flGesLbl(k, agr){
+  if(agr==='proyecto') return _flProjShort(k)||k;
+  if(agr==='asesor') return k==='sin asignar' ? 'Sin asignar' : _flTitleCase(k);
+  return k==='SIN ESPECIFICAR' ? 'Sin especificar' : (_flTitleCase(k.toLowerCase())||k);
+}
+function _flGesCalc(rs){
+  const n=rs.length;
+  const vig=rs.filter(r=>String(r.Estado_Tarea||'').trim()==='Vigente').length;
+  const ven=rs.filter(r=>String(r.Estado_Tarea||'').trim()==='Vencido').length;
+  const cer=n-vig-ven;
+  const act=rs.filter(r=>String(r.Estado||'').trim()==='Activo');
+  const niv=r=>String(r.NivelInteres||'').trim().toUpperCase();
+  const inter=act.filter(r=>_FL_GES_INT.includes(niv(r))).length, frio=act.filter(r=>_FL_GES_FRIO.includes(niv(r))).length;
+  const sentEv=act.filter(r=>String(r.EstadoSentinel||'').trim());
+  const sentOk=sentEv.filter(r=>String(r.EstadoSentinel||'').trim().toUpperCase()==='NORMAL').length;
+  const sinToque=act.filter(r=>!(+r.Cant_Acciones>0)).length;
+  const noResp=rs.filter(_flGesNoResp).length;
+  const mot={}; rs.forEach(r=>{ if(String(r.Estado||'').trim()!=='Cerrado') return; const m=String(r.Motivo_Cerrado_Actual||'').trim(); if(m&&m!=='nan'&&m!=='None') mot[m]=(mot[m]||0)+1; });
+  const motTot=Object.values(mot).reduce((a,b)=>a+b,0);
+  const motTop=Object.entries(mot).sort((a,b)=>b[1]-a[1])[0]||null;
+  const dup=mot['Cerrado por duplicado']||0;
+  const tr=rs.map(r=>+r.TiempoRespuesta_min).filter(v=>v>0);
+  const toques=act.reduce((a,r)=>a+(+r.Cant_Acciones||0),0);
+  return {n, vig, ven, cer, act:act.length, inter, frio, sentEv:sentEv.length, sentOk, sinToque, noResp, motTop, motTot, dup, medTR:_aseMediana(tr), toquesProm: act.length?toques/act.length:0};
+}
+function _flGesVeredicto(x, visRate){
+  if(x.n<5) return {t:'Poca muestra', c:'base'};
+  if(x.act>=5 && x.ven/x.act>=0.6) return {t:'Desatendido', c:'bad'};
+  if(x.act>=5 && x.sinToque/x.act>=0.3) return {t:'Sin contactar', c:'bad'};
+  if(x.noResp/x.n>=0.4) return {t:'No responden', c:'warn'};
+  if(x.motTot>=5 && x.dup/x.motTot>=0.5) return {t:'Mucho duplicado', c:'warn'};
+  if(x.vi>=2 && x.vi<=x.n && visRate && x.vi/x.n>=visRate*1.3) return {t:'Rinde bien', c:'ok'};
+  if(x.act && x.vig/x.act>=0.5) return {t:'Al día', c:'ok'};
+  return {t:'En maduración', c:''};
+}
+function _flGesAbrir(k){
+  const q=_flGesPop[k]; if(!q) return;
+  const cols=[...FL_LEAD_COLS,
+    {label:'Tarea', get:r=>String(r.Estado_Tarea||'').trim()||'—', align:'center'},
+    {label:'Toques', get:r=>String(Math.round(+r.Cant_Acciones||0)), align:'center', sortVal:r=>+r.Cant_Acciones||0, numeric:true},
+    {label:'Última acción', get:r=>{ const t=String(r.Descrip_UltimaAccion||'').trim(); return t&&t!=='nan'?t:'—'; }},
+    {label:'Motivo de cierre', get:r=>{ const t=String(r.Motivo_Cerrado_Actual||'').trim(); return t&&t!=='nan'?t:'—'; }}];
+  _abrirModalFunnelEtapa(q.titulo, {label:'Leads', val:fN(q.filas.length), color:'#2563eb'},
+    {label:q.k2l, val:q.k2v, color:'#F4A228'}, q.filas, cols);
+}
+function _flRenderGestion(D_, lblA){
+  const agr=_flGesAgr, lb=D_.lb;
+  _flGesPop={};
+  const grupos=new Map();
+  lb.forEach(r=>{ const k=_flGesKey(r,'lead',agr); if(!grupos.has(k)) grupos.set(k,[]); grupos.get(k).push(r); });
+  const vis={}, sep={};
+  (D_.visF||[]).forEach(r=>{ const k=_flGesKey(r,'otro',agr); vis[k]=(vis[k]||0)+1; });
+  (D_.sp||[]).forEach(r=>{ const k=_flGesKey(r,'otro',agr); sep[k]=(sep[k]||0)+1; });
+  const G=_flGesCalc(lb); G.vi=(D_.visF||[]).length; G.se=(D_.sp||[]).length;
+  const visRate=G.n?G.vi/G.n:0;
+  let filas=[...grupos.entries()].map(([k,rs])=>Object.assign(_flGesCalc(rs),{k, rs, vi:vis[k]||0, se:sep[k]||0})).sort((a,b)=>b.n-a.n);
+  filas.forEach(x=>x.ver=_flGesVeredicto(x, visRate));
+  const pocas=filas.filter(x=>x.n<5);
+  let ver=filas;
+  if(!_flGesTodos && pocas.length>1){
+    const rs=pocas.flatMap(x=>x.rs);
+    const o=Object.assign(_flGesCalc(rs),{k:'__otros', rs, otros:pocas.length, vi:pocas.reduce((a,x)=>a+x.vi,0), se:pocas.reduce((a,x)=>a+x.se,0)});
+    o.ver={t:'Poca muestra', c:'base'};
+    ver=[...filas.filter(x=>x.n>=5), o];
+  }
+  const pctTxt=(a,b)=>b?Math.round(a/b*100)+'%':'—';
+  const nombreAgr={canal:'Canal', asesor:'Asesor', proyecto:'Proyecto'}[agr];
+  const fila=x=>{
+    const lbl = x.otros ? `Otros (${x.otros} ${agr==='canal'?'canales':agr==='asesor'?'asesores':'proyectos'})` : _flGesLbl(x.k, agr);
+    const pk='g'+Object.keys(_flGesPop).length;
+    _flGesPop[pk]={titulo:`Gestión de leads · ${lbl}`, filas:x.rs, k2l:'Tareas vencidas', k2v:fN(x.ven)};
+    const seg=(v,t,col)=>v?`<i style="flex:${v} 1 0;background:${col}" title="${t}: ${fN(v)}"></i>`:'';
+    const nivSin=x.act-x.inter-x.frio;
+    const mot = x.motTop ? `${_flEsc(x.motTop[0].replace(/^Cerrado por /,'').replace(/^./,c=>c.toUpperCase()))} <span class="mk-pp">${pctTxt(x.motTop[1],x.motTot)}</span>` : '<span class="mk-pp">—</span>';
+    const pill = `<span class="mk-pill ges-${x.ver.c||'mid'}">${x.ver.t}</span>`;
+    return `<tr${x.otros?' class="ges-otros"':''}>
+      <td><button type="button" class="ges-nom" onclick="_flGesAbrir('${pk}')" title="Ver los ${fN(x.n)} leads">${_flEsc(lbl)}</button></td>
+      <td><b>${fN(x.n)}</b></td>
+      <td><span class="ges-bar">${seg(x.vig,'Vigente','var(--mk-ok)')}${seg(x.ven,'Vencido','var(--mk-bad)')}${seg(x.cer,'Cerrado','#b6b0a8')}</span><small>${fN(x.vig)} · ${fN(x.ven)} · ${fN(x.cer)}</small></td>
+      <td><span class="ges-bar">${seg(x.inter,'Interesados','#5b8def')}${seg(x.frio,'Bajo / nulo','#b6b0a8')}${seg(nivSin,'Sin nivel','var(--mk-track)')}</span><small>${fN(x.inter)} de ${fN(x.act)} interesados</small></td>
+      <td>${x.sentEv?`<b>${pctTxt(x.sentOk,x.sentEv)}</b><small>${fN(x.sentOk)} de ${fN(x.sentEv)} normal</small>`:'<span class="mk-pp">—</span>'}</td>
+      <td${x.act&&x.sinToque/x.act>=0.3?' class="ges-mal"':''}><b>${fN(x.sinToque)}</b><small>${pctTxt(x.sinToque,x.act)} de activos</small></td>
+      <td${x.n>=5&&x.noResp/x.n>=0.4?' class="ges-mal"':''}><b>${pctTxt(x.noResp,x.n)}</b></td>
+      <td class="ges-mot">${mot}</td>
+      <td>${_aseFmtMin(x.medTR)}</td>
+      <td>${x.vi?`<b>${fN(x.vi)}</b>`:'<span class="mk-pp">—</span>'}</td>
+      <td>${x.se?`<b>${fN(x.se)}</b>`:'<span class="mk-pp">—</span>'}</td>
+      <td>${pill}</td></tr>`;
+  };
+  // Lo que hay que mirar: lectura automática
+  const conMuestra=filas.filter(x=>x.n>=5 && !x.otros);
+  const top=(f,min)=>conMuestra.filter(x=>f(x)>0 && (!min||min(x))).sort((a,b)=>f(b)-f(a))[0];
+  const ins=[];
+  const tV=top(x=>x.act?x.ven/x.act:0, x=>x.act>=5); if(tV && tV.ven/tV.act>=0.4) ins.push(`<b>${_flEsc(_flGesLbl(tV.k,agr))}</b> tiene <b>${pctTxt(tV.ven,tV.act)}</b> de sus leads activos con la tarea vencida (${fN(tV.ven)}).`);
+  const tS=top(x=>x.sinToque, x=>x.act>=5); if(tS && tS.sinToque) ins.push(`<b>${fN(tS.sinToque)}</b> leads activos de <b>${_flEsc(_flGesLbl(tS.k,agr))}</b> no tienen ningún toque.`);
+  const tN=top(x=>x.noResp/x.n); if(tN && tN.noResp/tN.n>=0.3) ins.push(`En <b>${_flEsc(_flGesLbl(tN.k,agr))}</b> el <b>${pctTxt(tN.noResp,tN.n)}</b> de los leads no responde: revisar la calidad del lead o el primer contacto.`);
+  const tB=conMuestra.filter(x=>x.vi>=2 && x.vi<=x.n).sort((a,b)=>b.vi/b.n-a.vi/a.n)[0]; if(tB) ins.push(`Mejor conversión a visita: <b>${_flEsc(_flGesLbl(tB.k,agr))}</b> con ${fN(tB.vi)} visitas (${(tB.vi/tB.n*100).toFixed(1)}% de sus leads; el promedio es ${(visRate*100).toFixed(1)}%).`);
+  const kpis=`<div class="mk-kpis ges-kpis">
+    <div class="mk-kpi hero"><div class="k-l">Leads al día</div><div class="k-v">${pctTxt(G.vig,G.act)}</div><div class="k-s">${fN(G.vig)} de ${fN(G.act)} activos con la tarea vigente</div></div>
+    <div class="mk-kpi"><div class="k-l"><span class="mk-dot" style="background:var(--mk-bad)"></span>Tareas vencidas</div><div class="k-v" style="color:var(--mk-bad)">${fN(G.ven)}</div><div class="k-s">${pctTxt(G.ven,G.act)} de los activos</div></div>
+    <div class="mk-kpi"><div class="k-l">Sin ningún toque</div><div class="k-v">${fN(G.sinToque)}</div><div class="k-s">activos sin acción registrada</div></div>
+    <div class="mk-kpi"><div class="k-l">No responden</div><div class="k-v">${pctTxt(G.noResp,G.n)}</div><div class="k-s">${fN(G.noResp)} de ${fN(G.n)} leads</div></div>
+    <div class="mk-kpi"><div class="k-l">Interesados</div><div class="k-v">${pctTxt(G.inter,G.act)}</div><div class="k-s">de los activos (inmediato, alto o medio)</div></div>
+    <div class="mk-kpi"><div class="k-l">T. de respuesta</div><div class="k-v">${_aseFmtMin(G.medTR)}</div><div class="k-s">mediana · minutos hábiles</div></div>
+  </div>`;
+  const seg=`<div class="mk-seg">${[['canal','Canal'],['asesor','Asesor'],['proyecto','Proyecto']].map(([v,l])=>`<button type="button" class="${agr===v?'on':''}" onclick="_flGesAgr='${v}';_flGesTodos=false;renderFunnelMkt()">${l}</button>`).join('')}</div>`;
+  document.getElementById('fl-content').innerHTML = kpis + `
+  ${ins.length?`<section class="mk-card" style="margin-bottom:16px"><div class="mk-card-hd"><div><h3>Lo que hay que mirar</h3><p>Lectura automática de la tabla de abajo · leads registrados en ${_flEsc(lblA)}</p></div></div>
+    <ul class="pr-als">${ins.map(t=>`<li class="pr-al a"><span class="pr-al-ic" style="background:var(--mk-gold)">!</span><span>${t}</span></li>`).join('')}</ul></section>`:''}
+  <section class="mk-card" style="margin-bottom:16px">
+    <div class="mk-card-hd"><div><h3>¿Se están trabajando bien los leads?</h3><p>Por ${nombreAgr.toLowerCase()} · todos los canales, no solo Meta · clic en un nombre para ver sus leads</p></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${seg}<button type="button" class="mk-btn" style="min-height:32px" onclick="_exportarTablaExcel('#fl-tbl-gestion','gestion_de_leads','Gestión de leads por ${nombreAgr.toLowerCase()}','${_flEsc(lblA)}')">↓ Excel</button></div></div>
+    <div class="mk-tbl-wrap"><table class="mk-tbl lines mk-eq ges-tbl" id="fl-tbl-gestion">
+      <colgroup><col style="width:14%"><col style="width:5%"><col style="width:12%"><col style="width:11%"><col style="width:8%"><col style="width:7%"><col style="width:5%"><col style="width:11%"><col style="width:6%"><col style="width:5%"><col style="width:4%"><col style="width:12%"></colgroup>
+      <thead><tr><th>${nombreAgr}</th><th>Leads</th><th>Vigente · vencido · cerrado</th><th>Nivel de los activos</th><th>Calif. Sentinel</th><th>Sin toque</th><th>No resp.</th><th>Motivo de cierre</th><th>T. resp.</th><th>Visitas</th><th>Sep.</th><th>Veredicto</th></tr></thead>
+      <tbody>${ver.map(fila).join('')||'<tr><td colspan="12" class="mk-empty">Sin leads en el período</td></tr>'}</tbody>
+    </table></div>
+    <div class="mk-legend">
+      <span class="mk-lg"><i style="background:var(--mk-ok)"></i>Vigente</span><span class="mk-lg"><i style="background:var(--mk-bad)"></i>Vencido</span><span class="mk-lg"><i style="background:#b6b0a8"></i>Cerrado</span>
+      <span class="mk-lg"><i style="background:#5b8def"></i>Interesado (inmediato, alto, medio)</span>
+      ${pocas.length>1?`<button type="button" class="mk-link" style="margin-left:auto" onclick="_flGesTodos=!_flGesTodos;renderFunnelMkt()">${_flGesTodos?'Agrupar los de poca muestra':'Ver los '+filas.length+' por separado'}</button>`:''}
+    </div>
+    <p class="pr-pie">Visitas y separaciones = las del período por ${nombreAgr.toLowerCase()} · No resp. = cerrados por no contesta / número no existe o activos cuya última acción dice "no responde" · Veredicto: Desatendido (60%+ de activos vencidos), Sin contactar (30%+ sin toque), No responden (40%+), Mucho duplicado (50%+ de los cierres), Rinde bien (visitas 30% sobre el promedio), Al día (mitad o más vigentes).</p>
+  </section>`;
+}
+
 function renderFunnelMkt(){
   const proj = _flProjVal();
   // Por defecto (solo la 1ra vez) el filtro "Desde" arranca en el día 1 del mes
@@ -4704,6 +4872,12 @@ function renderFunnelMkt(){
   // ══ TAB: CANALES Y CALIDAD ═════════════════════════════════════════════
   if(_flTab==='calidad'){
     _flRenderCanales(_flCohorte ? _flCalcCohorte(proj, _flDateFrom, _flDateTo) : A, lblA);
+    return;
+  }
+
+  // ══ TAB: GESTIÓN DE LEADS (todos los canales) ═══════════════════════════════
+  if(_flTab==='gestion'){
+    _flRenderGestion(A, lblA);
     return;
   }
 
@@ -8116,6 +8290,17 @@ function _flAbrirEtapa(stageKey, which){
 // Calculadora en ambos sentidos: escribes el % y te da el precio final, o escribes el
 // precio final y te da el %. El campo que no escribiste se completa solo.
 function calcSetPct(x){ document.getElementById('sp-calc-pct').value=x; calcDesc('pct'); }
+// Clic en el monto del descuento: se copia (sin "S/" ni comas, listo para pegar en Evolta o Excel)
+let _calcDsctoUlt = null;
+function calcCopiar(){
+  if(_calcDsctoUlt==null) return;
+  const txt = _calcDsctoUlt.toFixed(2);
+  const ok = ()=>{ const l=document.getElementById('sp-res-lbl'), b=document.getElementById('sp-box-monto');
+    if(l){ l.textContent='Copiado ✓ '+txt; } if(b) b.classList.add('r-copiado');
+    clearTimeout(window._calcCopTimer); window._calcCopTimer=setTimeout(()=>{ if(l) l.textContent='Descuento (S/) · clic para copiar'; if(b) b.classList.remove('r-copiado'); },1600); };
+  const viejo = ()=>{ const t=document.createElement('textarea'); t.value=txt; t.style.cssText='position:fixed;opacity:0'; document.body.appendChild(t); t.select(); try{ document.execCommand('copy'); ok(); }catch(e){} t.remove(); };
+  if(navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(txt).then(ok, viejo); else viejo();
+}
 function calcDesc(modo){
   const fmt = n => Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
   const pctInp = document.getElementById('sp-calc-pct'), finInp = document.getElementById('sp-calc-input');
@@ -8134,6 +8319,7 @@ function calcDesc(modo){
   const ok = fin!==null;
   const dscto = ok ? _calcPrecio-fin : 0;
   document.getElementById('sp-res-monto').innerHTML = ok ? `<span class="r-cur">S/</span>${fmt(dscto)}` : '—';
+  _calcDsctoUlt = ok && dscto>0 ? dscto : null;
   document.getElementById('sp-box-monto').classList.toggle('r-active', ok && dscto>0);
 }
 
@@ -9087,7 +9273,7 @@ function _aseCalc(){
   window._aseUltVisita=ultVisita;
 
   const por={};
-  const get=a=>por[a]||(por[a]={asesor:a,activos:0,toques:0,sinToque:0,vencidas:0,atrasoSum:0,citasVenc:0,citasSinAcc:0,tr:[],tareas:[],citas:[],leads:[]});
+  const get=a=>por[a]||(por[a]={asesor:a,activos:0,toques:0,sinToque:0,noGest:0,noGestL:[],vencidas:0,atrasoSum:0,citasVenc:0,citasSinAcc:0,tr:[],tareas:[],citas:[],leads:[]});
   (D.prospectos||[]).forEach(r=>{
     if(_aseProjs.size&&!_aseProjs.has(String(r.Proyecto||'').trim()))return;
     if(_isProperVendedor(r))return;
@@ -9107,6 +9293,8 @@ function _aseCalc(){
     }
     if(String(r.Estado||'').trim()!=='Activo')return;
     o.activos++;
+    // No gestionado: sub-estado NO GESTIONADO del CRM (activo y el asesor nunca lo trabajó)
+    if(String(r.SubEstado||'').trim().toUpperCase()==='NO GESTIONADO'){ o.noGest++; o.noGestL.push(r); }
     const ca=parseFloat(r.Cant_Acciones);
     if(isNaN(ca)||ca<=0)o.sinToque++; else o.toques+=ca;
     if(String(r.Estado_Tarea||'').trim()==='Vencido'){
@@ -9192,6 +9380,30 @@ function aseAbrirCitas(i, soloSinAcc){
     {label:'Sin acción posterior', val:fN(filas.filter(c=>c.sinAcc).length), color:'#F4A228'},
     filas, cols
   );
+}
+
+// Detalle (popup) de los leads NO GESTIONADOS: i = índice del asesor en window._aseArr, o -1 para todos.
+function aseAbrirNoGest(i){
+  const arr = window._aseArr||[];
+  const o = i>=0 ? arr[i] : null;
+  const filas = (o ? o.noGestL : arr.flatMap(x=>x.noGestL.map(r=>Object.assign({_ase:x.asesor}, r))))
+    .slice().sort((a,b)=>(_aseFechaMs(a.FechaRegistro)||0)-(_aseFechaMs(b.FechaRegistro)||0));
+  const DIA=86400000, hoy=Date.now();
+  const cols = [
+    {label:'Cliente', get:r=>_aseNombre(r)},
+    {label:'DNI', align:'center', get:r=>{const d=String(r.NroDocumento||'').trim();return (d&&d!=='nan'&&d!=='None'&&d!=='0')?d:'—';}},
+    ...(o?[]:[{label:'Asesor', align:'center', get:r=>r._ase||'—'}]),
+    {label:'Proyecto', align:'center', get:r=>String(r.Proyecto||'—')},
+    {label:'Canal', align:'center', get:r=>_flTitleCase(String(r.ComoSeEntero||'').trim().toLowerCase())||'—'},
+    {label:'F. registro', align:'center', get:r=>_aseFmtF(_aseFechaMs(r.FechaRegistro)), sortVal:r=>_aseFechaMs(r.FechaRegistro)||0},
+    {label:'Días sin gestión', align:'center', get:r=>{ const f=_aseFechaMs(r.FechaRegistro); return f==null?'—':`<span style="color:var(--mk-bad);font-weight:800">${Math.floor((hoy-f)/DIA)} d</span>`; }, sortVal:r=>-(_aseFechaMs(r.FechaRegistro)||0)},
+    {label:'Nivel interés', align:'center', get:r=>String(r.NivelInteres||'').trim()||'—'},
+    {label:'Tarea', align:'center', get:r=>String(r.Estado_Tarea||'').trim()||'—'},
+  ];
+  _abrirModalFunnelEtapa('Leads no gestionados'+(o?' — '+o.asesor:''),
+    {label:'No gestionados', val:fN(filas.length), color:'#dc2626'},
+    {label:'Más antiguo', val:filas[0]?Math.floor((hoy-(_aseFechaMs(filas[0].FechaRegistro)||hoy))/DIA)+' d':'—', color:'#F4A228'},
+    filas, cols);
 }
 
 // Informe PDF de Gestión de asesores: usa el período/proyecto/asesor elegidos arriba.
@@ -9618,7 +9830,7 @@ function renderAsesores(){
   const kpis=`<div class="mk-kpis ase-kpis">
     ${_aseK('Leads activos',fN(sum('activos')),'asignados a '+arr.length+' asesores',{hero:true})}
     ${_aseK('Toques totales',fN(sum('toques')),'prom. '+(sum('activos')?(sum('toques')/sum('activos')).toFixed(1):'0')+' por lead')}
-    ${_aseK('Leads sin ningún toque',fN(sum('sinToque')),(sum('activos')?(sum('sinToque')/sum('activos')*100).toFixed(0):0)+'% de los activos',{malo:sum('sinToque')>0})}
+    ${_aseK('Leads sin ningún toque',fN(sum('sinToque')),(sum('activos')?(sum('sinToque')/sum('activos')*100).toFixed(0):0)+'% de los activos'+(sum('noGest')?` · <span class="mk-link" onclick="event.stopPropagation();aseAbrirNoGest(-1)">${fN(sum('noGest'))} no gestionados</span>`:''),{malo:sum('sinToque')>0})}
     ${_aseK('Tareas vencidas',fN(sum('vencidas')),(sum('activos')?(sum('vencidas')/sum('activos')*100).toFixed(0):0)+'% de los activos',{malo:sum('vencidas')>0})}
     ${_aseK('Citas sin seguimiento',fN(sum('citasVenc')),fN(sum('citasSinAcc'))+' sin acción posterior · <span class="mk-link">ver detalle</span>',{clic:'aseAbrirCitas(-1,false)',malo:sum('citasVenc')>0})}
     ${_aseK('T. respuesta',_aseFmtMin(_aseMediana(allTr)),'mediana · minutos hábiles')}
@@ -9635,6 +9847,7 @@ function renderAsesores(){
       {h:'Toques', v:o=>o.toques, f:o=>fN(o.toques), c:'r'},
       {h:'Toques/lead', v:o=>o.toquesProm, f:o=>o.toquesProm.toFixed(1), c:'r'},
       {h:'Sin toque', v:o=>o.sinToque, f:o=>`<span style="${rojo(o.sinToque)}">${fN(o.sinToque)}</span>`, c:'r'},
+      {h:'No gestionados', v:o=>o.noGest, f:o=>o.noGest?`<span style="${rojo(o.noGest)}"><span class="findet-clic" onclick="aseAbrirNoGest(${arr.indexOf(o)})">${fN(o.noGest)}</span></span>`:'0', c:'r'},
       {h:'Tareas vencidas', v:o=>o.vencidas, f:o=>`<span style="${rojo(o.vencidas)}">${fN(o.vencidas)}</span>`, c:'r'},
       {h:'% vencidas', v:o=>o.pctVenc, f:o=>o.pctVenc.toFixed(0)+'%', c:'r'},
       {h:'Atraso prom.', v:o=>o.vencidas?o.atrasoProm:null, f:o=>o.vencidas?o.atrasoProm.toFixed(0)+' d':'—', c:'r'},
@@ -11547,8 +11760,8 @@ loadAll();
     </div>
     <div class="sp-calc-rap"><span>Rápido</span><button type="button" onclick="calcSetPct(1)">1%</button><button type="button" onclick="calcSetPct(2)">2%</button><button type="button" onclick="calcSetPct(3)">3%</button><button type="button" onclick="calcSetPct(5)">5%</button><button type="button" onclick="calcSetPct(7)">7%</button><button type="button" onclick="calcSetPct(10)">10%</button></div>
     <div class="sp-res-grid" style="grid-template-columns:1fr">
-      <div class="sp-res-box" id="sp-box-monto">
-        <div class="r-lbl">Descuento (S/)</div>
+      <div class="sp-res-box" id="sp-box-monto" onclick="calcCopiar()" title="Clic para copiar el monto">
+        <div class="r-lbl" id="sp-res-lbl">Descuento (S/) · clic para copiar</div>
         <div class="r-val" id="sp-res-monto">—</div>
       </div>
     </div>
