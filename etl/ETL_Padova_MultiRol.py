@@ -1171,6 +1171,11 @@ def process_ventas_data(df_stock=None):
     dfs_norm = {a: normalizar_dataframe(df, a) for a, df in dataframes.items()}
     df = pd.concat(dfs_norm.values(), ignore_index=True)
     df = normalizar_ventas_unpivot(df)
+    # Solo los proyectos objetivo (igual que Stock, Prospectos y Visitas)
+    if 'Proyecto' in df.columns:
+        n0 = len(df)
+        df = df[df['Proyecto'].astype(str).str.strip().str.upper().isin(TARGET_PROJECTS)].copy()
+        print(f"   -> Filtro proyectos objetivo: {n0:,} -> {len(df):,} filas")
     for col in ("PrecioVenta", "TipoMoneda", "TotalLista", "TipoInmueble"):
         if col in df.columns:
             nn = df[col].notna().sum()
