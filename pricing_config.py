@@ -25,6 +25,7 @@ _lock = threading.Lock()
 DEFAULTS = {
     "DOMINGO ORUE": {
         "requerida": 102367500.0,
+        "tc": 3.45,
         "unidades_plan": 340,
         "ticket_plan": 301081.0,
         "area_plan": 13649.0,
@@ -50,13 +51,43 @@ DEFAULTS = {
         "obra": [{"tramo": 2, "desde": "2026-11-16"}],
         "cambios": [],
     },
+    # Sunny: correo de Finanzas del 23-nov-2026 (tramos en US$/m² × TC 3.45,
+    # ventas en dólares al TC del presupuesto, ratio flat vs dúplex/tríplex 6 a 1). Confirmado: descuento
+    # esperado 10%, obra en excavación (T2) y ritmo promedio de 3 ventas al mes
+    # (los meses de cada tramo salen de unidades ÷ 3).
+    "SUNNY": {
+        # Meta del correo de Finanzas (con IGV): 13,303 m² × S/ 7,087 = 94,283,668
+        "requerida": 94283668.0,
+        "unidades_plan": 110,
+        "ticket_plan": 857124.0,
+        "area_plan": 13303.0,
+        "tc": 3.45,
+        "ventas_usd_tc_presupuesto": True,
+        "dscto_esperado": 0.10,
+        "cupo_cuenta_separaciones": False,
+        "redondeo_lista": 100,
+        "alerta_cupo_pct": 0.85,
+        "alerta_pm2_bajo_plan": 0.02,
+        "alerta_ritmo_pct": 0.70,
+        "alerta_ticket_pct": 0.10,
+        "alerta_lista_pct": 0.005,
+        "dscto_maximo": 0.13,
+        "tramos": [
+            {"n": 1, "etapa": "Preventa",       "unidades": 30, "velocidad": 3, "meses": 10, "pm2": 6555},
+            {"n": 2, "etapa": "Excavación",     "unidades": 30, "velocidad": 3, "meses": 10, "pm2": 6900},
+            {"n": 3, "etapa": "Medio casco",    "unidades": 20, "velocidad": 3, "meses": 7,  "pm2": 7245},
+            {"n": 4, "etapa": "Casco completo", "unidades": 30, "velocidad": 3, "meses": 10, "pm2": 7590},
+        ],
+        "obra": [{"tramo": 2, "desde": "2026-11-23"}],
+        "cambios": [],
+    },
 }
 
 CAMPOS_NUM = {
     "requerida": (0, None), "unidades_plan": (0, None), "ticket_plan": (0, None), "area_plan": (0, None),
     "dscto_esperado": (0, 0.5), "redondeo_lista": (1, 100000),
     "alerta_cupo_pct": (0, 1), "alerta_pm2_bajo_plan": (0, 1), "alerta_ritmo_pct": (0, 1), "alerta_ticket_pct": (0, 1),
-    "alerta_lista_pct": (0, 1), "dscto_maximo": (0, 0.6),
+    "alerta_lista_pct": (0, 1), "dscto_maximo": (0, 0.6), "tc": (1, 10),
 }
 
 
@@ -145,8 +176,9 @@ def _validar(nueva, actual):
             if v < lo or (hi is not None and v > hi):
                 raise ValueError(f"{k} fuera de rango")
             cfg[k] = int(v) if k in ("unidades_plan", "redondeo_lista") else v
-    if "cupo_cuenta_separaciones" in nueva:
-        cfg["cupo_cuenta_separaciones"] = bool(nueva["cupo_cuenta_separaciones"])
+    for k in ("cupo_cuenta_separaciones", "ventas_usd_tc_presupuesto"):
+        if k in nueva:
+            cfg[k] = bool(nueva[k])
     if "tramos" in nueva:
         tramos = []
         for i, t in enumerate(nueva["tramos"], start=1):
@@ -170,7 +202,7 @@ def _validar(nueva, actual):
 def _diferencias(a, b):
     """Texto corto de qué cambió (para el historial de cambios)."""
     out = []
-    for k in list(CAMPOS_NUM) + ["cupo_cuenta_separaciones"]:
+    for k in list(CAMPOS_NUM) + ["cupo_cuenta_separaciones", "ventas_usd_tc_presupuesto"]:
         if a.get(k) != b.get(k):
             out.append(f"{k}: {a.get(k)} → {b.get(k)}")
     if a.get("tramos") != b.get("tramos"):
@@ -195,4 +227,5 @@ def a_params(cfg):
     """Parámetros de cálculo que sobrescriben pricing.PARAMS."""
     return {k: cfg[k] for k in ("dscto_esperado", "cupo_cuenta_separaciones", "redondeo_lista",
                                 "alerta_cupo_pct", "alerta_pm2_bajo_plan", "alerta_ritmo_pct",
-                                "alerta_ticket_pct", "alerta_lista_pct", "dscto_maximo") if k in cfg}
+                                "alerta_ticket_pct", "alerta_lista_pct", "dscto_maximo", "tc",
+                                "ventas_usd_tc_presupuesto") if k in cfg}

@@ -47,6 +47,13 @@ PARAMS = {
         "alerta_lista_pct": 0.005,
         # rojo: venta con descuento sobre la lista mayor a este % (exagerado)
         "dscto_maximo": 0.10,
+        # Tipo de cambio para pasar a soles las listas en dólares del stock (y
+        # las ventas en dólares que el ETL no trajo convertidas).
+        "tc": 3.45,
+        # Ventas en dólares: True = se pasan a soles con el TC de arriba (el del
+        # presupuesto, como lo reporta Finanzas); False = con el TC real de cada
+        # venta (PrecioVentaSoles de Evolta).
+        "ventas_usd_tc_presupuesto": False,
         # Lista sugerida para Evolta: se redondea a este múltiplo (S/)
         "redondeo_lista": 100,
         # Estados del stock a los que se les sugiere cambiar la lista (a una
@@ -106,6 +113,8 @@ def calcular_pricing(proyecto, ventas, stock, plan, hoy=None, params=None):
         area = _num(r.get("AreaTechada")) + 0.5 * _num(r.get("AreaLibre"))
         lista = _num(r.get("PrecioLista"))
         unidades.append({
+            "_moneda": str(r.get("Moneda", "")).upper(), "_pvs": _num(r.get("PrecioVentaSoles")),
+            "_fsep": str(r.get("FechaSepDefinitiva", "")).strip(),
             "edificio": _nro(r.get("Edificio")), "nro": _nro(r.get("NroInmuebleActual")),
             "modelo": str(r.get("Modelo", "")).strip(), "piso": _nro(r.get("NroPiso")),
             "dorm": int(_num(r.get("NroDormitorios"))), "area": area,
@@ -114,6 +123,20 @@ def calcular_pricing(proyecto, ventas, stock, plan, hoy=None, params=None):
         })
     if not unidades:
         return {"error": f"Sin stock de departamentos para {proyecto}"}
+
+    # ── Moneda de la lista (Sunny mezcla soles y dólares) ──
+    # Evolta marca algunas listas como DOLARES, pero a veces el monto ya está en
+    # soles (Sunny 104: "DOLARES 1,077,982"). Se toma como dólares solo si la
+    # moneda lo dice Y el monto es menos de la mitad de la lista típica en soles.
+    tc = P["tc"]
+    soles = sorted(u["lista_hoy"] for u in unidades if "DOLAR" not in u["_moneda"] and u["lista_hoy"] > 0)
+    mediana_soles = soles[len(soles) // 2] if soles else 0
+    n_usd = 0
+    for u in unidades:
+        if "DOLAR" in u["_moneda"] and mediana_soles and u["lista_hoy"] < 0.5 * mediana_soles:
+            u["lista_hoy"] *= tc
+            n_usd += 1
+        u["final_hoy"] = u["lista_hoy"] * (1 - dscto)
 
     total_und = len(unidades)
     # El último tramo absorbe cualquier diferencia entre el stock real y el plan
@@ -173,9 +196,19 @@ def calcular_pricing(proyecto, ventas, stock, plan, hoy=None, params=None):
     for i, (f, corr, r) in enumerate(vs, start=1):
         u = por_key.get((_nro(r.get("NroInmueble")), str(r.get("NroDocumentoTitular", "")).strip()))
         t = tramo_vigente(i, f if f is not pd.Timestamp.max else hoy_ts)
-        precio = _num(r.get("PrecioVentaSoles")) or _num(r.get("PrecioVenta"))
+        precio_orig = _num(r.get("PrecioVenta"))
+        precio = _num(r.get("PrecioVentaSoles")) or precio_orig
         lista_dia = _num(r.get("PrecioLista"))
         desc_lista = _num(r.get("DescuentoLista"))
+        if "DOLAR" in str(r.get("TipoMoneda", "")).upper() and precio_orig:
+            # Venta en dólares: PrecioVentaSoles debería ser ~TC veces el monto.
+            # Si el ETL no lo convirtió, se usa el monto en soles del stock o el TC.
+            if P.get("ventas_usd_tc_presupuesto"):
+                precio = precio_orig * tc
+            elif precio < 2 * precio_orig:
+                precio = u["_pvs"] if (u and u["_pvs"] > 2 * precio_orig) else precio_orig * tc
+            k_tc = precio / precio_orig                     # TC efectivo de esa venta
+            lista_dia, desc_lista = lista_dia * k_tc, desc_lista * k_tc   # en soles
         objetivo = u["precio_tramo"][t["n"]] if u else None
         if u:
             usados.add(id(u))
@@ -210,16 +243,30 @@ def calcular_pricing(proyecto, ventas, stock, plan, hoy=None, params=None):
     motivo = "obra" if n_obra_hoy > t_cupo["n"] else "cupo"
 
     # ── Proyección (valor esperado) ──
-    # Turnos que quedan: de la próxima venta (n_vend+1) hasta total_und. Ningún
-    # turno puede salir por debajo del tramo en que ya está la obra; las fases
-    # futuras de obra no se adivinan (se suben por cupo hasta que el equipo
-    # registre el nuevo tramo por obra).
-    turnos = list(range(n_vend + 1, total_und + 1))
+    # Las separaciones ya tienen precio pactado: son las próximas ventas
+    # (turnos n_vend+1 … n_vend+n_sep, por fecha de separación) y entran a ese
+    # precio, no al del plan. Su "meta" es el precio del tramo de esos turnos.
+    seps.sort(key=lambda u: u["_fsep"])
+    for k, u in enumerate(seps, start=n_vend + 1):
+        pvs = u["_pvs"]
+        if "DOLAR" in u["_moneda"] and pvs and pvs < 0.5 * (mediana_soles or pvs):
+            pvs *= tc
+        u["pactado"] = pvs if pvs > 0 else u["final_hoy"]
+        u["meta_sep"] = u["precio_tramo"][tramo_vigente(min(k, total_und), hoy_ts)["n"]]
+    sep_ids = {id(u) for u in seps}
+    resto = [u for u in disponibles if id(u) not in sep_ids]
+    # Turnos que quedan para el resto: después de las separaciones y hasta
+    # total_und. Ningún turno sale por debajo del tramo en que ya está la obra;
+    # las fases futuras de obra no se adivinan (suben por cupo hasta que el
+    # equipo registre el nuevo tramo por obra).
+    turnos = list(range(n_vend + len(seps) + 1, total_und + 1))
     pm2_turnos = [tramo_vigente(k, hoy_ts)["pm2"] for k in turnos]
     pm2_esperado = sum(pm2_turnos) / len(pm2_turnos) if pm2_turnos else 0
     vendido_monto = sum(v["precio"] for v in vendidos)
-    por_vender_plan = sum(u["area"] * u["factor"] * pm2_esperado for u in disponibles)
-    por_vender_lista = sum(u["final_hoy"] for u in disponibles)
+    sep_monto = sum(u["pactado"] for u in seps)
+    sep_meta = sum(u["meta_sep"] for u in seps)
+    por_vender_plan = sep_monto + sum(u["area"] * u["factor"] * pm2_esperado for u in resto)
+    por_vender_lista = sep_monto + sum(u["final_hoy"] for u in resto)
     requerida = plan["requerida"]
     proy_plan = vendido_monto + por_vender_plan
     proy_lista = vendido_monto + por_vender_lista
@@ -227,6 +274,22 @@ def calcular_pricing(proyecto, ventas, stock, plan, hoy=None, params=None):
     # Desfase de la lista de hoy frente al precio que toca en el tramo actual
     obj_actual = sum(u["precio_tramo"][t_actual["n"]] for u in disponibles)
     desfase_lista = (por_vender_lista / obj_actual - 1) if obj_actual else None
+
+    # ── Recaudación por tramo: lo que se proyecta que junta cada tramo ──
+    # Separaciones: en su turno, a su precio pactado. Resto: cada turno al S/ m²
+    # de su tramo × el área·factor promedio de lo que queda (mismo valor esperado
+    # que la proyección total, solo que repartido por tramo).
+    proy_tramo = {t["n"]: 0.0 for t in tramos}
+    und_tramo = {t["n"]: 0 for t in tramos}
+    for k, u in enumerate(seps, start=n_vend + 1):
+        n = tramo_vigente(min(k, total_und), hoy_ts)["n"]
+        proy_tramo[n] += u["pactado"]; und_tramo[n] += 1
+    af_prom = (sum(u["area"] * u["factor"] for u in resto) / len(resto)) if resto else 0
+    for k in turnos:
+        t_k = tramo_vigente(k, hoy_ts)
+        proy_tramo[t_k["n"]] += t_k["pm2"] * af_prom; und_tramo[t_k["n"]] += 1
+    # Meta de cada tramo, como la tabla de presupuesto: unidades × área promedio × S/ m²
+    area_prom_plan = (plan.get("area_plan") or 0) / (plan.get("unidades_plan") or 1) if plan.get("area_plan") else area_tot / total_und
 
     # ── Tabla por tramo ──
     tabla_tramos = []
@@ -258,6 +321,9 @@ def calcular_pricing(proyecto, ventas, stock, plan, hoy=None, params=None):
             "pm2_real": pm2_real,
             "desv_pm2": (pm2_real / t["pm2"] - 1) if pm2_real else None,
             "monto_vendido": sum(v["precio"] for v in vt),
+            "meta_recaudacion": t["unidades"] * area_prom_plan * t["pm2"],
+            "recaudacion_proyectada": sum(v["precio"] for v in vt) + proy_tramo[t["n"]],
+            "und_proyectadas": len(vt) + und_tramo[t["n"]],
             "objetivo": obj, "dif_objetivo": dif,
             "ritmo_plan": t["velocidad"],
             "ritmo_real": (len(vt) / meses) if meses else None,
@@ -435,6 +501,12 @@ def calcular_pricing(proyecto, ventas, stock, plan, hoy=None, params=None):
             "ritmo_3m": ritmo_3m, "ritmo_plan_actual": t_actual["velocidad"],
             "perfil_a_hoy": perfil_hoy, "inicio_plan": inicio.strftime("%Y-%m-%d"),
             "factor_lista": pm2_lista_prom,
+            "tc": tc, "listas_usd": n_usd,
+            "separaciones_monto": sep_monto, "separaciones_meta": sep_meta,
+            "separaciones_dif": sep_monto - sep_meta,
+            "area_vendida": sum(v["area"] or 0 for v in vendidos),
+            "area_prom_plan": area_prom_plan,
+            "area_por_vender": sum(u["area"] for u in disponibles),
             "tramo_siguiente": t_sig["n"], "pm2_tramo_siguiente": t_sig["pm2"],
             "tramo_cupo": t_cupo["n"], "tramo_obra": n_obra_hoy or None, "motivo_tramo": motivo,
             "obra_historial": [{"tramo": t, "desde": d.strftime("%Y-%m-%d")} for d, t in obra],
@@ -448,7 +520,9 @@ def calcular_pricing(proyecto, ventas, stock, plan, hoy=None, params=None):
             "edificio": u["edificio"], "nro": u["nro"], "modelo": u["modelo"],
             "piso": u["piso"], "dorm": u["dorm"], "area": round(u["area"], 2),
             "estado": u["estado"], "lista_hoy": u["lista_hoy"], "final_hoy": u["final_hoy"],
-            "factor": u["factor"], "esperado": u["area"] * u["factor"] * pm2_esperado,
+            "factor": u["factor"],
+            "esperado": u["pactado"] if "pactado" in u else u["area"] * u["factor"] * pm2_esperado,
+            "pactado": u.get("pactado"),
             "precio_tramo": {str(k): x for k, x in u["precio_tramo"].items()},
             "lista_sug_act": u["lista_sug_act"], "lista_sug_sig": u["lista_sug_sig"],
             "lista_sug_act_rec": u["lista_sug_act_rec"], "lista_sug_sig_rec": u["lista_sug_sig_rec"],
